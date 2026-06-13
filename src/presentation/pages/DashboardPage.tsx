@@ -30,16 +30,16 @@ interface DashboardPageProps {}
 
 /**
  * @function DashboardPage
- * @description Komponen utama yang merender tata letak dashboard Faskes 1[cite: 12].
- * Mengorkestrasi visualisasi data real-time streaming mode dan historical review mode[cite: 131].
+ * @description Komponen utama yang merender tata letak dashboard Faskes 1
+ * Mengorkestrasi visualisasi data real-time streaming mode dan historical review mode
  * * @param {DashboardPageProps} props - Properti komponen (jika ada).
  * @returns {React.JSX.Element} Struktur DOM komponen Dashboard Page.
  * * @mechanism
- * 1. Memanggil custom hooks `useDeviceBinding` untuk mendapatkan status otentikasi PIN dan kendali Wi-Fi lokal[cite: 8, 16, 19].
- * 2. Memanggil custom hooks `useECGStream` untuk mendapatkan state segment data kontinu, label AI, dan riwayat indeks anomali[cite: 8, 133].
- * 3. Menyediakan container responsif untuk merender 7-lead ECG secara vertikal sejajar[cite: 131, 138].
- * 4. Menyediakan area interaktif "Timeline Event Pagination" di bawah grafik untuk navigasi history audit nakes[cite: 133].
- * 5. Mengisolasi seluruh fungsi rendering visual agar tidak memicu bottleneck komputasi pada browser gawai[cite: 131].
+ * 1. Memanggil custom hooks `useDeviceBinding` untuk mendapatkan status otentikasi PIN dan kendali Wi-Fi lokal
+ * 2. Memanggil custom hooks `useECGStream` untuk mendapatkan state segment data kontinu, label AI, dan riwayat indeks anomali
+ * 3. Menyediakan container responsif untuk merender 7-lead ECG secara vertikal sejajar
+ * 4. Menyediakan area interaktif "Timeline Event Pagination" di bawah grafik untuk navigasi history audit nakes
+ * 5. Mengisolasi seluruh fungsi rendering visual agar tidak memicu bottleneck komputasi pada browser gawai
  */
 export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
   /**
@@ -53,22 +53,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
 
   /**
    * @function handleToggleReviewMode
-   * @description Mengubah view state dari real-time streaming ke historical review mode berdasarkan event klik nakes[cite: 131].
-   * @param {string} segmentId - ID unik segmen (UUID) yang dipilih dari kotak pagination[cite: 133, 362].
+   * @description Mengubah view state dari real-time streaming ke historical review mode berdasarkan event klik nakes
+   * @param {string} segmentId - ID unik segmen (UUID) yang dipilih dari kotak pagination
    * @returns {void}
    */
   const handleToggleReviewMode = (segmentId: string): void => {
-    // Skeleton function untuk memicu pembacaan IndexedDB asinkron tanpa merusak main thread UI [cite: 131, 133]
+    // Skeleton function untuk memicu pembacaan IndexedDB asinkron tanpa merusak main thread UI
   };
 
   /**
    * @function handleTriggerLocalNotification
-   * @description Memanggil Notification API browser untuk memberikan alert visual jika core logic mendeteksi label kritis[cite: 131].
-   * @param {string} alertLabel - Jenis aritmia kritis (AFIB / VT)[cite: 131, 232].
+   * @description Memanggil Notification API browser untuk memberikan alert visual jika core logic mendeteksi label kritis
+   * @param {string} alertLabel - Jenis aritmia kritis (AFIB / VT)
    * @returns {void}
    */
   const handleTriggerLocalNotification = (alertLabel: string): void => {
-    // Skeleton function untuk membangkitkan push notification darurat di gawai nakes [cite: 131]
+    // Skeleton function untuk membangkitkan push notification darurat di gawai nakes
   };
 
   return <div className="dashboard-page-container">{/* Seluruh struktur JSX render layout kosong untuk diisi oleh tim pengembang antarmuka */}</div>;

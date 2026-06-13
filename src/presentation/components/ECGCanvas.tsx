@@ -40,8 +40,8 @@ interface ECGCanvasProps {
  * @returns {React.JSX.Element} Elemen kanvas grafik multi-channel.
  * @mechanism
  * 1. Mengakses elemen HTML5 Canvas menggunakan React `useRef` untuk manipulasi grafis tingkat rendah (2D Context).
- * 2. Menggambar latar belakang ornamen grid medis standar (1 kotak kecil = 0.04s fisis, 1 kotak besar = 0.2s fisis)[cite: 9, 291, 292].
- * 3. Memetakan 2500 titik sampel data voltase dari masing-masing 7-lead ke dalam koordinat piksel kanvas secara vertikal sejajar[cite: 9, 312, 393].
+ * 2. Menggambar latar belakang ornamen grid medis standar (1 kotak kecil = 0.04s fisis, 1 kotak besar = 0.2s fisis)
+ * 3. Memetakan 2500 titik sampel data voltase dari masing-masing 7-lead ke dalam koordinat piksel kanvas secara vertikal sejajar
  * 4. Melakukan loop gambar garis sinusoidal: jika indeks berjalan berada di dalam rentang `anomalyIndices`, ubah warna stroke context menjadi merah menyala (#E71D36).
  * 5. Menerapkan optimalisasi performa (seperti menonaktifkan animasi bawaan atau decimating data) agar rendering multi-channel tidak memicu lag UI.
  */
@@ -62,7 +62,7 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({ transformedData, anomalyIn
    * @description Merender garis kelistrikan jantung dari data array voltase ke kanvas.
    * @private
    * @param {CanvasRenderingContext2D} ctx - Konteks grafis 2D dari elemen kanvas HTML5.
-   * @param {number[]} leadData - Array data voltase tunggal berisi 2500 elemen sampel[cite: 9, 393].
+   * @param {number[]} leadData - Array data voltase tunggal berisi 2500 elemen sampel
    * @param {number} verticalOffset - Jarak pergeseran vertikal untuk memisahkan posisi antar-lead.
    * @returns {void}
    */
@@ -72,7 +72,7 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({ transformedData, anomalyIn
 
   /**
    * @function handleCanvasZoomSync
-   * @description Sinkronisasi visual perbesaran (zooming) skala waktu secara serentak di 7 jalur lead[cite: 9, 301].
+   * @description Sinkronisasi visual perbesaran (zooming) skala waktu secara serentak di 7 jalur lead
    * @param {number} scaleFactor - Faktor pengali perbesaran horizontal.
    * @returns {void}
    */

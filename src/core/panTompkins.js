@@ -7,8 +7,8 @@
 
 /**
  * @function detectRPeaks
- * @description Memproses data mentah ECG melalui tahapan filter digital untuk mengunci indeks R-Peaks[cite: 131, 136].
- * @param {number[]} signalChannel - Array tunggal berisi data voltase (mV) sepanjang 2500 sampel (umumnya menggunakan Lead II)[cite: 393].
+ * @description Memproses data mentah ECG melalui tahapan filter digital untuk mengunci indeks R-Peaks
+ * @param {number[]} signalChannel - Array tunggal berisi data voltase (mV) sepanjang 2500 sampel (umumnya menggunakan Lead II)
  * @returns {number[]} Array berisi daftar koordinat indeks temporal di mana puncak R ditemukan.
  * @mechanism
  * 1. Lowpass Filter: Menghilangkan noise frekuensi tinggi seperti interferensi otot (EMG).
