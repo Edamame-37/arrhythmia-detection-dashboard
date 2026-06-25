@@ -1,0 +1,115 @@
+/**
+ * @fileoverview Custom CSS 
+ * Menampung gaya spesifik yang tidak bisa dijangkau oleh Tailwind utilitas murni,
+ * seperti modifikasi WebKit Scrollbar, Keyframe Animations, dan komponen Kanvas.
+ * Ditambahkan proteksi !important untuk Google Material Symbols.
+ */
+
+
+/* ============================================================================
+ * 1. PROTEKSI GOOGLE MATERIAL SYMBOLS
+ * ============================================================================ */
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    word-wrap: normal !important;
+    white-space: nowrap !important;
+    direction: ltr !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+
+/* ============================================================================
+ * 2. STRUKTUR JALUR JALUR LEAD (WAVEFORM STRIP)
+ * ============================================================================ */
+
+.waveform-strip {
+    height: 120px;
+    width: 100%;
+    position: relative;
+    border-bottom: 2px solid rgba(255, 166, 201, 0.8);
+}
+
+.waveform-strip:last-child {
+    border-bottom: none;
+}
+
+
+/* ============================================================================
+ * 3. ANIMASI KLINIS & NOTIFIKASI
+ * ============================================================================ */
+
+
+/* Animasi Kritis (VT/AFIB Detected) */
+
+@keyframes pulse-red {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+.pulse-animation {
+    animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+
+/* Animasi Pop-up Notifikasi Darurat Slidin */
+
+@keyframes slide-in {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.floating-alert {
+    animation: slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+
+/* ============================================================================
+ * 4. MODIFIKASI DESAIN SCROLLBAR MEDIS (WEBKIT)
+ * ============================================================================ */
+
+.custom-scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #eaefef;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1A939E;
+    border-radius: 4px;
+}
+
+
+/* Utilitas Penyembunyi Scrollbar */
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
