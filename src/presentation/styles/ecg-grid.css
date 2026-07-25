@@ -1,115 +1,115 @@
 /**
- * Layer       : Presentation Layer (Styles)
- * File Name   : ecg-grid.css
- * Description : Gaya CSS modular untuk merender background ornamen grid kertas 
- * medis standar fisik rumah sakit (0.04s x 0.1mV) pada elemen kanvas HTML5,
- * serta mengatur layout kartu notifikasi dan visualisasi antarmuka.
+ * @fileoverview Custom CSS 
+ * Menampung gaya spesifik yang tidak bisa dijangkau oleh Tailwind utilitas murni,
+ * seperti modifikasi WebKit Scrollbar, Keyframe Animations, dan komponen Kanvas.
+ * Ditambahkan proteksi !important untuk Google Material Symbols.
  */
 
-/**
- * @cssblock .ecg-grid-canvas
- * @description Mengonfigurasi background kanvas agar meniru visualisasi kertas grafis ECG fisis.
- * @mechanism
- * - Menggunakan linear-gradient berlapis untuk menciptakan grid dua dimensi (X dan Y).
- * - Grid Kecil (Minor Grid): Mewakili skala fisis 0.04 detik (horizontal) / 0.1 mV (vertikal).
- * - Grid Besar (Major Grid): Mewakili skala fisis 0.2 detik (horizontal) / 0.5 mV (vertikal).
- * - Menggunakan warna merah muda konstan (pink/salmon) untuk mempertahankan familiaritas klinis bagi nakes.
- */
-.ecg-grid-canvas {
-  /* Batasan ukuran dimensi kanvas dikunci responsif oleh pembungkusnya */
-  width: 100%;
-  height: auto;
-  display: block;
-  position: relative;
 
-  /* Pewarnaan dasar latar belakang kanvas medis */
-  background-color: #fff5f5;
+/* ============================================================================
+ * 1. PROTEKSI GOOGLE MATERIAL SYMBOLS
+ * ============================================================================ */
 
-  /* * TODO: Implementasikan rancangan linear-gradient dua lapis:
-   * 1. Lapisan grid kecil berjarak piksel konstan (e.g., 5px) dengan warna garis merah muda tipis.
-   * 2. Lapisan grid besar berjarak 5x grid kecil (e.g., 25px) dengan warna garis merah muda tebal.
-   */
-  background-image:
-    linear-gradient(to right, rgba(231, 29, 54, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(231, 29, 54, 0.15) 1px, transparent 1px), linear-gradient(to right, rgba(231, 29, 54, 0.4) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(231, 29, 54, 0.4) 1px, transparent 1px);
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    word-wrap: normal !important;
+    white-space: nowrap !important;
+    direction: ltr !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
 }
 
-/**
- * @cssblock .ecg-anomaly-segment
- * @description Kelas penanda visual khusus untuk highlight segmen anomali.
- * @mechanism
- * Mengunci kode warna merah menyala medis (#E71D36) untuk variabel stroke garis grafik
- * yang berada di dalam koordinat rentang array `anomaly_indices` dari model AI.
- */
-.ecg-anomaly-segment {
-  color: #e71d36;
+
+/* ============================================================================
+ * 2. STRUKTUR JALUR JALUR LEAD (WAVEFORM STRIP)
+ * ============================================================================ */
+
+.waveform-strip {
+    height: 120px;
+    width: 100%;
+    position: relative;
+    border-bottom: 2px solid rgba(255, 166, 201, 0.8);
 }
 
-/**
- * @cssblock .timeline-pagination-container
- * @description Mengatur tata letak barisan kotak navigasi pagination (Timeline Event Pagination).
- * @mechanism
- * - Menerapkan Flexbox/Grid layout horizontal untuk menyusun kotak-kotak kecil per segmen 10 detik.
- * - Menyediakan pembungkus dengan overflow terkendali agar navigasi aman dimuat pada gawai mobile/tablet.
- */
-.timeline-pagination-container {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 8px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
+.waveform-strip:last-child {
+    border-bottom: none;
 }
 
-/**
- * @cssblock .timeline-box
- * @description Gaya visual dasar untuk kotak indikator status segmen per halaman.
- * @mechanism
- * - Kotak berukuran konstan (kotak semantik interaktif).
- * - Status Normal: Menggunakan background warna hijau medis (e.g., #2EC4B6) untuk indikasi irama aman.
- * - Status Aritmia: Menggunakan background warna merah menyala (#E71D36) untuk indikasi serangan kritis.
- */
-.timeline-box {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s ease-in-out;
+
+/* ============================================================================
+ * 3. ANIMASI KLINIS & NOTIFIKASI
+ * ============================================================================ */
+
+
+/* Animasi Kritis (VT/AFIB Detected) */
+
+@keyframes pulse-red {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
 }
 
-.timeline-box.status-normal {
-  background-color: #2ec4b6;
-  color: #ffffff;
+.pulse-animation {
+    animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.timeline-box.status-arrhythmia {
-  background-color: #e71d36;
-  color: #ffffff;
-  animation: pulse-alert 2s infinite;
+
+/* Animasi Pop-up Notifikasi Darurat Slidin */
+
+@keyframes slide-in {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.timeline-box.is-active {
-  border: 2px solid #011627;
-  transform: scale(1.05);
+.floating-alert {
+    animation: slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/**
- * @keyframes pulse-alert
- * @description Efek animasi berdenyut (pulsing) untuk menarik perhatian visual nakes saat serangan kritis terjadi.
- */
-@keyframes pulse-alert {
-  0% {
-    box-shadow: 0 0 0 0 rgba(231, 29, 54, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(231, 29, 54, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(231, 29, 54, 0);
-  }
+
+/* ============================================================================
+ * 4. MODIFIKASI DESAIN SCROLLBAR MEDIS (WEBKIT)
+ * ============================================================================ */
+
+.custom-scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #eaefef;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1A939E;
+    border-radius: 4px;
+}
+
+
+/* Utilitas Penyembunyi Scrollbar */
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
