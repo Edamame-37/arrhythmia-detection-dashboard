@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import type { TimelineEvent } from '../../application/useECGStream';
+import type { TimelineEvent } from '../../../core/types/ecgTypes';
 
 interface TimelineBarProps {
     events: TimelineEvent[];

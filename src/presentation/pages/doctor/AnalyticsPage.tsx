@@ -5,9 +5,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ECGCanvas } from '../components/ECGCanvas';
-import { TimelineBar } from '../components/TimelineBar';
-import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../application/useECGStream';
+import { Link } from 'react-router-dom';
+import { ECGCanvas } from '../../components/canvas/ECGCanvas';
+import { TimelineBar } from '../../components/shared/TimelineBar';
+import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 
 // ============================================================================
 // GENERATOR DATA SIMULASI (Hanya untuk keperluan UI sebelum Backend DB Siap)
@@ -78,13 +79,13 @@ export const AnalyticsPage: React.FC = () => {
                         <span className="material-symbols-outlined text-[24px]">arrow_back</span>
                     </button>
 
-                    <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                    <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                         <img src="/icons/logo.png" alt="Logo" className="h-8 w-8 md:h-9 md:w-9 object-contain drop-shadow-sm" />
                         <span className="text-[1.3rem] md:text-2xl font-extrabold tracking-tighter flex items-center">
                             <span className="text-brand-red">ecg</span>
                             <span className="text-brand-navy">rhythmia <span className="text-sm font-medium text-outline ml-2 hidden sm:inline-block">| Analytics</span></span>
                         </span>
-                    </a>
+                    </Link>
                 </div>
 
                 <div className="hidden md:flex items-center gap-3 px-6 py-2 bg-surface-container-low rounded-full border border-outline-variant/60 shadow-inner">
@@ -158,7 +159,7 @@ export const AnalyticsPage: React.FC = () => {
                     <TimelineBar 
                         events={events} 
                         currentIdx={selectedIdx} 
-                        onSegmentSelect={(idx) => {
+                        onSegmentSelect={(idx: number) => {
                             setIsLoading(true);
                             setTimeout(() => {
                                 setSelectedIdx(idx);

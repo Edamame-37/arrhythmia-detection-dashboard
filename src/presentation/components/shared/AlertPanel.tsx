@@ -6,14 +6,14 @@
 
 import React from 'react';
 
-interface NotificationPanelProps {
+interface AlertPanelProps {
     visible: boolean;
     title: string;
     message?: string;
     onClose: () => void;
 }
 
-export const NotificationPanel: React.FC<NotificationPanelProps> = ({
+export const AlertPanel: React.FC<AlertPanelProps> = ({
     visible,
     title,
     message = "Segera lakukan tindakan evaluasi klinis atau siapkan intervensi defibrilasi.",

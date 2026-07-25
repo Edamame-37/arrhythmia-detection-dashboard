@@ -1,32 +1,68 @@
-# React + TypeScript + Vite
+# Arrhythmia Detection Dashboard (ECG Simulation)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A real-time medical dashboard designed for streaming and monitoring Electrocardiogram (ECG) data, featuring advanced clinical algorithms and AI-powered arrhythmia detection. 
 
-Currently, two official plugins are available:
+This project simulates a medical device monitor, streaming high-frequency ECG data through a robust Rust-based WebSocket backend to a highly responsive React frontend rendered via HTML Canvas.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Features
 
-## React Compiler
+- **Real-Time ECG Streaming:** High-performance data streaming from backend to frontend.
+- **AI Arrhythmia Detection:** Integrates AI model predictions for clinical insights.
+- **Clinical Algorithms:** Implements Einthoven, Pan-Tompkins, and Peak-to-Peak algorithms for signal processing.
+- **HTML Canvas Rendering:** Smooth, performant rendering of ECG waveforms using custom React Canvas components.
+- **Clean Architecture:** Strict separation of concerns (Core, Data, Application, Presentation layers) in the frontend.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Technology Stack
 
-## Expanding the Oxlint configuration
+### Frontend (React + Vite)
+- **Framework:** React 19 + TypeScript + Vite
+- **Styling:** Tailwind CSS
+- **State Management:** Custom Hooks (`useECGStream`)
+- **Rendering:** HTML5 `<canvas>` for high-performance waveform visualization
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### Backend (Rust)
+- **Language:** Rust (Edition 2021)
+- **WebSockets:** `tungstenite` for TCP Server and WebSocket streaming (Port 8080)
+- **Data Parsing:** `csv` crate for reading simulated medical data
+- **Serialization:** `serde` & `serde_json`
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## 📂 Project Architecture
+
+```text
+├── backend/               # Rust WebSocket Server
+│   ├── src/models/        # Data structures & JSON payloads
+│   ├── src/data/          # CSV reading & Data simulation
+│   ├── src/network/       # WebSocket handling (Port 8080)
+│   └── src/main.rs        # Backend entry point
+├── src/                   # React Frontend
+│   ├── core/              # Pure clinical logic (Algorithms, Rule Engines)
+│   ├── data/              # Network & Security (WebSockets, Checksum)
+│   ├── application/       # State management hooks
+│   └── presentation/      # UI Components (Dashboard, Canvas, Layout)
+└── best_model.keras       # AI Model for Arrhythmia Detection
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## ⚙️ Getting Started
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18+)
+- [Rust & Cargo](https://rustup.rs/)
+
+### 1. Run the Backend (Rust)
+Navigate to the backend directory and start the WebSocket server:
+```bash
+cd backend
+cargo run
+```
+*The server will start on `ws://127.0.0.1:8080` and begin streaming data.*
+
+### 2. Run the Frontend (React)
+Open a new terminal window, install dependencies, and start the development server:
+```bash
+npm install
+npm run dev
+```
+*The dashboard will be available at `http://localhost:5173`.*
+
+## 📜 License
+This project is for educational and simulation purposes.
