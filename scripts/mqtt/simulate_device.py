@@ -13,7 +13,7 @@ BROKER_HOST = "93d81a02c1f743b6ab4ea22d7ad9c3e0.s1.eu.hivemq.cloud"
 BROKER_PORT = 8883
 USERNAME = "ecg-undip"
 PASSWORD = "undipjaya"
-TOPIC = "ecgrhythmia/device01"
+TOPIC = "ecgrhythmia/device01/"
 
 def generate_ecg_samples(sampling_rate, duration, heartbeat_bpm=75):
     """
@@ -129,6 +129,26 @@ def main():
             # Generate ECG samples
             samples = generate_ecg_samples(sampling_rate, duration)
 
+            # Randomize prediction details to align with the schema
+            labels = ["Normal", "AF", "Takikardia", "Bradikardia"]
+            # Normal has 80% weight, AF has 10%, Takikardia 5%, Bradikardia 5%
+            pred_label = random.choices(labels, weights=[80, 10, 5, 5])[0]
+            confidence = round(random.uniform(85.0, 99.5), 2)
+            
+            # Distribute remaining probability among other labels
+            remaining = round(100.0 - confidence, 2)
+            other_labels = [l for l in labels if l != pred_label]
+            p1 = round(random.uniform(0.05, remaining * 0.6), 2)
+            p2 = round(random.uniform(0.05, (remaining - p1) * 0.8), 2)
+            p3 = round(100.0 - confidence - p1 - p2, 2)
+            
+            probabilities = {
+                pred_label: confidence,
+                other_labels[0]: p1,
+                other_labels[1]: p2,
+                other_labels[2]: p3
+            }
+
             # Construct Payload
             payload = {
                 "schema_version": 1,
@@ -156,14 +176,9 @@ def main():
 
                 "prediction": {
                     "status": "PASS",
-                    "label": "Normal" if random.random() > 0.15 else "AF",
-                    "confidence_percent": round(random.uniform(85.0, 99.5), 2),
-                    "probabilities": {
-                        "Normal": 95.0,
-                        "AF": 3.0,
-                        "Takikardia": 1.0,
-                        "Bradikardia": 1.0
-                    },
+                    "label": pred_label,
+                    "confidence_percent": confidence,
+                    "probabilities": probabilities,
                     "threshold": 0.5,
                     "latency_ms": round(random.uniform(10.0, 15.0), 1),
                     "runtime": "ai-edge-litert"
@@ -174,8 +189,7 @@ def main():
                     "memory_usage_percent": mem_usage_pct,
                     "memory_usage_mb": mem_usage_mb,
                     "cpu_temperature_c": cpu_temp,
-                    "uptime_s": uptime,
-                    "battery_percent": battery_level  # Add simulated battery level
+                    "uptime_s": uptime
                 },
 
                 "stress_test": {
