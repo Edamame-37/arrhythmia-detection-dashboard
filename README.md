@@ -46,23 +46,43 @@ This project simulates a medical device monitor, streaming high-frequency ECG da
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18+)
-- [Rust & Cargo](https://rustup.rs/)
+- [Python 3.10+](https://www.python.org/)
 
-### 1. Run the Backend (Rust)
-Navigate to the backend directory and start the WebSocket server:
+### 1. Install Dependencies
+Install React frontend packages and Python dependencies:
 ```bash
-cd backend
-cargo run
-```
-*The server will start on `ws://127.0.0.1:8080` and begin streaming data.*
-
-### 2. Run the Frontend (React)
-Open a new terminal window, install dependencies, and start the development server:
-```bash
+# Install React dependencies
 npm install
+
+# Install Python MQTT listener & analysis requirements
+pip install -r scripts/mqtt/requirements.txt
+```
+
+### 2. Run the MQTT Listener & WebSocket Bridge
+The listener script connects to the cloud MQTT broker to receive incoming ECG frames, saves raw JSON/CSVs in the `dataset/` directory, checks packet loss, and runs a local WebSocket server (on port `8080`) to bridge and stream this data in real-time directly to the React dashboard.
+```bash
+python scripts/mqtt/mqtt_listener.py
+```
+
+### 3. Run the Frontend Dashboard (React)
+Start the Vite development server. The frontend will automatically connect to the WebSocket bridge at `ws://127.0.0.1:8080` and render live ECG telemetry.
+```bash
 npm run dev
 ```
 *The dashboard will be available at `http://localhost:5173`.*
+
+### 4. Run the Device Simulator (Optional)
+To publish simulated ECG waves, CPU metrics, and a draining battery level to the MQTT broker for testing:
+```bash
+python scripts/mqtt/simulate_device.py --interval 10.0 --battery-start 100.0
+```
+
+### 5. Run Stress Test Diagnostics
+To check packet loss rates, analyze CPU metrics, calculate battery depletion times, and generate diagnostic plots:
+```bash
+python scripts/mqtt/analyze_stress_test.py
+```
+*Charts will be saved to `dataset/plots/stress_test_analysis.png`.*
 
 ## 📜 License
 This project is for educational and simulation purposes.
