@@ -13,7 +13,7 @@ BROKER_HOST = "93d81a02c1f743b6ab4ea22d7ad9c3e0.s1.eu.hivemq.cloud"
 BROKER_PORT = 8883
 USERNAME = "ecg-undip"
 PASSWORD = "undipjaya"
-TOPIC = "ecgrhythmia/device01/frame"
+TOPIC = "ecgrhythmia/device01"
 
 def generate_ecg_samples(sampling_rate, duration, heartbeat_bpm=75):
     """
@@ -192,7 +192,7 @@ def main():
 
             # Publish message
             payload_str = json.dumps(payload)
-            result = client.publish(TOPIC, payload_str, qos=1)
+            result = client.publish(TOPIC, payload_str, qos=1, retain=False)
             status = result[0]
             if status == 0:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Frame {frame_counter} published. Timestamp: {timestamp_str}, Battery: {battery_level}%, CPU Temp: {cpu_temp}°C")

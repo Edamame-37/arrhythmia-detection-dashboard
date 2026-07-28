@@ -14,7 +14,7 @@ BROKER_HOST = "93d81a02c1f743b6ab4ea22d7ad9c3e0.s1.eu.hivemq.cloud"
 BROKER_PORT = 8883
 USERNAME = "ecg-undip"
 PASSWORD = "undipjaya"
-TOPIC = "ecgrhythmia/device01/"
+TOPIC = "ecgrhythmia/device01"
 QOS = 1
 
 # Setup dataset directories relative to the script location
@@ -78,10 +78,26 @@ def forward_to_web(server_message):
         asyncio.run_coroutine_threadsafe(broadcast_to_clients(server_message), main_loop)
 
 def process_payload(payload_str):
+    # Log incoming raw payload in terminal
+    now = datetime.now(timezone.utc)
+    now_local = datetime.now()
+    
+    print("\n" + "="*80)
+    print(f"[NEW PAYLOAD RECEIVED] {now_local.strftime('%Y-%m-%d %H:%M:%S')}")
+    print("-"*80)
+    # Print the raw payload string
+    # Truncate if it's extremely long to avoid cluttering, but show the first 1000 characters
+    if len(payload_str) > 1000:
+        print(f"Raw Payload (truncated, length={len(payload_str)}):\n{payload_str[:1000]}...")
+    else:
+        print(f"Raw Payload:\n{payload_str}")
+    print("-"*80)
+
     try:
         data = json.loads(payload_str)
     except json.JSONDecodeError as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [ERROR] Failed to parse JSON payload: {e}")
+        print(f"[ERROR] Failed to parse JSON payload: {e}")
+        print("="*80 + "\n")
         return
 
     # Extract critical metadata
@@ -93,15 +109,32 @@ def process_payload(payload_str):
     stress_test = data.get("stress_test", {})
     frame_counter = stress_test.get("frame_counter")
     
-    # Log receive status
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [INFO] Received frame {frame_id} (Counter: {frame_counter}) from {device_id}")
-
-    # Parse timestamp
+    # Parse timestamp and calculate latency
+    latency_sec = 0.0
+    latency_ms = 0
     try:
         current_created_at = datetime.fromisoformat(created_at_str)
+        if current_created_at.tzinfo is None:
+            # Assume UTC offset +07:00 if naive
+            created_utc = current_created_at.replace(tzinfo=timezone(timedelta(hours=7))).astimezone(timezone.utc)
+        else:
+            created_utc = current_created_at.astimezone(timezone.utc)
+        latency_sec = (now - created_utc).total_seconds()
+        latency_ms = int(latency_sec * 1000)
     except Exception as e:
         print(f"Error parsing created_at timestamp: {e}")
         current_created_at = None
+        created_utc = None
+
+    # Print Latency Comparison
+    print(f"Latency Analysis for Frame {frame_id} (Counter: {frame_counter}) from {device_id}:")
+    if created_utc:
+        print(f"  - Created At (UTC):  {created_utc.isoformat()}")
+        print(f"  - Received At (UTC): {now.isoformat()}")
+        print(f"  - End-to-End Latency: {latency_ms} ms ({latency_sec:.3f} seconds)")
+    else:
+        print("  - Latency comparison unavailable (created_at missing/invalid)")
+    print("="*80 + "\n")
 
     # Check for Packet Loss
     check_packet_loss(frame_id, frame_counter, current_created_at, data.get("duration_s", 10.0))
@@ -111,9 +144,17 @@ def process_payload(payload_str):
     state["last_frame_counter"] = frame_counter
     state["last_created_at"] = current_created_at
 
-    # Create safe base filename
-    safe_time = sanitize_filename(created_at_str or datetime.now().isoformat())
-    file_basename = f"{device_id}_frame_{frame_id}_{safe_time}"
+    # Create safe base filename using both created_at and received_at
+    safe_created_time = sanitize_filename(created_at_str or datetime.now().isoformat())
+    safe_received_time = sanitize_filename(now.isoformat())
+    file_basename = f"{device_id}_frame_{frame_id}_created_{safe_created_time}_received_{safe_received_time}"
+
+    # Embed received metadata into the JSON payload
+    data["metadata_received"] = {
+        "received_at": now.isoformat(),
+        "latency_ms": latency_ms,
+        "latency_sec": latency_sec
+    }
 
     # 1. Save raw JSON
     json_path = os.path.join(RAW_DIR, f"{file_basename}.json")
