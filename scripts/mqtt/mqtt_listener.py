@@ -14,7 +14,7 @@ BROKER_HOST = "93d81a02c1f743b6ab4ea22d7ad9c3e0.s1.eu.hivemq.cloud"
 BROKER_PORT = 8883
 USERNAME = "ecg-undip"
 PASSWORD = "undipjaya"
-TOPIC = "ecgrhythmia/device01/frame"
+TOPIC = "ecgrhythmia/device01/"
 QOS = 1
 
 # Setup dataset directories relative to the script location
