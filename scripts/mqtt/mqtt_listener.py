@@ -280,13 +280,21 @@ def check_packet_loss(frame_id, frame_counter, current_created_at, duration_s):
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print(f"Successfully connected to MQTT Broker: {BROKER_HOST}")
-        client.subscribe(TOPIC, qos=QOS)
-        print(f"Subscribed to topic: {TOPIC} with QoS {QOS}")
+        # Subscribe to multiple topic patterns to handle trailing slashes and wildcard matches robustly
+        topics = [
+            (TOPIC, QOS),
+            ("ecgrhythmia/device01", QOS),
+            ("ecgrhythmia/device01/", QOS),
+            ("ecgrhythmia/device01/#", QOS)
+        ]
+        client.subscribe(topics)
+        print(f"Subscribed to topics: {list(set([t[0] for t in topics]))}")
     else:
         print(f"Connection failed with result code: {rc}")
 
 def on_message(client, userdata, msg):
     try:
+        print(f"\n[MQTT] Message received on topic: {msg.topic}")
         payload_str = msg.payload.decode("utf-8")
         process_payload(payload_str)
     except Exception as e:
@@ -319,8 +327,13 @@ def main():
     client.username_pw_set(USERNAME, PASSWORD)
     
     # Configure TLS
-    context = ssl.create_default_context()
-    client.tls_set_context(context)
+    try:
+        # Standard tls_set recommended for Paho client connection to HiveMQ Cloud
+        client.tls_set(tls_version=ssl.PROTOCOL_TLS_CLIENT)
+    except Exception as e:
+        print(f"Warning: tls_set failed ({e}). Falling back to create_default_context...")
+        context = ssl.create_default_context()
+        client.tls_set_context(context)
 
     # Set callbacks
     client.on_connect = on_connect

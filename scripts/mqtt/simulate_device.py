@@ -84,8 +84,12 @@ def main():
     client.username_pw_set(USERNAME, PASSWORD)
     
     # Configure TLS
-    context = ssl.create_default_context()
-    client.tls_set_context(context)
+    try:
+        client.tls_set(tls_version=ssl.PROTOCOL_TLS_CLIENT)
+    except Exception as e:
+        print(f"Warning: tls_set failed ({e}). Falling back to create_default_context...")
+        context = ssl.create_default_context()
+        client.tls_set_context(context)
 
     print(f"Connecting to MQTT Broker {BROKER_HOST}:{BROKER_PORT}...")
     client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
