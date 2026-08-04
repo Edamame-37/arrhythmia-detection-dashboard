@@ -6,6 +6,8 @@ This project simulates a medical device monitor, streaming high-frequency ECG da
 
 ## 🚀 Features
 
+- **Progressive Web App (PWA):** Fully installable on Desktop and Mobile devices, featuring an offline-ready caching mechanism and background auto-updates.
+- **Backend Synchronization:** Seamless state synchronization for patient profiles with a graceful mock/local storage fallback when the API server is unreachable.
 - **Real-Time ECG Streaming:** High-performance data streaming from backend to frontend.
 - **AI Arrhythmia Detection:** Integrates AI model predictions for clinical insights.
 - **Clinical Algorithms:** Implements Einthoven, Pan-Tompkins, and Peak-to-Peak algorithms for signal processing.
@@ -63,6 +65,17 @@ npm install
 npm run dev
 ```
 *The dashboard will be available at `http://localhost:5173`.*
+
+### 3. PWA Installation (Optional)
+To install the dashboard as a standalone application on your device:
+1. Build and preview the production version:
+   ```bash
+   npm run build
+   npm run preview
+   ```
+2. Open the URL in your browser (e.g., Google Chrome or Edge).
+3. Click the **"Install App"** icon located on the right side of the address bar.
+4. The dashboard will now launch from your home screen or desktop, capable of functioning gracefully without an active internet connection.
 
 ## 📜 License
 This project is for educational and simulation purposes.
