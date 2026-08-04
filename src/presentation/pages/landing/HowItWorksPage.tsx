@@ -2,193 +2,159 @@ import React from 'react';
 import { PublicHeader } from '../../components/layout/PublicHeader';
 import { PublicFooter } from '../../components/layout/PublicFooter';
 
+const RevealContent: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => {
+    const [isVisible, setIsVisible] = React.useState(false);
+    const ref = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                } else {
+                    setIsVisible(false);
+                }
+            },
+            { threshold: 0.15 }
+        );
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div
+            ref={ref}
+            className={`transition-all duration-700 ease-in-out transform w-full ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'} ${className || ''}`}
+        >
+            {children}
+        </div>
+    );
+};
+
 export const HowItWorksPage: React.FC = () => {
-  return (
-    <div className="bg-background text-on-surface font-body-md overflow-x-hidden w-full">
+    return (
+        <div id="main-scroll-container" className="bg-white dark:bg-luxury-cream text-clinical-charcoal dark:text-luxury-navy font-body-md dark:font-luxury-body overflow-x-hidden w-full transition-colors duration-700 h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth">
+            <PublicHeader />
 
-{/* TopNavBar */}
-{/* TopNavBar */}
-<PublicHeader />
-<main className="pb-24">
-{/* Hero Section */}
-<section className="max-w-container-max mx-auto px-margin-desktop mb-20 text-center">
-<div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-pulse-red-light text-primary mb-6">
-<span className="material-symbols-outlined text-[18px]" data-original-icon="medical_services">medical_services</span>
-<span className="text-label-md font-label-md">Panduan Penggunaan Presisi</span>
-</div>
-<h1 className="text-headline-xl font-headline-xl text-on-surface mb-6">Bagaimana ecgrhythmia Bekerja</h1>
-<p className="text-body-lg font-body-lg text-on-surface-variant max-w-2xl mx-auto">
-                Transformasi pemantauan kesehatan jantung Anda dalam tiga langkah sederhana. Teknologi medis canggih yang kini hadir dalam kenyamanan genggaman Anda.
-            </p>
-</section>
-{/* 3-Step Walkthrough */}
-<section className="max-w-container-max mx-auto px-margin-desktop space-y-24 mb-32">
-{/* Step 1: Attach Device */}
-<div className="flex flex-col md:flex-row items-center gap-16">
-<div className="w-full md:w-1/2">
-<div className="relative rounded-3xl overflow-hidden elevation-card aspect-[4/3] bg-surface-gray">
-<img className="w-full h-full object-cover" alt="ECG patch being applied to a person's upper chest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz0l_IrMi3lkl-p1qSiOtF-guLYLeKP3gn40t6Xw1XorsaGJXomKE52cfKm2z5JCKGkO5RuDHeQ5tf5UA5ETY8vrumyhi2978MrPj3iFaGkvDFQs-vkdHZ09ew8fFsR3U34J4vNRDVIuc9HakSJD-BTRAdHw8cCPq8eDThjHJRDJBzbCVqOBU7x1F4e3EuyH3b6HNToK3yr9macg4CtWtrUBu6mqH5tRDrzKWGlN8SY1j6b4nyPo1reX4J3W6AVMPCHa46Q6eBGorD" />
-<div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md p-4 rounded-2xl flex items-center gap-3">
-<div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
-<span className="material-symbols-outlined" data-original-icon="play_circle">play_circle</span>
-</div>
-<div>
-<p className="text-label-md font-label-md text-on-surface">Lihat Panduan Video</p>
-<p className="text-body-sm font-body-sm text-on-surface-variant">Durasi: 1:20 Menit</p>
-</div>
-</div>
-</div>
-</div>
-<div className="w-full md:w-1/2">
-<span className="text-primary font-headline-xl opacity-20 block mb-2">01</span>
-<h2 className="text-headline-lg font-headline-lg text-on-surface mb-6">Pasang Perangkat Patch</h2>
-<p className="text-body-md font-body-md text-on-surface-variant mb-8 leading-relaxed">
-                        Perangkat ecgrhythmia dirancang untuk kenyamanan maksimal sepanjang hari. Cukup bersihkan area dada, lepaskan lapisan pelindung perekat, dan tempelkan patch secara horizontal di bawah tulang selangka kiri Anda. Desain ergonomisnya memungkinkan Anda beraktivitas normal bahkan saat berolahraga.
-                    </p>
-<ul className="space-y-4">
-<li className="flex items-start gap-3">
-<span className="material-symbols-outlined text-primary" data-original-icon="check_circle">check_circle</span>
-<span className="text-body-md">Perekat medis hipoalergenik yang ramah di kulit.</span>
-</li>
-<li className="flex items-start gap-3">
-<span className="material-symbols-outlined text-primary" data-original-icon="check_circle">check_circle</span>
-<span className="text-body-md">Tahan air untuk penggunaan saat mandi atau berkeringat.</span>
-</li>
-</ul>
-</div>
-</div>
-{/* Step 2: Connect Account */}
-<div className="flex flex-col md:flex-row-reverse items-center gap-16">
-<div className="w-full md:w-1/2">
-<div className="relative rounded-3xl overflow-hidden elevation-card aspect-[4/3] bg-surface-gray">
-<img className="w-full h-full object-cover" alt="Smartphone scanning the QR code on the back of the ECG device" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDq1hJ9dGS3k1OKWSkYRvnAd04eWWa79MflOPIg23xc-SsKjkyX9MXzmyreaujGCXYPHy9E5i6oXt4PC4tFpTT_k3u7o_DiMj9TGvMNa07hY8IzMqwaKXOUDRq2a7YwLO83vVEezzh63pAPFWqak2N0tT6xFF0IIYguG7a6oZi_SvYK4RQCxLmDlrwj7PuNOqIINGrJ7UAmvZ521utCRhMxs13lIH3V3hqkTamVnEo6UwGI8stJHJFjs-eiep7xNLhuVA8BfXSG02Hn" />
-<div className="absolute top-6 right-6 bg-secondary text-white p-4 rounded-2xl max-w-[200px]">
-<div className="flex items-center gap-2 mb-2">
-<span className="material-symbols-outlined text-[20px]">lightbulb</span>
-<span className="text-label-md font-bold">Tips Cerdas</span>
-</div>
-<p className="text-body-sm text-white/90">Dalam kondisi minim cahaya, gunakan fitur senter pada aplikasi untuk pemindaian QR yang lebih cepat.</p>
-</div>
-</div>
-</div>
-<div className="w-full md:w-1/2">
-<span className="text-primary font-headline-xl opacity-20 block mb-2">02</span>
-<h2 className="text-headline-lg font-headline-lg text-on-surface mb-6">Hubungkan ke Akun Anda</h2>
-<p className="text-body-md font-body-md text-on-surface-variant mb-8 leading-relaxed">
-                        Buka aplikasi ecgrhythmia di ponsel Anda dan pilih menu 'Tambah Perangkat'. Gunakan kamera ponsel untuk memindai kode QR unik yang tertera pada bagian belakang perangkat. Sinkronisasi instan akan terjadi melalui Bluetooth Low Energy (BLE) untuk memastikan efisiensi baterai.
-                    </p>
-<div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant">
-<div className="flex items-center gap-4">
-<span className="material-symbols-outlined text-secondary text-[32px]">qr_code_scanner</span>
-<div>
-<h4 className="font-headline-md text-on-surface text-[18px]">Sinkronisasi Instan</h4>
-<p className="text-body-sm text-on-surface-variant">Terhubung dalam hitungan detik tanpa kabel yang rumit.</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-{/* Step 3: Start Monitoring */}
-<div className="flex flex-col md:flex-row items-center gap-16">
-<div className="w-full md:w-1/2">
-<div className="relative rounded-3xl overflow-hidden elevation-card aspect-[4/3] bg-surface-gray border border-white">
-<div className="absolute inset-0 bg-white">
-{/* Simulated ECG Grid/Graph */}
-<svg className="w-full h-full opacity-30" viewBox="0 0 400 300">
-<defs>
-<pattern height="20" id="grid" patternUnits="userSpaceOnUse" width="20">
-<path d="M 20 0 L 0 0 0 20" fill="none" stroke="#ddd" strokeWidth="0.5"></path>
-</pattern>
-</defs>
-<rect fill="url(#grid)" height="100%" width="100%"></rect>
-<path className="ecg-line" d="M0,150 L50,150 L60,130 L70,170 L80,150 L120,150 L130,120 L140,180 L150,150 L200,150 L210,130 L220,170 L230,150 L270,150 L280,120 L290,180 L300,150 L350,150 L360,130 L370,170 L380,150 L400,150" fill="none" stroke="#b70100" strokeWidth="2"></path>
-</svg>
-<div className="absolute inset-0 flex items-center justify-center">
-<div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl text-center border border-pulse-red-light">
-<span className="text-headline-xl font-headline-xl text-primary mb-1 block">72</span>
-<span className="text-label-md font-label-md text-on-surface-variant uppercase tracking-widest">BPM</span>
-<div className="flex items-center gap-2 mt-4 text-green-600 justify-center">
-<span className="material-symbols-outlined text-[16px]">favorite</span>
-<span className="text-label-md">Normal</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div className="w-full md:w-1/2">
-<span className="text-primary font-headline-xl opacity-20 block mb-2">03</span>
-<h2 className="text-headline-lg font-headline-lg text-on-surface mb-6">Mulai Pemantauan Langsung</h2>
-<p className="text-body-md font-body-md text-on-surface-variant mb-8 leading-relaxed">
-                        Lihat visualisasi real-time detak jantung Anda di dashboard. Algoritma kecerdasan buatan kami bekerja di latar belakang untuk mendeteksi anomali ritme jantung. Anda akan menerima notifikasi instan jika terdeteksi pola yang membutuhkan perhatian medis.
-                    </p>
-<div className="grid grid-cols-2 gap-4">
-<div className="p-4 bg-surface-container rounded-2xl">
-<p className="text-label-md font-label-md text-secondary mb-1">Status</p>
-<p className="text-body-md font-bold text-on-surface">Aktif</p>
-</div>
-<div className="p-4 bg-surface-container rounded-2xl">
-<p className="text-label-md font-label-md text-secondary mb-1">Akurasi</p>
-<p className="text-body-md font-bold text-on-surface">99.8%</p>
-</div>
-</div>
-</div>
-</div>
-</section>
-{/* Troubleshooting Section */}
-<section className="max-w-container-max mx-auto px-margin-desktop mb-32">
-<div className="bg-inverse-surface text-white rounded-3xl p-12 overflow-hidden relative">
-<div className="relative z-10">
-<h3 className="text-headline-lg font-headline-lg mb-8">Tips Cepat &amp; Troubleshooting</h3>
-<div className="grid md:grid-cols-3 gap-8">
-<div className="space-y-4">
-<div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-<span className="material-symbols-outlined text-white" data-original-icon="clean">clean_hands</span>
-</div>
-<h4 className="text-headline-md text-[20px]">Persiapan Kulit</h4>
-<p className="text-body-sm text-surface-variant leading-relaxed">Pastikan kulit bersih dan kering. Hindari penggunaan lotion atau minyak di area pemasangan untuk daya rekat optimal.</p>
-</div>
-<div className="space-y-4">
-<div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-<span className="material-symbols-outlined text-white">camera_enhance</span>
-</div>
-<h4 className="text-headline-md text-[20px]">Pemindaian QR</h4>
-<p className="text-body-sm text-surface-variant leading-relaxed">Pegang ponsel sekitar 15-20 cm dari perangkat. Pastikan kode tidak tertutup bayangan atau pantulan cahaya lampu.</p>
-</div>
-<div className="space-y-4">
-<div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-<span className="material-symbols-outlined text-white">battery_charging_full</span>
-</div>
-<h4 className="text-headline-md text-[20px]">Status Baterai</h4>
-<p className="text-body-sm text-surface-variant leading-relaxed">Periksa indikator baterai di aplikasi. Satu kali pengisian daya penuh dapat bertahan hingga 7 hari pemantauan kontinu.</p>
-</div>
-</div>
-</div>
-{/* Decorative element */}
-<div className="absolute -right-16 -bottom-16 opacity-5 pointer-events-none">
-<span className="material-symbols-outlined text-[300px]">monitor_heart</span>
-</div>
-</div>
-</section>
-{/* Closing CTA */}
-<section className="max-w-container-max mx-auto px-margin-desktop">
-<div className="bg-pulse-red-light rounded-3xl p-16 text-center border-2 border-primary-fixed">
-<h2 className="text-headline-lg font-headline-lg text-primary mb-4">Siap untuk mulai memantau?</h2>
-<p className="text-body-lg font-body-lg text-on-surface-variant mb-10 max-w-xl mx-auto">
-                    Hubungkan perangkat Anda sekarang dan dapatkan wawasan mendalam tentang kesehatan jantung Anda dalam hitungan menit.
-                </p>
-<div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-<button className="w-full sm:w-auto bg-primary text-white font-label-md text-label-md px-10 py-4 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300">Hubungkan Perangkat</button>
-<button className="w-full sm:w-auto bg-white border-2 border-secondary text-secondary font-label-md text-label-md px-10 py-4 rounded-full hover:bg-surface-container transition-all">Ke Dashboard</button>
-</div>
-</div>
-</section>
-</main>
-{/* Footer */}
-<PublicFooter />
+            <main>
+                {/* Hero Section */}
+                <section className="h-screen w-full flex flex-col justify-center items-center snap-start bg-white dark:bg-luxury-cream transition-colors duration-700 relative overflow-hidden">
+                    <div className="absolute inset-0 ecg-grid opacity-20 dark:opacity-5 -z-10"></div>
+                    <div className="max-w-container-max w-full mx-auto px-margin-mobile md:px-margin-desktop">
+                        <RevealContent className="text-center space-y-4 md:space-y-6">
+                            <span className="text-clinical-blue dark:text-luxury-slate font-label-md dark:font-luxury-button tracking-[0.2em] uppercase text-sm font-bold block mb-4">The Process</span>
+                            <h1 className="text-[40px] md:text-[64px] font-headline-xl dark:font-luxury-headline text-clinical-charcoal dark:text-luxury-navy tracking-tight dark:tracking-normal leading-tight">
+                                Seamless Integration into <br className="hidden md:block" />
+                                <span className="italic dark:not-italic font-light text-clinical-charcoal/70 dark:text-luxury-navy block mt-2">Your Lifestyle.</span>
+                            </h1>
+                            <p className="text-lg md:text-xl font-body-lg dark:font-luxury-body text-clinical-charcoal/60 dark:text-luxury-navy/70 max-w-2xl mx-auto leading-relaxed dark:font-light">
+                                Transforming heart health monitoring into three simple steps. Advanced medical technology, completely redefined for your utmost convenience.
+                            </p>
+                        </RevealContent>
+                    </div>
+                    {/* Scroll Indicator & Timeline Start */}
+                    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-0">
+                        <span className="material-symbols-outlined text-clinical-blue dark:text-luxury-gold text-3xl opacity-70 animate-bounce">expand_more</span>
+                    </div>
+                </section>
 
+                {/* Step 1 Section */}
+                <section className="min-h-screen py-24 md:py-0 md:h-screen w-full flex flex-col justify-center snap-start bg-clinical-surface/30 dark:bg-[#F8F8F5] transition-colors duration-700 relative">
+                    <div className="hidden md:block absolute left-1/2 top-1/2 bottom-0 w-1 bg-clinical-blue dark:bg-luxury-gold -translate-x-1/2 z-0"></div>
+                    <div className="max-w-container-max w-full mx-auto px-margin-mobile md:px-margin-desktop relative z-10">
+                        <RevealContent className="flex flex-col md:flex-row items-center relative group w-full">
+                            <div className="md:hidden w-12 h-12 rounded-full bg-clinical-blue dark:bg-luxury-gold text-white flex items-center justify-center font-bold mb-6 text-lg shadow-lg">01</div>
+                            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-clinical-blue dark:bg-luxury-gold text-white dark:text-luxury-navy items-center justify-center shadow-lg shadow-clinical-blue/20 dark:shadow-luxury-gold/30 text-xl font-bold font-label-md dark:font-luxury-button transition-transform duration-700 group-hover:scale-110 z-20">01</div>
 
+                            <div className="flex-1 w-full md:pr-16 relative">
+                                <div className="absolute inset-0 border border-clinical-blue/20 dark:border-luxury-gold/30 rounded-[2rem] transform translate-x-3 translate-y-3 group-hover:translate-x-4 group-hover:translate-y-4 transition-transform duration-700"></div>
+                                <div className="relative rounded-[2rem] overflow-hidden shadow-xl aspect-[16/9] md:aspect-[4/3] bg-white dark:bg-luxury-muted/10 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-[100px] md:text-[140px] text-clinical-blue/30 dark:text-luxury-navy/20 group-hover:scale-110 transition-transform duration-700">favorite</span>
+                                </div>
+                            </div>
 
-    </div>
-  );
+                            <div className="flex-1 w-full md:pl-16 space-y-4 md:space-y-6 mt-8 md:mt-0 text-center md:text-left">
+                                <h3 className="font-headline-lg dark:font-luxury-headline text-3xl md:text-5xl text-clinical-charcoal dark:text-luxury-navy leading-tight">The Application</h3>
+                                <p className="text-clinical-charcoal/70 dark:text-luxury-navy/70 font-body-lg dark:font-luxury-body text-base md:text-lg leading-relaxed dark:font-light">
+                                    Attach the ultra-thin ecgrhythmia patch to the designated chest area. Our wireless, breathable design ensures absolute comfort and absolute discretion 24/7.
+                                </p>
+                            </div>
+                        </RevealContent>
+                    </div>
+                </section>
+
+                {/* Step 2 Section */}
+                <section className="min-h-screen py-24 md:py-0 md:h-screen w-full flex flex-col justify-center snap-start bg-white dark:bg-luxury-cream transition-colors duration-700 relative">
+                    <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-1 bg-clinical-red dark:bg-luxury-navy -translate-x-1/2 z-0"></div>
+                    <div className="max-w-container-max w-full mx-auto px-margin-mobile md:px-margin-desktop relative z-10">
+                        <RevealContent className="flex flex-col md:flex-row-reverse items-center relative group w-full">
+                            <div className="md:hidden w-12 h-12 rounded-full bg-clinical-red dark:bg-luxury-navy text-white dark:text-luxury-cream flex items-center justify-center font-bold mb-6 text-lg shadow-lg">02</div>
+                            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-clinical-red dark:bg-luxury-navy text-white dark:text-luxury-cream items-center justify-center shadow-lg shadow-clinical-red/20 dark:shadow-luxury-navy/30 text-xl font-bold font-label-md dark:font-luxury-button transition-transform duration-700 group-hover:scale-110 z-20">02</div>
+
+                            <div className="flex-1 w-full md:pl-16 relative">
+                                <div className="absolute inset-0 border border-clinical-red/20 dark:border-luxury-navy/20 rounded-[2rem] transform -translate-x-3 translate-y-3 group-hover:-translate-x-4 group-hover:translate-y-4 transition-transform duration-700"></div>
+                                <div className="relative rounded-[2rem] overflow-hidden shadow-xl aspect-[16/9] md:aspect-[4/3] bg-clinical-surface dark:bg-luxury-muted/10 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-[100px] md:text-[140px] text-clinical-red/30 dark:text-luxury-gold/30 group-hover:scale-110 transition-transform duration-700">qr_code_scanner</span>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 w-full md:pr-16 space-y-4 md:space-y-6 mt-8 md:mt-0 text-center md:text-right">
+                                <h3 className="font-headline-lg dark:font-luxury-headline text-3xl md:text-5xl text-clinical-charcoal dark:text-luxury-navy leading-tight">The Connection</h3>
+                                <p className="text-clinical-charcoal/70 dark:text-luxury-navy/70 font-body-lg dark:font-luxury-body text-base md:text-lg leading-relaxed dark:font-light">
+                                    Scan the unique QR Code on the device using the ecgrhythmia app. Our system automatically establishes an encrypted, military-grade connection instantly.
+                                </p>
+                            </div>
+                        </RevealContent>
+                    </div>
+                </section>
+
+                {/* Step 3 Section */}
+                <section className="min-h-screen py-24 md:py-0 md:h-screen w-full flex flex-col justify-center snap-start bg-clinical-surface/30 dark:bg-[#F8F8F5] transition-colors duration-700 relative">
+                    <div className="hidden md:block absolute left-1/2 top-0 bottom-1/2 w-1 bg-clinical-charcoal dark:bg-luxury-slate -translate-x-1/2 z-0"></div>
+                    <div className="max-w-container-max w-full mx-auto px-margin-mobile md:px-margin-desktop relative z-10">
+                        <RevealContent className="flex flex-col md:flex-row items-center relative group w-full">
+                            <div className="md:hidden w-12 h-12 rounded-full bg-clinical-charcoal dark:bg-luxury-slate text-white flex items-center justify-center font-bold mb-6 text-lg shadow-lg">03</div>
+                            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-clinical-charcoal dark:bg-luxury-slate text-white items-center justify-center shadow-lg shadow-clinical-charcoal/20 dark:shadow-luxury-slate/30 text-xl font-bold font-label-md dark:font-luxury-button transition-transform duration-700 group-hover:scale-110 z-20">03</div>
+
+                            <div className="flex-1 w-full md:pr-16 relative">
+                                <div className="absolute inset-0 border border-clinical-charcoal/20 dark:border-luxury-slate/30 rounded-[2rem] transform translate-x-3 translate-y-3 group-hover:translate-x-4 group-hover:translate-y-4 transition-transform duration-700"></div>
+                                <div className="relative rounded-[2rem] overflow-hidden shadow-xl aspect-[16/9] md:aspect-[4/3] bg-white dark:bg-luxury-muted/10 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-[100px] md:text-[140px] text-clinical-charcoal/30 dark:text-luxury-slate/30 group-hover:scale-110 transition-transform duration-700">monitor_heart</span>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 w-full md:pl-16 space-y-4 md:space-y-6 mt-8 md:mt-0 text-center md:text-left">
+                                <h3 className="font-headline-lg dark:font-luxury-headline text-3xl md:text-5xl text-clinical-charcoal dark:text-luxury-navy leading-tight">The Insight</h3>
+                                <p className="text-clinical-charcoal/70 dark:text-luxury-navy/70 font-body-lg dark:font-luxury-body text-base md:text-lg leading-relaxed dark:font-light">
+                                    Your ECG data is continuously transmitted to your private dashboard. Our AI algorithms analyze every heartbeat, providing you and your physician with unparalleled clarity.
+                                </p>
+                            </div>
+                        </RevealContent>
+                    </div>
+                </section>
+
+                {/* Call to Action Section */}
+                <section className="min-h-screen py-24 md:py-0 md:h-screen w-full flex items-center justify-center snap-start bg-white dark:bg-luxury-cream transition-colors duration-700 relative">
+                    <RevealContent className="max-w-4xl w-full mx-auto px-margin-mobile md:px-margin-desktop text-center relative z-10">
+                        <div className="bg-clinical-surface/50 dark:bg-luxury-navy rounded-[2.5rem] p-12 md:p-20 shadow-lg border border-clinical-charcoal/5 dark:border-luxury-gold/20 transition-colors duration-700 group">
+                            <span className="text-clinical-blue dark:text-luxury-gold font-label-md dark:font-luxury-button tracking-[0.2em] uppercase text-sm font-bold block mb-4">Take Control</span>
+                            <h2 className="font-headline-xl dark:font-luxury-headline text-[32px] md:text-[56px] text-clinical-charcoal dark:text-luxury-cream mb-6 md:mb-8 leading-tight">Ready to Begin?</h2>
+                            <p className="text-clinical-charcoal/60 dark:text-luxury-cream/70 mb-10 md:mb-12 max-w-xl mx-auto text-lg md:text-xl font-body-lg dark:font-luxury-body dark:font-light">
+                                Connect your device today and gain profound insights into your heart health within minutes.
+                            </p>
+                            <div className="flex justify-center">
+                                <button onClick={() => window.location.href = '/auth/login'} className="w-full sm:w-auto bg-clinical-charcoal dark:bg-transparent text-white dark:text-luxury-gold font-label-md dark:font-luxury-button dark:uppercase dark:tracking-widest dark:border dark:border-luxury-gold text-sm md:text-base px-12 py-4 md:py-5 rounded-full hover:shadow-xl hover:-translate-y-1 dark:hover:bg-luxury-gold dark:hover:text-luxury-navy transition-all duration-700">
+                                    Enter Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    </RevealContent>
+                </section>
+            </main>
+
+            <section className="snap-start flex flex-col justify-end bg-clinical-charcoal dark:bg-luxury-navy">
+                <PublicFooter />
+            </section>
+        </div>
+    );
 };

@@ -1,35 +1,59 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState<'pasien' | 'dokter'>('dokter');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const isAdmin = queryParams.get('admin') === 'true';
+  const [role, setRole] = useState<'pasien' | 'dokter' | 'admin'>(isAdmin ? 'admin' : 'dokter');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [faskes, setFaskes] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    const userId = localStorage.getItem('user_id');
+    const userRole = localStorage.getItem('user_role');
+    if (userId) {
+      if (userRole === 'pasien') navigate('/patient/dashboard');
+      else if (userRole === 'dokter') navigate('/doctor/dashboard');
+      else navigate('/admin/dashboard');
+    }
+  }, [navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    // Validasi Email & Password (Berlaku untuk Pasien & Dokter)
-    if (email !== 'ecgrhythmia@gmail.com' || password !== 'pppp') {
-      setError('Email atau password salah.');
-      return;
-    }
+    try {
+      const response = await fetch('http://127.0.0.1:8081/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role })
+      });
+      const data = await response.json();
+      
+      if (data.success && data.user_id) {
+        // Save user ID to localStorage
+        localStorage.setItem('user_id', data.user_id.toString());
+        localStorage.setItem('user_role', data.role || role);
+        if (data.token) {
+          localStorage.setItem('auth_token', data.token);
+        }
 
-    // Validasi tambahan khusus Dokter
-    if (role === 'dokter' && faskes.toUpperCase() !== 'F-12345') {
-      setError('Kode Faskes tidak valid.');
-      return;
-    }
-
-    // Navigasi jika berhasil
-    if (role === 'pasien') {
-      navigate('/patient/dashboard');
-    } else {
-      navigate('/doctor/dashboard');
+        // Navigasi jika berhasil
+        if (data.role === 'pasien') {
+          navigate('/patient/dashboard');
+        } else if (data.role === 'dokter') {
+          navigate('/doctor/dashboard');
+        } else {
+          navigate('/admin/dashboard');
+        }
+      } else {
+        setError(data.message || 'Gagal login. Periksa email atau password.');
+      }
+    } catch (err) {
+      setError('Koneksi ke server gagal');
     }
   };
 
@@ -37,7 +61,7 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 w-full">
 
     <main className="w-full max-w-[450px]">
-        <section className="bg-white shadow-lg rounded-xl p-10 flex flex-col items-center">
+        <section className="bg-white shadow-lg rounded-xl p-6 md:p-10 flex flex-col items-center">
             <div className="flex flex-row items-center justify-center gap-2 mb-8">
                 <img alt="ecgrhythmia clinical heart and stethoscope logo" className="w-14 h-14" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCMHY1rwJz3Bn-D6aH30NsUoKCHh50RKw49BhscJugmYHzwjI4ey5ccSp9XawgX4Jzj6xSb8kHazzVJlVQ4AdKSkMKGRM3q1qB3ul_AyWaXLT_CJAZj0oV7QHTVIezEjnYJ1hRIIzWdfCh30ZbtQNyDMH86S-6c8UfQHx6HJub_2ZcnhGdwWIYbmcrjuDuluEo3nxY2ENq7nc0W5lO03dsPefmV_kTOnKCGtpZq9Sd3zxp7toZSYaVXYPGZa3bFZpNAb27eoWoXd1A" />
                 <h1 className="font-headline-lg text-headline-lg flex tracking-tight text-[32px]">
@@ -56,22 +80,28 @@ export const LoginPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="flex bg-surface-container p-1 rounded-lg w-full my-6">
-                    <button 
-                        type="button"
-                        onClick={() => { setRole('pasien'); setError(''); }}
-                        className={`flex-1 py-2 px-4 rounded-md font-label-bold text-label-bold transition-all ${role === 'pasien' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-                    >
-                        Pasien
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => { setRole('dokter'); setError(''); }}
-                        className={`flex-1 py-2 px-4 rounded-md font-label-bold text-label-bold transition-all ${role === 'dokter' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-                    >
-                        Dokter / Nakes
-                    </button>
-                </div>
+                {!isAdmin ? (
+                    <div className="flex bg-surface-container p-1 rounded-lg w-full my-6">
+                        <button 
+                            type="button"
+                            onClick={() => { setRole('pasien'); setError(''); }}
+                            className={`flex-1 py-2 px-2 md:px-4 rounded-md font-label-bold text-label-bold transition-all text-xs md:text-sm ${role === 'pasien' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+                        >
+                            Pasien
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => { setRole('dokter'); setError(''); }}
+                            className={`flex-1 py-2 px-2 md:px-4 rounded-md font-label-bold text-label-bold transition-all text-xs md:text-sm ${role === 'dokter' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+                        >
+                            Dokter / Nakes
+                        </button>
+                    </div>
+                ) : (
+                    <div className="w-full text-center my-6">
+                        <span className="inline-block bg-medical-teal/10 text-medical-teal font-bold px-4 py-2 rounded-lg text-sm">Portal Administrator</span>
+                    </div>
+                )}
                 <form className="w-full space-y-5" onSubmit={handleLogin}>
                     <div className="space-y-2">
                         <label className="font-medium text-label-bold text-on-surface-variant" htmlFor="email">Email Address</label>
@@ -87,22 +117,17 @@ export const LoginPage: React.FC = () => {
                             </button>
                         </div>
                     </div>
-                    {role === 'dokter' && (
-                        <div className="space-y-2 animate-fade-in">
-                            <label className="font-medium text-label-bold text-on-surface-variant" htmlFor="faskes">Kode Faskes (Facility Code)</label>
-                            <input className="w-full bg-white border border-outline-variant rounded-lg p-3 font-body-sm text-body-sm focus:ring-2 focus:ring-medical-teal focus:border-medical-teal transition-all outline-none uppercase border-outline" id="faskes" placeholder="F-12345"
-                                type="text" value={faskes} onChange={(e) => setFaskes(e.target.value)} required />
-                            <p className="font-label-md text-label-md text-secondary italic">*Required for medical staff</p>
-                        </div>
-                    )}
                     <div className="pt-4 space-y-4">
                         <button className="w-full bg-medical-teal text-white font-label-bold text-label-bold py-4 rounded-lg shadow-sm hover:brightness-110 active:scale-[0.98] transition-all" type="submit">
                              Masuk / Sign In
                         </button>
-                        <div className="text-center">
+                        <div className="text-center space-y-2 flex flex-col">
                             <Link className="font-label-md text-label-md text-on-surface-variant hover:text-medical-teal hover:underline transition-all" to="#">
                                 Forgot Password?
                             </Link>
+                            <span className="text-body-sm text-secondary">
+                                Belum punya akun? <Link className="text-medical-teal font-bold hover:underline transition-all" to="/auth/register">Buat Akun</Link>
+                            </span>
                         </div>
                     </div>
                 </form>

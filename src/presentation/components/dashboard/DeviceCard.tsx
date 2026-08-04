@@ -3,9 +3,10 @@ import React from 'react';
 interface DeviceCardProps {
     deviceId?: string;
     aiMetrics?: { latency_ms?: number; runtime?: string } | null;
+    isLive?: boolean;
 }
 
-export const DeviceCard: React.FC<DeviceCardProps> = ({ deviceId = "UNDIP-ECG-01", aiMetrics }) => {
+export const DeviceCard: React.FC<DeviceCardProps> = ({ deviceId = "UNDIP-ECG-01", aiMetrics, isLive = true }) => {
     return (
         <div className="bg-surface-container border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-3">
@@ -16,10 +17,12 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ deviceId = "UNDIP-ECG-01
                     <p className="text-[10px] font-bold text-outline uppercase tracking-wider">Device ID</p>
                     <p className="text-sm font-mono-data text-charcoal font-bold mt-0.5">{deviceId}</p>
                 </div>
-                <div className="ml-auto flex flex-col items-end">
-                    <span className="material-symbols-outlined text-signal-green text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>wifi_tethering</span>
-                    <span className="text-xs font-bold text-signal-green mt-0.5">Online</span>
-                </div>
+                {isLive && (
+                    <div className="ml-auto flex flex-col items-end">
+                        <span className="material-symbols-outlined text-signal-green text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>wifi_tethering</span>
+                        <span className="text-xs font-bold text-signal-green mt-0.5">Online</span>
+                    </div>
+                )}
             </div>
             
             {/* Edge AI Performance Metrics */}

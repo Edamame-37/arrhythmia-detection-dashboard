@@ -1,165 +1,325 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
+import { useSidebar } from '../../../application/context/SidebarContext';
+import { useConnection } from '../../../application/context/ConnectionContext';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export const QrScannerPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isOpen, toggleSidebar } = useSidebar();
+  const { setConnectedPatient, setConnectedDoctor, disconnectAll } = useConnection();
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const isProcessing = useRef(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalErrorMsg, setModalErrorMsg] = useState('');
+  const [foundPatient, setFoundPatient] = useState<{ id: string, name: string } | null>(null);
+  const [cameraError, setCameraError] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [scannerInstance, setScannerInstance] = useState<Html5Qrcode | null>(null);
+
+  useEffect(() => {
+    const html5QrCode = new Html5Qrcode("reader");
+    setScannerInstance(html5QrCode);
+
+    const startScanner = async () => {
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            aspectRatio: 1.0,
+          },
+          (decodedText) => {
+            if (isProcessing.current) return;
+            
+            if (decodedText.includes('/sync/patient/')) {
+              isProcessing.current = true;
+              const parts = decodedText.split('/');
+              const idToFetch = parts[parts.length - 1];
+              const numId = parseInt(idToFetch.replace(/[^0-9]/g, '')) || 1;
+              setInputValue(`PAT-${numId.toString().padStart(4, '0')}-XYZ`);
+
+              fetchPatientData(numId);
+            } else {
+              // Invalid QR Code format
+              isProcessing.current = true;
+              setModalErrorMsg('Kode QR tidak valid. Pastikan Anda memindai kode QR dari aplikasi ECG Rhythmia.');
+              setShowErrorModal(true);
+            }
+          },
+          (errorMessage) => {
+            // ignore continuous scan errors
+          }
+        );
+        setIsCameraActive(true);
+      } catch (err) {
+        console.error("Failed to start camera", err);
+        setCameraError(true);
+        setIsCameraActive(false);
+      }
+    };
+
+    let isMounted = true;
+    startScanner().then(() => {
+        if (!isMounted) {
+            // If it unmounted while starting, stop it immediately.
+            try {
+                html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => html5QrCode.clear());
+            } catch (e) {
+                html5QrCode.clear();
+            }
+        }
+    });
+
+    return () => {
+      isMounted = false;
+      try {
+        html5QrCode.stop()
+          .then(() => html5QrCode.clear())
+          .catch(() => html5QrCode.clear());
+      } catch (e) {
+        try { html5QrCode.clear(); } catch(err) {}
+      }
+    };
+  }, []);
+
+  const fetchPatientData = async (id: number) => {
+    setIsLoading(true);
+
+    try {
+      // Simulate an error if ID is 0 or 9999 (allow manual failure for testing)
+      if (id === 0 || id === 9999) {
+        throw new Error('Simulated Not Found');
+      }
+
+      let patientData;
+      try {
+        const response = await fetch(`http://127.0.0.1:8081/api/patients/${id}`);
+        if (!response.ok) throw new Error('Patient not found');
+
+        const data = await response.json();
+        patientData = data.patient;
+      } catch (apiErr) {
+        console.warn("Backend API offline or failed, using mock data for demo", apiErr);
+        await new Promise(resolve => setTimeout(resolve, 800)); // simulate network delay
+        patientData = {
+          id: id,
+          first_name: "Test",
+          last_name: "Patient"
+        };
+      }
+
+      const patientDisplay = {
+        id: `PAT-${patientData.id.toString().padStart(4, '0')}-XYZ`,
+        name: `${patientData.first_name} ${patientData.last_name}`
+      };
+      
+      setFoundPatient(patientDisplay);
+      setConnectedPatient({
+        id: patientDisplay.id,
+        name: patientDisplay.name,
+        profile_photo: patientData.profile_photo || undefined,
+        connectedAt: new Date().toISOString()
+      });
+      
+      // Also register the current doctor to the connection context
+      const docId = localStorage.getItem('user_id') || '1';
+      try {
+        const docRes = await fetch(`http://127.0.0.1:8081/api/doctors/${docId}`);
+        if (docRes.ok) {
+          const docData = await docRes.json();
+          setConnectedDoctor({
+            id: docId,
+            name: `Dr. ${docData.first_name} ${docData.last_name}`,
+            hospital: "",
+            photo: docData.profile_photo || undefined
+          });
+        }
+      } catch (e) {
+        console.warn("Failed to fetch doctor profile during sync", e);
+        setConnectedDoctor({
+            id: docId,
+            name: "Dokter (Sesi Aktif)",
+            hospital: ""
+        });
+      }
+      
+      setShowSuccessModal(true);
+    } catch (err) {
+      setModalErrorMsg('Gagal terhubung! Pasien tidak ditemukan di dalam sistem atau ID tidak valid.');
+      setShowErrorModal(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    if (!inputValue) {
+      setModalErrorMsg('Masukkan ID pasien terlebih dahulu sebelum melakukan pencarian.');
+      setShowErrorModal(true);
+      return;
+    }
+    const parsedId = inputValue.replace(/[^0-9]/g, '');
+    if (!parsedId) {
+      setModalErrorMsg('Format ID tidak valid. Harap gunakan format seperti PAT-0001-XYZ atau cukup masukkan angkanya saja.');
+      setShowErrorModal(true);
+      return;
+    }
+
+    const idToFetch = parseInt(parsedId);
+    fetchPatientData(idToFetch);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    isProcessing.current = false;
+  };
+
   return (
-    <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full">
+    <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen flex">
 
 
-    <aside id="main-sidebar" className="hidden md:flex fixed left-0 top-0 h-screen w-[260px] bg-surface-container-lowest border-r border-outline-variant flex-col z-50 transition-all duration-300">
-        <div className="p-6 flex items-center gap-3 border-b border-outline-variant/30 cursor-pointer" onClick={() => navigate('/doctor/dashboard')}>
-            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuASRzHEz6GVTS-jC60ca6czzvMjB1SFiN9EANBd4QcQ7M0TZmxcsuweLI2606snGOBzNW0NUJFqF8IFFf0MYFw0FhGh7xTs-mwsjka9c1MYHX3MCKo0ZCEhWPr48oeWkbN3DFCzXBWv_hO4kotQ48fmB0p7Sl6A4Z65x7QYnmN72EVbdshvFRefbHzI4kCMEDjqKYoaqpyO5TzlPdpka4gK7VLSzRg1LPBVLwqszQg-tllZR-17H9wmnHUZXszE0pMfG1Oypi7N2QKm"
-                alt="ecgrhythmia logo" className="w-8 h-8 object-contain" />
-            <div className="text-xl font-extrabold tracking-tight select-none">
-                <span className="text-brand-red">ecg</span><span className="text-brand-navy">rhythmia</span>
-            </div>
-        </div>
-        <nav className="flex-1 px-4 mt-6 space-y-1">
-            <Link to="/doctor/dashboard" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all group">
-                <span className="material-symbols-outlined text-outline group-hover:text-medical-teal">dashboard</span>
-                <span className="text-sm">Dashboard</span>
-            </Link>
-            <Link className="flex items-center gap-3 px-4 py-3 bg-medical-teal text-white rounded-lg font-semibold shadow-sm transition-all" to="/doctor/qr-scanner">
-                <span className="material-symbols-outlined">qr_code_scanner</span>
-                <span className="text-sm">Pasien Baru (QR)</span>
-            </Link>
-            <Link className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all group" to="/doctor/device-binding">
-                <span className="material-symbols-outlined text-outline group-hover:text-medical-teal">cable</span>
-                <span className="text-sm">Penambatan Alat</span>
-            </Link>
-            <Link className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all group" to="/doctor/analytics">
-                <span className="material-symbols-outlined text-outline group-hover:text-medical-teal">history</span>
-                <span className="text-sm">Riwayat Klinis</span>
-            </Link>
-            <Link className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all group" to="/doctor/settings">
-                <span className="material-symbols-outlined text-outline group-hover:text-medical-teal">settings</span>
-                <span className="text-sm">Preferensi Sistem</span>
-            </Link>
-        </nav>
+      <DoctorSidebar />
 
-        <div className="p-4 border-t border-outline-variant/40 bg-surface-container-low/50">
-            <Link to="/doctor/profile" className="flex bg-surface border border-outline-variant/50 p-3 rounded-lg items-center gap-3 hover:border-medical-teal transition-all group">
-                <div className="w-9 h-9 rounded-full overflow-hidden border border-outline-variant">
-                    <img className="w-full h-full object-cover" alt="Dr. Sarah" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJnW83EbvA5v2Xigf0wqmbI5jrKwsPF00DTG43yZhygP2i7bPT6QKmb8NETNv7aD3XIwaQT7AHRoU-e64ocs4nbb24kazsCZEwZAyqEqSceqqphkwPVv7MqWPDbLo2o_ltAdvTadtvzDDQwiAYKEErG53lECKzOCU8d538KrEbQlwWxwOlwMLF92lujNxnhG1EwgY5kF19w2_IN_EwSb3QlxXIUweD2_OQeWW20_flE7_reevsn4K9jKf7Vx34kMIWyJkr8mM7dXcx" />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                    <p className="font-bold text-xs text-on-surface truncate group-hover:text-medical-teal transition-colors">Dr. Sarah Puspita</p>
-                    <p className="text-[10px] text-on-surface-variant truncate uppercase tracking-wider font-medium">Spesialis Jantung</p>
-                </div>
-                <button onClick={() => navigate('/auth/login')} className="material-symbols-outlined text-outline text-lg group-hover:text-alert-red transition-colors">logout</button>
-            </Link>
-        </div>
-    </aside>
-
-    <main id="main-content" className="md:ml-[260px] min-h-screen pb-24 md:pb-12 transition-all duration-300">
+      <main id="main-content" className={`flex-grow min-h-screen pb-24 md:pb-12 transition-all duration-300 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
         <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 py-4 flex justify-between items-center max-w-container-max mx-auto">
-            <div className="flex items-center gap-3">
-                <button id="toggle-sidebar-btn" className="hidden md:flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
-                    <span className="material-symbols-outlined">menu</span>
-                </button>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-charcoal">Scanner Pasien</h1>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Scan QR code atau masukkan ID Pasien</p>
-                </div>
+          <div className="flex items-center gap-3">
+            <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-charcoal">Scanner Pasien</h1>
+              <p className="text-xs text-on-surface-variant mt-0.5">Scan QR code atau masukkan ID Pasien</p>
             </div>
+          </div>
         </header>
 
-        <div className="p-6 max-w-4xl mx-auto">
-            <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm overflow-hidden p-6 md:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
+        <div className="p-4 md:p-6 max-w-4xl mx-auto">
+          <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm overflow-hidden p-4 md:p-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
 
-                    <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4">
+                <div className="w-full aspect-square bg-surface-container-lowest border border-outline-variant/50 rounded-3xl relative shadow-sm overflow-hidden group">
 
-                        <div className="w-full aspect-square bg-charcoal rounded-2xl relative shadow-inner border-4 border-surface-container overflow-hidden">
+                  {/* The HTML5 QR Code Scanner Container */}
+                  <div id="reader" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full border-none"></div>
 
-                            <div id="reader" className="absolute top-0 left-0 w-full h-full z-10 bg-charcoal"></div>
-
-                            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                                <div className="relative w-[70%] h-[70%] border-2 border-white/50 rounded-xl overflow-hidden shadow-[0_0_0_9999px_rgba(45,52,54,0.6)]" id="scanner-ui">
-                                    <div className="scanning-laser absolute left-0 right-0 h-1 bg-medical-teal shadow-[0_0_15px_#1A939E]"></div>
-                                </div>
-                            </div>
-
-                            <span className="absolute bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-2 bg-charcoal/80 backdrop-blur text-white text-xs font-bold uppercase tracking-widest rounded-full z-30 shadow-lg pointer-events-none border border-white/10 whitespace-nowrap">
-                                Area Scan QR
-                            </span>
-
-                            <div id="camera-error" className="absolute top-0 left-0 w-full h-full z-40 hidden flex-col items-center justify-center bg-charcoal text-center px-6">
-                                <span className="material-symbols-outlined text-outline text-4xl mb-2">no_photography</span>
-                                <p className="text-sm text-white font-medium">Kamera tidak aktif.</p>
-                                <p className="text-xs text-outline mt-1">Harap berikan izin akses kamera di browser Anda.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-center mt-2">
-                            <button id="switch-camera-btn" className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-medical-teal font-medium transition-colors">
-                                <span className="material-symbols-outlined text-[18px]">switch_camera</span>
-                                Ganti Kamera Depan/Belakang
-                            </button>
-                        </div>
+                  {/* Corner Viewfinder Overlay */}
+                  <div className="absolute inset-0 pointer-events-none p-4 flex items-center justify-center z-20">
+                    <div className="w-full h-full relative">
+                      {/* Top Left */}
+                      <div className="absolute top-0 left-0 w-16 h-16 border-t-[6px] border-l-[6px] border-black rounded-tl-3xl"></div>
+                      {/* Top Right */}
+                      <div className="absolute top-0 right-0 w-16 h-16 border-t-[6px] border-r-[6px] border-black rounded-tr-3xl"></div>
+                      {/* Bottom Left */}
+                      <div className="absolute bottom-0 left-0 w-16 h-16 border-b-[6px] border-l-[6px] border-black rounded-bl-3xl"></div>
+                      {/* Bottom Right */}
+                      <div className="absolute bottom-0 right-0 w-16 h-16 border-b-[6px] border-r-[6px] border-black rounded-br-3xl"></div>
                     </div>
-
-                    <div className="flex flex-col gap-6 h-full justify-center">
-                        <div>
-                            <h2 className="text-xl font-bold text-charcoal mb-2">Masukkan ID Manual</h2>
-                            <p className="text-sm text-on-surface-variant mb-4">Gunakan kolom ini jika kamera bermasalah atau stiker QR rusak.</p>
-                            <input id="manual-input" type="text" placeholder="Contoh: PAT-1234-XYZ" className="w-full bg-surface border border-outline-variant rounded-lg p-4 text-base focus:ring-2 focus:ring-medical-teal focus:border-medical-teal outline-none font-mono-data" />
-                        </div>
-                        <button id="search-btn" className="w-full bg-medical-teal text-white py-4 rounded-lg font-bold text-base hover:brightness-110 active:scale-[0.98] transition-all shadow-sm flex items-center justify-center gap-2">
-                            <span className="material-symbols-outlined text-[20px]">search</span>
-                            Cari Pasien
-                        </button>
-                    </div>
-
+                  </div>
                 </div>
-            </div>
-        </div>
-    </main>
 
-    <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-outline-variant grid grid-cols-5 py-2 z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-safe">
-        <Link className="flex flex-col items-center gap-0.5 text-on-surface-variant hover:text-medical-teal" to="/doctor/dashboard">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="text-[9px] font-medium">Home</span>
-        </Link>
-        <Link className="flex flex-col items-center gap-0.5 text-medical-teal" to="/doctor/qr-scanner">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>qr_code_scanner</span>
-            <span className="text-[9px] font-bold">Scan QR</span>
-        </Link>
-        <Link className="flex flex-col items-center gap-0.5 text-on-surface-variant hover:text-medical-teal" to="/doctor/device-binding">
-            <span className="material-symbols-outlined">cable</span>
-            <span className="text-[9px] font-medium">Alat</span>
-        </Link>
-        <Link className="flex flex-col items-center gap-0.5 text-on-surface-variant hover:text-medical-teal" to="/doctor/analytics">
-            <span className="material-symbols-outlined">history</span>
-            <span className="text-[9px] font-medium">Riwayat</span>
-        </Link>
-        <Link className="flex flex-col items-center gap-0.5 text-on-surface-variant hover:text-medical-teal" to="/doctor/profile">
-            <span className="material-symbols-outlined">account_circle</span>
-            <span className="text-[9px] font-medium">Profil</span>
-        </Link>
-    </nav>
+                <div className="flex justify-center mt-2">
+                  <button className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-medical-teal font-medium transition-colors bg-surface-container px-4 py-2 rounded-full">
+                    <span className="material-symbols-outlined text-[18px]">{cameraError || !isCameraActive ? 'videocam_off' : 'videocam'}</span>
+                    {cameraError ? 'Kamera Gagal Akses' : (isCameraActive ? 'Status Kamera Aktif' : 'Status Kamera Tidak Aktif')}
+                  </button>
+                </div>
+              </div>
 
-    <div className="fixed inset-0 z-[100] hidden items-center justify-center p-4 glass-overlay" id="success-modal">
-        <div className="bg-surface w-full max-w-sm rounded-2xl p-8 text-center shadow-2xl animate-[fadeIn_0.2s_ease-out]">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="material-symbols-outlined text-4xl text-signal-green" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span>
-            </div>
-            <h3 className="text-xl font-bold text-charcoal mb-2">Pasien Ditemukan!</h3>
-            <p className="text-sm text-on-surface-variant mb-6">ID: <span id="modal-patient-id" className="font-bold font-mono-data text-charcoal"></span></p>
+              <div className="flex flex-col gap-6 justify-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-charcoal mb-2">Sinkronisasi Manual</h2>
+                  <p className="text-sm text-on-surface-variant mb-6 leading-relaxed">Masukkan ID Pasien secara manual jika kode QR sulit dipindai atau stiker rusak.</p>
 
-            <div className="space-y-3">
-                <button onClick={() => navigate('/doctor/monitor')} className="w-full bg-medical-teal text-white py-3 rounded-lg font-bold shadow-md hover:brightness-110 transition-all active:scale-95">
-                    Mulai Pemantauan
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      placeholder="Contoh: PAT-0001-XYZ"
+                      className="w-full bg-surface border border-outline-variant rounded-2xl p-4 pl-12 text-lg focus:ring-2 focus:ring-medical-teal focus:border-medical-teal outline-none font-mono uppercase tracking-widest shadow-sm transition-shadow hover:shadow-md"
+                    />
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant">badge</span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSearch}
+                  disabled={isLoading}
+                  className="w-full bg-medical-teal text-white py-4 rounded-2xl font-bold text-base hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[20px]">search</span>
+                  )}
+                  {isLoading ? 'Mencari...' : 'Hubungkan Pasien'}
                 </button>
-                <button onClick={() => alert('Fitur segera hadir!')} className="w-full text-on-surface-variant font-bold text-sm py-2 hover:text-charcoal transition-colors">
-                    Batal
-                </button>
-            </div>
-        </div>
-    </div>
+              </div>
 
-    
+            </div>
+          </div>
+        </div>
+      </main>
+
+
+
+      {/* SUCCESS MODAL */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-8 text-center shadow-2xl animate-in zoom-in-50 fade-in duration-500 ease-spring">
+            <div className="w-20 h-20 bg-status-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="material-symbols-outlined text-5xl text-status-green" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span>
+            </div>
+            <h3 className="text-2xl font-bold text-charcoal mb-2">Pasien Terhubung!</h3>
+
+            <div className="bg-surface-container-lowest rounded-xl p-4 my-6 border border-outline-variant/50">
+              <p className="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-1">Identitas Pasien</p>
+              <p className="font-bold font-mono text-lg text-charcoal mb-1">{foundPatient?.id}</p>
+              <p className="text-on-surface font-medium">{foundPatient?.name}</p>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button onClick={() => {
+                disconnectAll();
+                setShowSuccessModal(false);
+                isProcessing.current = false;
+              }} className="flex-1 bg-surface-container text-on-surface font-bold py-3.5 rounded-xl hover:bg-surface-container-high transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => navigate('/doctor/dashboard')} className="flex-[2] bg-medical-teal text-white py-3.5 rounded-xl font-bold shadow-md hover:brightness-110 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">dashboard</span>
+                Kembali ke Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 text-center shadow-2xl border-2 border-brand-red/10 animate-in zoom-in-50 fade-in duration-500 ease-spring">
+            <div className="w-20 h-20 bg-brand-red/10 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-brand-red/20 animate-ping"></div>
+              <span className="material-symbols-outlined text-5xl text-brand-red relative z-10" style={{ fontVariationSettings: '"FILL" 1' }}>error</span>
+            </div>
+            <h3 className="text-2xl font-bold text-charcoal mb-3">Koneksi Gagal</h3>
+
+            <p className="text-sm text-on-surface-variant mb-8 leading-relaxed px-2">
+              {modalErrorMsg}
+            </p>
+
+            <button onClick={closeErrorModal} className="w-full bg-brand-red text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brand-red/90 hover:-translate-y-0.5 transition-all active:scale-95">
+              Tutup dan Coba Lagi
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
