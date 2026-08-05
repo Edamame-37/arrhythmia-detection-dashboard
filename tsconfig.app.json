@@ -20,8 +20,6 @@
     "jsx": "react-jsx",
     /* Linting */
     "noUnusedLocals": false,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
     "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true

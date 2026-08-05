@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSidebar } from '../../../application/context/SidebarContext';
 
 interface HeaderProps {
     deviceId?: string;
@@ -6,28 +7,34 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ deviceId = "UNDIP-ECG-01", sessionId = "Sesi Aktif" }) => {
+    const { isOpen, toggleSidebar } = useSidebar();
+    
     return (
-        <header className="fixed top-0 left-0 w-full h-16 bg-surface-container-lowest z-50 flex justify-between items-center px-4 md:px-margin-desktop shadow-sm border-b border-outline-variant">
-            <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                <img src="/icons/logo.png" alt="Logo" className="h-8 w-8 md:h-9 md:w-9 object-contain drop-shadow-sm" />
-                <span className="text-[1.3rem] md:text-2xl font-extrabold tracking-tighter flex items-center">
-                    <span className="text-brand-red">ecg</span><span className="text-brand-navy">rhythmia</span>
-                </span>
-            </a>
-            <div className="hidden md:flex items-center gap-3 px-6 py-2 bg-surface-container-low rounded-full border border-outline-variant/60 shadow-inner">
-                <span className="material-symbols-outlined text-medical-teal text-[20px]">monitor_heart</span>
-                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Sesi Aktif:</span>
-                <span className="text-sm font-bold text-charcoal">{sessionId} ({deviceId})</span>
-            </div>
-            <div className="flex items-center gap-3 md:gap-4">
-                <div className="hidden sm:flex gap-2 mr-1">
-                    <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-medical-teal transition-colors p-1 text-[22px]">notifications</span>
-                    <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-medical-teal transition-colors p-1 text-[22px]">settings</span>
-                </div>
-                <button className="bg-alert-red hover:bg-red-700 text-white font-bold text-[10px] md:text-xs px-3 md:px-5 py-2 md:py-2.5 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 shadow-sm outline-none">
-                    <span className="material-symbols-outlined text-[16px] md:text-[18px]">eject</span>
-                    <span className="hidden sm:inline">UNBIND DEVICE</span>
+        <header className={`fixed top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center transition-all duration-300 ${isOpen ? 'md:left-[260px] md:w-[calc(100%-260px)] left-0 w-full' : 'left-0 w-full'}`}>
+            <div className="flex items-center gap-3 flex-1">
+                <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+                    <span className="material-symbols-outlined">menu</span>
                 </button>
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-charcoal">Live Monitor</h1>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Pemantauan sinyal ECG secara real-time</p>
+                </div>
+            </div>
+            <div className="hidden md:flex items-center gap-3 px-4 py-1.5 bg-white/80 rounded-full border border-pink-200 shadow-sm max-w-[400px]">
+                <div className="flex items-center justify-center bg-pink-50 rounded-full w-8 h-8 flex-shrink-0">
+                    <span className="material-symbols-outlined text-medical-teal text-[18px]">monitor_heart</span>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Session</span>
+                    <span className="text-xs font-bold text-charcoal truncate max-w-[130px] leading-tight">{sessionId}</span>
+                </div>
+                <div className="w-px h-6 bg-pink-200/60 mx-1"></div>
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Device ID</span>
+                    <span className="text-xs font-bold text-charcoal truncate max-w-[130px] leading-tight">{deviceId}</span>
+                </div>
+            </div>
+            <div className="flex items-center gap-3 md:gap-4 flex-1 justify-end">
             </div>
         </header>
     );

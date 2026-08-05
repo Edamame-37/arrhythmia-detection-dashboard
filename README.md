@@ -6,6 +6,8 @@ This project simulates a medical device monitor, streaming high-frequency ECG da
 
 ## 🚀 Features
 
+- **Progressive Web App (PWA):** Fully installable on Desktop and Mobile devices, featuring an offline-ready caching mechanism and background auto-updates.
+- **Backend Synchronization:** Seamless state synchronization for patient profiles with a graceful mock/local storage fallback when the API server is unreachable.
 - **Real-Time ECG Streaming:** High-performance data streaming from backend to frontend.
 - **AI Arrhythmia Detection:** Integrates AI model predictions for clinical insights.
 - **Clinical Algorithms:** Implements Einthoven, Pan-Tompkins, and Peak-to-Peak algorithms for signal processing.

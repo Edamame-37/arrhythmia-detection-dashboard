@@ -1,203 +1,172 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PublicHeader } from '../../components/layout/PublicHeader';
 import { PublicFooter } from '../../components/layout/PublicFooter';
-import { Link } from 'react-router-dom';
+
+const RevealContent: React.FC<{ children: React.ReactNode, className?: string, durationClass?: string }> = ({ children, className, durationClass = "duration-1500" }) => {
+    const [isVisible, setIsVisible] = React.useState(false);
+    const ref = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                } else {
+                    setIsVisible(false);
+                }
+            },
+            { threshold: 0.15 }
+        );
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div
+            ref={ref}
+            className={`transition-all ${durationClass} ease-in-out transform w-full ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'} ${className || ''}`}
+        >
+            {children}
+        </div>
+    );
+};
 
 export const FaqPage: React.FC = () => {
-  return (
-    <div className="bg-background font-body-md text-on-surface w-full">
+    const [openIndex, setOpenIndex] = useState<number | null>(0);
+    const [activeCategory, setActiveCategory] = useState<string>('All');
+    const [direction, setDirection] = useState<'right' | 'left' | null>(null);
 
+    const handleCategoryClick = (newCat: string) => {
+        const oldIdx = categories.indexOf(activeCategory);
+        const newIdx = categories.indexOf(newCat);
+        if (oldIdx === newIdx) return;
+        setDirection(newIdx > oldIdx ? 'right' : 'left');
+        setActiveCategory(newCat);
+        setOpenIndex(null);
+    };
 
-    {/* TopNavBar (Shared Component) */}
-    {/* TopNavBar */}
-<PublicHeader />
+    const faqData = [
+        { category: "Getting Started", q: "How do I pair the device?", a: "Turn on Bluetooth on your smartphone and open the ecgrhythmia app. Press and hold the device button until the indicator flashes. Follow the elegant on-screen pairing guide in the app." },
+        { category: "Device & Pairing", q: "Is the patch comfortable for 24/7 wear?", a: "Yes. Our patches are constructed from medical-grade, hypoallergenic, and highly breathable materials designed to move with your body." },
+        { category: "Readings & Alerts", q: "How accurate is the ECG reading?", a: "ecgrhythmia utilizes clinical-grade sensors that provide 99.8% accuracy compared to standard Holter monitors, analyzed instantly by our proprietary AI." },
+        { category: "Readings & Alerts", q: "Will it notify my doctor automatically?", a: "With your explicit consent, the 'Smart Link' feature can transmit critical arrhythmia alerts directly to your registered healthcare provider's dashboard." },
+        { category: "Privacy & Data", q: "How is my medical data protected?", a: "Your privacy is our highest priority. All data is encrypted locally using AES-256 before transmission and stored in HIPAA-compliant cloud servers." },
+    ];
 
-    <main className="pb-20">
-        {/* Hero Section */}
-        <section className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop text-center mb-16 fade-in" id="hero">
-            <h1 className="font-headline-xl text-headline-xl text-secondary mb-4">Frequently Asked Questions</h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto mb-10">
-                Temukan jawaban untuk pertanyaan umum mengenai penggunaan perangkat dan aplikasi ecgrhythmia untuk kesehatan jantung Anda.
-            </p>
-            
-            {/* Search Bar */}
-            <div className="relative max-w-xl mx-auto mb-12">
-                <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
-                <input type="text" placeholder="Cari pertanyaan..." className="w-full pl-14 pr-6 py-4 rounded-full border border-outline-variant bg-background-white focus:outline-none focus:border-secondary shadow-sm transition-all font-body-md text-body-md" />
-            </div>
+    const categories = ['All', 'Getting Started', 'Device & Pairing', 'Readings & Alerts', 'Privacy & Data'];
 
-            {/* Category Filter */}
-            <div className="flex flex-wrap justify-center gap-3">
-                <button className="px-6 py-2.5 rounded-full bg-primary text-white font-label-md text-label-md active-scale transition-all">All</button>
-                <button className="px-6 py-2.5 rounded-full bg-surface-gray text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active-scale transition-all">Getting Started</button>
-                <button className="px-6 py-2.5 rounded-full bg-surface-gray text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active-scale transition-all">Device &amp; Pairing</button>
-                <button className="px-6 py-2.5 rounded-full bg-surface-gray text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active-scale transition-all">Readings &amp; Alerts</button>
-                <button className="px-6 py-2.5 rounded-full bg-surface-gray text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high active-scale transition-all">Privacy &amp; Data</button>
-            </div>
-        </section>
+    const filteredFaqs = activeCategory === 'All'
+        ? faqData
+        : faqData.filter(faq => faq.category === activeCategory);
 
-        {/* FAQ Content Grid */}
-        <div className="max-w-4xl mx-auto px-margin-mobile md:px-margin-desktop space-y-12">
-            
-            {/* Category: Getting Started */}
-            <section className="fade-in">
-                <h2 className="font-headline-md text-headline-md text-secondary mb-6 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary" data-icon="rocket_launch" data-original-icon="rocket_launch">rocket_launch</span>
-                    Getting Started
-                </h2>
-                <div className="space-y-4">
-                    {/* Question 1 */}
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">How do I set up ecgrhythmia for the first time?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more" data-original-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Unduh aplikasi ecgrhythmia dari App Store atau Play Store, buat akun baru, dan ikuti petunjuk langkah demi langkah di layar untuk menghubungkan perangkat Anda melalui Bluetooth.</p>
-                        </div>
-                    </div>
-                    {/* Question 2 */}
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Do I need to charge the device before first use?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Ya, kami merekomendasikan pengisian daya penuh (sekitar 2 jam) sebelum penggunaan pertama untuk memastikan kalibrasi sensor yang optimal.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+    return (
+        <div id="main-scroll-container" className="bg-white dark:bg-luxury-cream text-clinical-charcoal dark:text-luxury-navy font-body-md dark:font-luxury-body overflow-x-hidden w-full transition-colors duration-1000 h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth">
+            <style>{`
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                @keyframes swipeInRight {
+                    from { transform: translateX(30px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes swipeInLeft {
+                    from { transform: translateX(-30px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .animate-swipe-right { animation: swipeInRight 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+                .animate-swipe-left { animation: swipeInLeft 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+            `}</style>
+            <PublicHeader />
 
-            {/* Category: Device & Pairing */}
-            <section className="fade-in">
-                <h2 className="font-headline-md text-headline-md text-secondary mb-6 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary" data-icon="settings_bluetooth">settings_bluetooth</span>
-                    Device &amp; Pairing
-                </h2>
-                <div className="space-y-4">
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">How do I pair my device to my account?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Buka aplikasi, masuk ke menu 'Perangkat', pilih 'Tambah Baru', lalu scan kode QR yang tertera pada bagian belakang perangkat atau kotak kemasan.</p>
-                        </div>
+            <main>
+                {/* Hero Section */}
+                <section className="h-screen w-full flex flex-col justify-center items-center snap-start bg-clinical-surface/50 dark:bg-luxury-navy transition-colors duration-1000 relative overflow-hidden">
+                    <div className="absolute inset-0 ecg-grid opacity-30 dark:opacity-10 -z-10"></div>
+                    <div className="max-w-container-max w-full mx-auto px-margin-mobile md:px-margin-desktop text-center">
+                        <RevealContent durationClass="duration-1000">
+                            <span className="text-clinical-blue dark:text-luxury-gold font-label-md dark:font-luxury-button tracking-[0.2em] uppercase text-sm font-bold block mb-6">Knowledge Base</span>
+                            <h1 className="text-[40px] md:text-[64px] font-headline-xl dark:font-luxury-headline text-clinical-charcoal dark:text-luxury-cream mb-8 tracking-tight dark:tracking-normal leading-tight">
+                                Frequently Asked <br className="hidden md:block" />
+                                <span className="italic dark:not-italic font-light text-clinical-blue dark:text-luxury-gold block mt-2">Questions.</span>
+                            </h1>
+                            <p className="text-lg md:text-xl font-body-lg dark:font-luxury-body text-clinical-charcoal/70 dark:text-luxury-cream/80 max-w-2xl mx-auto leading-relaxed dark:font-light">
+                                Discover everything you need to know about our technology, seamless integration, and your data security.
+                            </p>
+                        </RevealContent>
                     </div>
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Where do I find the QR code on the device?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Kode QR terletak di bagian bawah perangkat ecgrhythmia. Jika stiker sudah pudar, Anda juga dapat menemukannya di kartu garansi di dalam kotak.</p>
-                        </div>
+                    {/* Scroll Indicator */}
+                    <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+                        <span className="material-symbols-outlined text-clinical-blue dark:text-luxury-gold text-3xl opacity-70">expand_more</span>
                     </div>
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">What do I do if the QR scan doesn't work?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Jika pemindaian gagal, Anda dapat memasukkan ID perangkat secara manual (terdiri dari 12 digit alfanumerik) yang berada tepat di bawah kode QR.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            {/* Category: Readings & Alerts */}
-            <section className="fade-in">
-                <h2 className="font-headline-md text-headline-md text-secondary mb-6 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary" data-icon="monitor_heart">monitor_heart</span>
-                    Readings &amp; Alerts
-                </h2>
-                <div className="space-y-4">
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">What happens if the app detects an irregular heartbeat?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
+                {/* FAQ Content Section */}
+                <section className="min-h-screen w-full flex flex-col justify-start snap-start bg-white dark:bg-luxury-cream transition-colors duration-1000 pt-40 md:pt-48 pb-32">
+                    <RevealContent className="w-full max-w-[860px] mx-auto px-margin-mobile md:px-margin-desktop">
+                        {/* Category Tabs */}
+                        <div className="flex flex-nowrap overflow-x-auto hide-scrollbar justify-start md:justify-center gap-3 mb-16 pb-2 px-4 md:px-0">
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => handleCategoryClick(cat)}
+                                    className={`whitespace-nowrap
+                                        px-6 py-2.5 rounded-full font-label-md dark:font-luxury-button tracking-wider text-sm transition-all duration-700 border
+                                        ${activeCategory === cat
+                                            ? 'bg-clinical-charcoal dark:bg-luxury-navy text-white border-clinical-charcoal dark:border-luxury-navy shadow-md'
+                                            : 'bg-transparent text-clinical-charcoal/60 dark:text-luxury-navy/60 border-clinical-charcoal/20 dark:border-luxury-navy/20 hover:border-clinical-charcoal dark:hover:border-luxury-navy hover:text-clinical-charcoal dark:hover:text-luxury-navy'}
+                                    `}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
                         </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Aplikasi akan segera mengirimkan notifikasi dan menandai rekaman tersebut sebagai 'Anomali'. Anda akan disarankan untuk tetap tenang dan segera berkonsultasi dengan tenaga medis profesional.</p>
-                        </div>
-                    </div>
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">How accurate are the readings?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">ecgrhythmia menggunakan sensor kelas medis dengan tingkat akurasi tinggi. Namun, hasil rekaman harus digunakan sebagai referensi awal dan bukan sebagai pengganti diagnosa medis lengkap dari rumah sakit.</p>
-                        </div>
-                    </div>
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Can my doctor see my data too?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Ya, Anda dapat membagikan laporan PDF hasil ECG secara langsung melalui aplikasi ke WhatsApp atau Email dokter Anda.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            {/* Category: Privacy & Data */}
-            <section className="fade-in">
-                <h2 className="font-headline-md text-headline-md text-secondary mb-6 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary" data-icon="verified_user">verified_user</span>
-                    Privacy &amp; Data
-                </h2>
-                <div className="space-y-4">
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Is my heart data encrypted and private?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Keamanan data Anda adalah prioritas kami. Seluruh data kesehatan dienkripsi menggunakan standar AES-256 baik saat penyimpanan maupun saat pengiriman.</p>
-                        </div>
-                    </div>
-                    <div className="faq-card rounded-2xl bg-white p-6 shadow-[0px_4px_20px_rgba(0,31,84,0.05)] cursor-pointer transition-all group" onClick={() => {}} data-legacy-onclick="this.classList.toggle('active')">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">Who can access my ECG readings?</h3>
-                            <span className="material-symbols-outlined chevron transition-transform text-on-surface-variant" data-icon="expand_more">expand_more</span>
-                        </div>
-                        <div className="faq-card-content font-body-md text-body-md text-on-surface-variant">
-                            <p className="">Hanya Anda yang memiliki akses penuh ke data Anda. Tim teknis kami hanya dapat mengakses data anonim untuk pengembangan algoritma deteksi, kecuali Anda secara eksplisit memberikan izin untuk dukungan teknis.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                        {/* FAQ Accordion */}
+                        <div key={activeCategory} className={`space-y-4 ${direction === 'right' ? 'animate-swipe-right' : direction === 'left' ? 'animate-swipe-left' : ''}`}>
+                            {filteredFaqs.map((faq, index) => {
+                                const isOpen = openIndex === index;
+                                return (
+                                    <div
+                                        key={index}
+                                        className={`
+                                            border rounded-2xl overflow-hidden transition-all duration-700
+                                            ${isOpen
+                                                ? 'border-clinical-blue/30 dark:border-luxury-gold/50 bg-clinical-surface/30 dark:bg-luxury-gold/5 shadow-sm'
+                                                : 'border-clinical-charcoal/10 dark:border-luxury-navy/10 bg-transparent hover:border-clinical-charcoal/30 dark:hover:border-luxury-navy/30'}
+                                        `}
+                                    >
+                                        <button
+                                            onClick={() => setOpenIndex(isOpen ? null : index)}
+                                            className="w-full px-8 py-6 text-left flex items-center justify-between focus:outline-none"
+                                        >
+                                            <span className={`font-headline-md dark:font-luxury-headline text-lg md:text-xl transition-colors duration-700 ${isOpen ? 'text-clinical-blue dark:text-luxury-navy' : 'text-clinical-charcoal dark:text-luxury-navy/80'}`}>
+                                                {faq.q}
+                                            </span>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-700 ${isOpen ? 'rotate-180 bg-clinical-blue dark:bg-luxury-gold text-white dark:text-luxury-navy' : 'bg-clinical-surface dark:bg-luxury-navy/5 text-clinical-charcoal dark:text-luxury-navy'}`}>
+                                                <span className="material-symbols-outlined text-[20px]">
+                                                    keyboard_arrow_down
+                                                </span>
+                                            </div>
+                                        </button>
 
-            {/* Closing Card */}
-            <section className="fade-in">
-                <div className="bg-secondary rounded-3xl p-10 text-center text-white relative overflow-hidden">
-                    {/* Subtle BG Pattern */}
-                    <div className="absolute inset-0 opacity-10 flex items-center justify-center pointer-events-none">
-                        <span className="material-symbols-outlined text-[300px]" data-icon="favorite">favorite</span>
-                    </div>
-                    
-                    <h2 className="font-headline-lg text-headline-lg mb-4 relative z-10">Still need help?</h2>
-                    <p className="font-body-md text-body-md text-surface-variant mb-8 relative z-10 max-w-lg mx-auto">
-                        Jika Anda belum menemukan jawaban yang dicari, tim pendukung kami siap membantu Anda kapan saja.
-                    </p>
-                    
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
-                        <button className="bg-primary text-white px-10 py-3 rounded-full font-label-md text-label-md active-scale transition-all shadow-lg hover:brightness-110">Contact Support</button>
-                        <Link to="#" className="text-white font-label-md text-label-md hover:underline active-scale transition-all">Go to Dashboard</Link>
-                    </div>
-                </div>
+                                        <div
+                                            className="overflow-hidden transition-all duration-700 ease-in-out"
+                                            style={{ maxHeight: isOpen ? '200px' : '0px', opacity: isOpen ? 1 : 0 }}
+                                        >
+                                            <p className="px-8 pb-8 pt-2 text-clinical-charcoal/70 dark:text-luxury-navy/70 font-body-lg dark:font-luxury-body text-base md:text-lg leading-relaxed dark:font-light">
+                                                {faq.a}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </RevealContent>
+                </section>
+            </main>
+
+            <section className="snap-start flex flex-col justify-end bg-clinical-charcoal dark:bg-luxury-navy">
+                <PublicFooter />
             </section>
         </div>
-    </main>
-
-    {/* Footer (Shared Component) */}
-    <PublicFooter />
-
-    
-
-    </div>
-  );
+    );
 };

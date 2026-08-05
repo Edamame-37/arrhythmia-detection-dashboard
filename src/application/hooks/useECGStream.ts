@@ -17,7 +17,7 @@ import { calculateSingleRRInterval, calculateRRMetrics } from '../../core/algori
 import { evaluateIrregularity, generateClinicalExplanation } from '../../core/clinical/ruleBasedEngine';
 
 import type { ClinicalExplanation } from '../../core/clinical/ruleBasedEngine';
-import type { ECGPaths, RPeakMarker, TimelineEvent, ServerMessage } from '../../core/types/ecgTypes';
+import type { ECGPaths, RPeakMarker, TimelineEvent, ServerMessage, ECGDataPayload, DeviceSystem, DeviceNetwork, DevicePrediction, DeviceStressTest } from '../../core/types/ecgTypes';
 
 const TOTAL_POINTS = 2500;
 const X_STEP = 2000 / TOTAL_POINTS;
@@ -53,8 +53,12 @@ export interface UseECGStreamReturn {
     fetchSegment: (index: number) => void;
     isFilterOn: boolean;
     toggleFilter: () => void;
-    aiProbabilities: Record<string, number> | null;
-    aiMetrics: { latency_ms?: number; runtime?: string } | null;
+    system: DeviceSystem | null;
+    network: DeviceNetwork | null;
+    prediction: DevicePrediction | null;
+    stressTest: DeviceStressTest | null;
+    createdAt: string | null;
+    receivedAt: string | null;
     deviceId: string;
     sessionId: string;
 }
@@ -68,8 +72,12 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
     const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
 
     // --- STATE EDGE AI METRICS & DEVICE ---
-    const [aiProbabilities, setAiProbabilities] = useState<Record<string, number> | null>(null);
-    const [aiMetrics, setAiMetrics] = useState<{ latency_ms?: number; runtime?: string } | null>(null);
+    const [system, setSystem] = useState<DeviceSystem | null>(null);
+    const [network, setNetwork] = useState<DeviceNetwork | null>(null);
+    const [prediction, setPrediction] = useState<DevicePrediction | null>(null);
+    const [stressTest, setStressTest] = useState<DeviceStressTest | null>(null);
+    const [createdAt, setCreatedAt] = useState<string | null>(null);
+    const [receivedAt, setReceivedAt] = useState<string | null>(null);
     const [deviceId, setDeviceId] = useState<string>("MENUNGGU PERANGKAT...");
     const [sessionId, setSessionId] = useState<string>("MENUNGGU SESI...");
 
@@ -102,13 +110,18 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
         recentSamples: [] as SamplePoint[] // Look-Back Buffer untuk akurasi puncak
     });
 
-    const processDataChunk = useCallback((payload: any) => {
-        const { raw, classification_result, anomaly_indices, probabilities, latency_ms, runtime } = payload;
+    const processDataChunk = useCallback((payload: ECGDataPayload, timestamp?: string) => {
+        const { raw, classification_result, anomaly_indices, prediction_details, system: sysData, network: netData, stress_test } = payload;
         const isAnomaly = anomaly_indices && anomaly_indices.length > 0;
 
-        // Tangkap metrik AI secara real-time
-        if (probabilities) setAiProbabilities(probabilities);
-        if (latency_ms !== undefined || runtime !== undefined) setAiMetrics({ latency_ms, runtime });
+        if (prediction_details) setPrediction(prediction_details);
+        if (sysData) setSystem(sysData);
+        if (netData) setNetwork(netData);
+        if (stress_test) setStressTest(stress_test);
+        if (timestamp) {
+            setCreatedAt(timestamp);
+            setReceivedAt(new Date().toISOString());
+        }
 
         let { xIndex, currentPaths, peakBuffer, rrIntervals, timelineSeconds, currentRPeaks, recentSamples } = dataRef.current;
         const ch1 = raw.ch1; const ch2 = raw.ch2; const ch3 = raw.ch3;
@@ -208,12 +221,12 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
             // MENCATAT TIMELINE TEPAT DI UJUNG FRAME (Penyelesaian Masalah 9 dari 10 Frame)
             if (xIndex === TOTAL_POINTS) {
                 const evalResult = evaluateIrregularity(rrIntervals);
-                const explanation = generateClinicalExplanation(classification_result, isAnomaly, evalResult);
+                const explanation = generateClinicalExplanation(classification_result || "UNKNOWN", isAnomaly, evalResult);
                 setClinicalStatus(explanation);
                 setHeartRate(evalResult.hr > 0 ? evalResult.hr : '--');
                 setTimeline(prev => [...prev, {
                     index: timelineSeconds / 10, timeStr: formatTime(timelineSeconds),
-                    isAnomaly, classResult: classification_result
+                    isAnomaly, classResult: classification_result || "UNKNOWN"
                 }]);
             }
         }
@@ -241,7 +254,7 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
                             dataRef.current.xIndex = TOTAL_POINTS;
                             dataRef.current.timelineSeconds = (msg.data_payload as any).segment_index * 10;
                         }
-                        processDataChunk(msg.data_payload);
+                        processDataChunk(msg.data_payload, msg.timestamp);
                     }
                 }
                 else if (msg.type === 'status') setIsRecording(false);
@@ -277,6 +290,6 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
     return {
         isRecording, paths, rPeaks, heartRate, clinicalStatus, timeline,
         startStream, stopStream, fetchSummary, fetchSegment,
-        isFilterOn, toggleFilter, aiProbabilities, aiMetrics, deviceId, sessionId
+        isFilterOn, toggleFilter, system, network, prediction, stressTest, createdAt, receivedAt, deviceId, sessionId
     };
 };
