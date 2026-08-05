@@ -1,12 +1,17 @@
 import React from 'react';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 
+import type { DeviceStressTest } from '../../../core/types/ecgTypes';
+
 interface VitalCardProps {
     heartRate: number | string;
     clinicalStatus: ClinicalExplanation | null;
+    stressTest?: DeviceStressTest | null;
+    createdAt?: string | null;
+    hideTechnicalDetails?: boolean;
 }
 
-export const VitalCard: React.FC<VitalCardProps> = ({ heartRate, clinicalStatus }) => {
+export const VitalCard: React.FC<VitalCardProps> = ({ heartRate, clinicalStatus, stressTest, createdAt, hideTechnicalDetails }) => {
     return (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm">
             <div className="flex justify-between items-start mb-6">
@@ -32,14 +37,18 @@ export const VitalCard: React.FC<VitalCardProps> = ({ heartRate, clinicalStatus 
                         {!clinicalStatus ? 'Menunggu AI...' : clinicalStatus.severity === 'CRITICAL' ? 'Aritmia Terdeteksi' : 'Normal Sinus Rhythm'}
                     </span>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-on-surface-variant">Oksimetri (SpO2):</span>
-                    <span className="text-sm font-bold text-signal-green">98%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-on-surface-variant">Stabilitas Alat:</span>
-                    <span className="text-sm font-bold text-medical-teal">Tinggi</span>
-                </div>
+                {!hideTechnicalDetails && (
+                    <>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-on-surface-variant">Frame ID:</span>
+                            <span className="text-sm font-bold text-charcoal">{stressTest?.frame_counter ?? '---'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-on-surface-variant">Created At:</span>
+                            <span className="text-sm font-bold text-charcoal truncate ml-2">{createdAt ? new Date(createdAt).toLocaleTimeString() : '---'}</span>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

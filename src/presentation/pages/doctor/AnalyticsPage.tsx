@@ -4,94 +4,168 @@
  * Dokter dapat menavigasi segmen 10-detik spesifik menggunakan Timeline Bar.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ECGCanvas } from '../../components/canvas/ECGCanvas';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
+import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
+import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
+import { useSidebar } from '../../../application/context/SidebarContext';
+import { VitalCard } from '../../components/dashboard/VitalCard';
+import { AiCard } from '../../components/dashboard/AiCard';
+import { DeviceCard } from '../../components/dashboard/DeviceCard';
+import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 
-// ============================================================================
-// GENERATOR DATA SIMULASI (Hanya untuk keperluan UI sebelum Backend DB Siap)
-// ============================================================================
-const generateMockHistory = () => {
-    const events: TimelineEvent[] = [];
-    const mockSegments: Record<number, { paths: ECGPaths, rPeaks: RPeakMarker[], isAnomaly: boolean, diagnosis: string }> = {};
-
-    for (let i = 0; i < 20; i++) {
-        const isAnomaly = i === 4 || i === 12; // Segmen ke-4 dan ke-12 dibuat error
-        let diagnosis = "Normal Sinus Rhythm. Variasi R-R stabil.";
-        if (i === 4) diagnosis = "AFIB Terdeteksi. Interval R-R ireguler tanpa gelombang P yang jelas.";
-        if (i === 12) diagnosis = "PVC Terdeteksi. Kompleks QRS prematur dan melebar.";
-
-        events.push({
-            index: i,
-            timeStr: `${Math.floor(i / 6).toString().padStart(2, '0')}:${((i % 6) * 10).toString().padStart(2, '0')}`,
-            isAnomaly,
-            classResult: isAnomaly ? (i === 4 ? "AFIB" : "PVC") : "NORM"
-        });
-
-        // Membuat garis lurus datar (Simulasi)
-        const flatLine = ["0,60", "2000,60"];
-        
-        mockSegments[i] = {
-            paths: { I: flatLine, II: flatLine, III: flatLine, aVR: flatLine, aVL: flatLine, aVF: flatLine, V1: flatLine },
-            rPeaks: isAnomaly 
-                ? [{ x: 500, y: 20, rrText: "0.6s" }, { x: 1200, y: 20, prevX: 500, rrText: "0.4s" }] 
-                : [{ x: 400, y: 20, rrText: "0.8s" }, { x: 1200, y: 20, prevX: 400, rrText: "0.8s" }],
-            isAnomaly,
-            diagnosis
-        };
-    }
-    return { events, mockSegments };
-};
+const useQuery = () => new URLSearchParams(useLocation().search);
 
 export const AnalyticsPage: React.FC = () => {
-    // State Navigasi Riwayat
+    const query = useQuery();
+    const sessionId = query.get('sessionId') || '';
+
     const [speed, setSpeed] = useState<25 | 50>(25);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [showPatientSelector, setShowPatientSelector] = useState(!sessionId);
 
-    // Memuat Data Simulasi
-    const { events, mockSegments } = useMemo(() => generateMockHistory(), []);
+    // Filter states
+    const [filterPatientId, setFilterPatientId] = useState<string>('');
+    const [filterDate, setFilterDate] = useState<string>('');
+
+    const { isOpen, toggleSidebar } = useSidebar();
+
+    const [events, setEvents] = useState<TimelineEvent[]>([]);
+    const [segments, setSegments] = useState<Record<number, any>>({});
 
     useEffect(() => {
-        // Simulasi penarikan data dari server (Loading 1 detik)
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
+        if (!sessionId) {
+            setIsLoading(false);
+            return;
+        }
 
-    const currentSegment = mockSegments[selectedIdx];
+        setIsLoading(true);
+        fetch(`http://127.0.0.1:8081/api/records/${sessionId}`)
+            .then(res => res.json())
+            .then(data => {
+                const loadedEvents: TimelineEvent[] = [];
+                const loadedSegments: Record<number, any> = {};
+                
+                data.forEach((payload: any, i: number) => {
+                    const isAnomaly = payload.anomaly_indices && payload.anomaly_indices.length > 0;
+                    loadedEvents.push({
+                        index: i,
+                        timeStr: `${Math.floor(i / 6).toString().padStart(2, '0')}:${((i % 6) * 10).toString().padStart(2, '0')}`,
+                        isAnomaly,
+                        classResult: payload.classification_result || "NORM"
+                    });
+                    
+                    let xIndex = 0;
+                    const TOTAL_POINTS = 2500;
+                    const X_STEP = 2000 / TOTAL_POINTS;
+                    const ch1 = payload.raw?.ch1 || [];
+                    const ch2 = payload.raw?.ch2 || [];
+                    const ch3 = payload.raw?.ch3 || [];
+                    
+                    const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
+                    
+                    for (let j = 0; j < ch1.length; j++) {
+                        const finalI = ch1[j];
+                        const finalII = ch2[j];
+                        const finalIII = ch3[j];
+                        const calculated = calculateEinthovenPoint(finalI, finalII);
+                        const currentX = Number((xIndex * X_STEP).toFixed(2));
+                        
+                        paths.I.push(`${currentX},${(120 - finalI * 80).toFixed(2)}`);
+                        paths.II.push(`${currentX},${(120 - finalII * 80).toFixed(2)}`);
+                        paths.III.push(`${currentX},${(120 - finalIII * 80).toFixed(2)}`);
+                        paths.aVR.push(`${currentX},${(120 - calculated.aVR * 80).toFixed(2)}`);
+                        paths.aVL.push(`${currentX},${(120 - calculated.aVL * 80).toFixed(2)}`);
+                        paths.aVF.push(`${currentX},${(120 - calculated.aVF * 80).toFixed(2)}`);
+                        paths.V1.push(`${currentX},120.00`);
+                        xIndex++;
+                    }
+                    
+                    loadedSegments[i] = {
+                        paths,
+                        rPeaks: [], // Peak detection history will be added later
+                        isAnomaly,
+                        diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
+                        heartRate: payload.validation?.hr || payload.heart_rate || "--",
+                        frameId: payload.message_id || payload.frame_id || "---",
+                        deviceId: payload.device_id || "---",
+                        createdAt: payload.created_at || "---",
+                        aiProbabilities: payload.prediction?.probabilities || null,
+                        aiMetrics: {
+                            latency_ms: payload.prediction?.latency_ms || null,
+                            runtime: payload.prediction?.runtime || "---"
+                        },
+                        stressTest: payload.stress_test || null,
+                        system: payload.system || null,
+                        network: payload.network || null,
+                    };
+                });
+                
+                setEvents(loadedEvents);
+                setSegments(loadedSegments);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                console.error("Error fetching session records:", err);
+                setIsLoading(false);
+            });
+    }, [sessionId]);
+
+    const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
 
+    // Mock Patient Data for Selection
+    const mockPatients = [
+        { id: 'pat001', name: 'Budi Santoso', sessions: [{ id: 'ses000000000001', date: '2026-07-31 09:15' }] },
+        { id: 'pat002', name: 'Siti Aminah', sessions: [{ id: 'ses_1234567890', date: '2026-07-30 14:20' }] }
+    ];
+
+    const filteredSessions = mockPatients
+        .filter(p => !filterPatientId || p.id === filterPatientId)
+        .flatMap(p => p.sessions.map(s => ({ ...s, patientName: p.name })))
+        .filter(s => !filterDate || s.date.startsWith(filterDate));
+
+    // Derive props for the cards from currentSegment
+    const clinicalStatus: ClinicalExplanation | null = currentSegment ? {
+        isAnomaly: currentSegment.isAnomaly,
+        fullExplanation: `${currentSegment.isAnomaly ? 'Anomali Terdeteksi' : 'Normal'} - ${currentEvent?.classResult}. ${currentSegment.diagnosis}`,
+        severity: currentSegment.isAnomaly ? "CRITICAL" : "NORMAL"
+    } : null;
+
+    const heartRate = currentSegment?.heartRate || "--";
+    const stressTest = currentSegment?.stressTest || null;
+    let createdAt = currentSegment?.createdAt || null;
+    if (!createdAt || createdAt === "---") {
+        createdAt = mockPatients.flatMap(p => p.sessions).find(s => s.id === sessionId)?.date || null;
+    }
+    const aiProbabilities = currentSegment?.aiProbabilities || null;
+    const deviceId = currentSegment?.deviceId || "---";
+    const aiMetrics = currentSegment?.aiMetrics || null;
+    const system = currentSegment?.system || null;
+    const network = currentSegment?.network || null;
+
     return (
-        <div className="bg-background text-on-surface antialiased overflow-x-hidden min-h-screen flex flex-col">
+        <div className="bg-background text-on-surface antialiased overflow-x-hidden min-h-screen">
+            <DoctorSidebar />
             
-            {/* --- HEADER KOMPONEN (Mirip Monitor, tapi dengan tombol Kembali) --- */}
-            <header className="fixed top-0 left-0 w-full h-16 bg-surface-container-lowest z-50 flex justify-between items-center px-4 md:px-margin-desktop shadow-sm border-b border-outline-variant">
+
+
+            <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
+            {/* --- HEADER KOMPONEN --- */}
+            <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center w-full">
                 
-                <div className="flex items-center gap-4">
-                    {/* Tombol Kembali ke Monitor/Dashboard */}
-                    <button 
-                        onClick={() => window.history.back()}
-                        className="p-2 rounded-full hover:bg-surface-container transition-colors text-on-surface-variant flex items-center justify-center"
-                        title="Kembali"
-                    >
-                        <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+                <div className="flex items-center gap-3">
+                    <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+                        <span className="material-symbols-outlined">menu</span>
                     </button>
-
-                    <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                        <img src="/icons/logo.png" alt="Logo" className="h-8 w-8 md:h-9 md:w-9 object-contain drop-shadow-sm" />
-                        <span className="text-[1.3rem] md:text-2xl font-extrabold tracking-tighter flex items-center">
-                            <span className="text-brand-red">ecg</span>
-                            <span className="text-brand-navy">rhythmia <span className="text-sm font-medium text-outline ml-2 hidden sm:inline-block">| Analytics</span></span>
-                        </span>
-                    </Link>
-                </div>
-
-                <div className="hidden md:flex items-center gap-3 px-6 py-2 bg-surface-container-low rounded-full border border-outline-variant/60 shadow-inner">
-                    <span className="material-symbols-outlined text-charcoal text-[20px]">folder_managed</span>
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Arsip Medis:</span>
-                    <span className="text-sm font-bold text-charcoal">Tn. Ahmad Hidayat (ID: 88291A)</span>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-charcoal">Riwayat Klinis</h1>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Peninjauan rekam historis EKG dan AI Analytics</p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3 md:gap-4">
@@ -102,8 +176,67 @@ export const AnalyticsPage: React.FC = () => {
                 </div>
             </header>
 
+            {/* --- FILTER TOOLBAR (DI BAWAH HEADER) --- */}
+            <div className="bg-surface border-b border-outline-variant/30 w-full px-4 md:px-6 py-3 shadow-sm z-30 relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="bg-medical-teal/10 p-2 rounded-lg text-medical-teal">
+                        <span className="material-symbols-outlined text-[20px]">folder_managed</span>
+                    </div>
+                    <div>
+                        <h2 className="text-sm font-bold text-charcoal">Arsip Rekaman Klinis</h2>
+                        <p className="text-[11px] text-on-surface-variant">Filter berdasarkan tanggal dan pilih pasien untuk meninjau rekaman EKG historis.</p>
+                    </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row flex-1 md:max-w-xl items-center gap-3">
+                    <div className="flex-1 w-full flex items-center bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-3 py-2 focus-within:border-medical-teal focus-within:ring-1 focus-within:ring-medical-teal/20 transition-all shadow-sm">
+                        <span className="material-symbols-outlined text-on-surface-variant text-[18px] mr-2">calendar_month</span>
+                        <input 
+                            type="date" 
+                            value={filterDate}
+                            onChange={(e) => {
+                                setFilterDate(e.target.value);
+                                setFilterPatientId('');
+                            }}
+                            className="w-full bg-transparent text-charcoal text-sm font-medium outline-none" 
+                        />
+                    </div>
+                    
+                    <div className="flex-1 w-full flex items-center bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-3 py-2 focus-within:border-medical-teal focus-within:ring-1 focus-within:ring-medical-teal/20 transition-all shadow-sm">
+                        <span className="material-symbols-outlined text-on-surface-variant text-[18px] mr-2">person</span>
+                        <select 
+                            value={filterPatientId}
+                            onChange={(e) => {
+                                const selectedId = e.target.value;
+                                setFilterPatientId(selectedId);
+                                if (selectedId && filterDate) {
+                                    const session = mockPatients.find(p => p.id === selectedId)?.sessions.find(s => s.date.startsWith(filterDate));
+                                    if (session) {
+                                        window.location.href = `/doctor/analytics?sessionId=${session.id}`;
+                                    }
+                                }
+                            }}
+                            disabled={!filterDate}
+                            className="w-full bg-transparent text-charcoal text-sm font-medium outline-none cursor-pointer appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {!filterDate ? (
+                                <option value="">-- Pilih Tanggal Dahulu --</option>
+                            ) : (
+                                <>
+                                    <option value="">-- Pilih Pasien --</option>
+                                    {mockPatients.filter(p => p.sessions.some(s => s.date.startsWith(filterDate))).map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </>
+                            )}
+                        </select>
+                        <span className="material-symbols-outlined text-on-surface-variant text-[18px] ml-2 pointer-events-none">arrow_drop_down</span>
+                    </div>
+                </div>
+            </div>
+
             {/* --- KONTEN UTAMA --- */}
-            <main className="pt-20 md:pt-24 pb-12 mx-auto w-full max-w-container-max px-4 md:px-margin-desktop flex flex-col lg:flex-row gap-6 flex-1">
+            <div className="mt-6 mx-auto w-full px-4 md:px-6 flex flex-col lg:flex-row gap-6 flex-1">
                 
                 {/* KOLOM KIRI: GRAFIK & TIMELINE */}
                 <section className="w-full lg:w-9/12 flex flex-col gap-4">
@@ -115,122 +248,60 @@ export const AnalyticsPage: React.FC = () => {
                             <span className="text-sm font-bold text-charcoal flex items-center gap-2">
                                 Waktu Rekaman: 
                                 <span className="px-2 py-1 bg-surface-container-high rounded text-medical-teal font-mono-data text-xs">
-                                    {currentEvent?.timeStr || "00:00"} - {events[selectedIdx + 1]?.timeStr || "00:10"}
+                                    {currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : '--'}
                                 </span>
                             </span>
                         </div>
-                        
-                        <div className="flex bg-surface-container rounded-lg p-1 border border-outline-variant/50 ml-auto sm:ml-0">
-                            <button 
-                                onClick={() => setSpeed(25)} 
-                                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all outline-none ${speed === 25 ? 'bg-medical-teal text-white shadow-sm' : 'text-on-surface-variant hover:text-charcoal hover:bg-surface-container-high'}`}
-                            >
-                                25 mm/s
-                            </button>
-                            <button 
-                                onClick={() => setSpeed(50)} 
-                                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all outline-none ${speed === 50 ? 'bg-medical-teal text-white shadow-sm' : 'text-on-surface-variant hover:text-charcoal hover:bg-surface-container-high'}`}
-                            >
-                                50 mm/s
-                            </button>
-                        </div>
                     </div>
 
-                    {/* Pembungkus Kanvas 7-Lead (Menggunakan Fix Tinggi Absolut) */}
-                    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm relative h-[880px] flex flex-col">
-                        {isLoading ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-50">
-                                <span className="material-symbols-outlined text-medical-teal text-4xl animate-spin">sync</span>
-                                <p className="mt-2 text-sm font-bold text-charcoal">Menarik Arsip Segmen...</p>
-                            </div>
-                        ) : (
+                    {/* Pembungkus Kanvas 7-Lead */}
+                    <div className="relative flex-1 min-h-[400px]">
+                        <div className="absolute inset-0 z-0 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-y-auto overflow-x-hidden shadow-sm flex flex-col">
                             <ECGCanvas 
-                                paths={currentSegment.paths} 
-                                rPeaks={currentSegment.rPeaks} 
+                                paths={currentSegment?.paths || { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] }} 
+                                rPeaks={currentSegment?.rPeaks || []} 
                                 speed={speed} 
-                                isAnomaly={currentSegment.isAnomaly}
+                                isAnomaly={currentSegment?.isAnomaly || false}
                                 classResult={currentEvent?.classResult} 
                                 timeOffset={selectedIdx * 10} // Kalkulasi waktu riwayat
                             />
-                        )}
+                            {isLoading && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-50">
+                                    <span className="material-symbols-outlined text-medical-teal text-4xl animate-spin">sync</span>
+                                    <p className="mt-2 text-sm font-bold text-charcoal">Menarik Arsip Segmen...</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Timeline Multi-Aritmia (Klik untuk melompat ke waktu tertentu) */}
-                    <TimelineBar 
-                        events={events} 
-                        currentIdx={selectedIdx} 
-                        onSegmentSelect={(idx: number) => {
-                            setIsLoading(true);
-                            setTimeout(() => {
-                                setSelectedIdx(idx);
-                                setIsLoading(false);
-                            }, 300); // Simulasi jeda tarik data
-                        }} 
-                    />
+                    {events.length > 0 && (
+                        <TimelineBar 
+                            events={events} 
+                            currentIdx={selectedIdx} 
+                            onSegmentSelect={(idx: number) => {
+                                setIsLoading(true);
+                                setTimeout(() => {
+                                    setSelectedIdx(idx);
+                                    setIsLoading(false);
+                                }, 300); // Simulasi jeda tarik data
+                            }} 
+                        />
+                    )}
                     
                 </section>
 
                 {/* KOLOM KANAN: DETAIL ANALISIS HISTORIS */}
                 <aside className="w-full lg:w-3/12 flex flex-col gap-6">
                     
-                    {/* Kartu Ringkasan Sesi */}
-                    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm">
-                        <h3 className="text-sm font-bold text-charcoal mb-4 border-b border-outline-variant/50 pb-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[18px]">info</span> Informasi Rekaman
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-on-surface-variant">Tanggal:</span>
-                                <span className="text-xs font-bold text-charcoal">12 Okt 2024</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-on-surface-variant">Waktu Mulai:</span>
-                                <span className="text-xs font-bold text-charcoal">08:15:00 WIB</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-on-surface-variant">Durasi Sesi:</span>
-                                <span className="text-xs font-bold text-charcoal">03:20 (Menit)</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-on-surface-variant">Total Anomali:</span>
-                                <span className="text-xs font-bold text-alert-red bg-red-50 px-2 py-0.5 rounded">2 Kejadian</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Kartu Hasil Diagnosis Segmen Terpilih */}
-                    <div className={`rounded-xl p-5 shadow-xl flex-1 flex flex-col transition-colors duration-500 ${currentSegment?.isAnomaly ? 'bg-alert-red text-white' : 'bg-charcoal text-white'}`}>
-                        <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[18px]">
-                                {currentSegment?.isAnomaly ? 'warning' : 'verified_user'}
-                            </span> 
-                            AI Review (Segmen {currentEvent?.timeStr})
-                        </h4>
-                        
-                        <div className="bg-white/10 rounded-lg p-3 border border-white/20 mb-4 flex-1">
-                            <div className="mb-2">
-                                <span className="text-[10px] uppercase tracking-wider text-white/70">Klasifikasi Utama:</span>
-                                <p className="text-lg font-extrabold tracking-wide">
-                                    {currentEvent?.classResult === "NORM" ? "NORMAL" : currentEvent?.classResult}
-                                </p>
-                            </div>
-                            <div>
-                                <span className="text-[10px] uppercase tracking-wider text-white/70">Catatan Klinis:</span>
-                                <p className="text-xs text-white/90 leading-relaxed mt-1">
-                                    {currentSegment?.diagnosis}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        {currentSegment?.isAnomaly && (
-                            <button className="w-full py-2.5 bg-white text-alert-red rounded-lg font-bold text-sm transition-all shadow-md active:scale-95 flex justify-center items-center gap-2 mt-auto outline-none">
-                                Tambahkan ke Laporan
-                                <span className="material-symbols-outlined text-[16px]">note_add</span>
-                            </button>
-                        )}
+                    <VitalCard heartRate={heartRate} clinicalStatus={clinicalStatus} stressTest={stressTest} createdAt={createdAt} />
+                    <AiCard sessionId={sessionId} clinicalStatus={clinicalStatus} aiProbabilities={aiProbabilities} />
+                    <div className="mt-auto">
+                        <DeviceCard deviceId={deviceId} aiMetrics={aiMetrics} isLive={false} />
                     </div>
 
                 </aside>
+            </div>
             </main>
         </div>
     );

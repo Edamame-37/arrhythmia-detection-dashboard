@@ -15,19 +15,50 @@ export interface RawECGData {
     ch3: number[]; // Lead III (Data Kalibrasi Murni)
 }
 
+export interface DeviceValidation {
+    status: string;
+    warnings: string[];
+}
+
+export interface DevicePrediction {
+    status: string;
+    label: string;
+    confidence_percent: number;
+    probabilities?: Record<string, number>;
+    threshold?: number;
+    latency_ms?: number;
+    runtime?: string;
+}
+
+export interface DeviceSystem {
+    cpu_usage_percent?: number;
+    memory_usage_percent?: number;
+    memory_usage_mb?: number;
+    cpu_temperature_c?: number;
+    uptime_s?: number;
+}
+
+export interface DeviceNetwork {
+    mqtt_publish_latency_ms?: number;
+    wifi_rssi_dbm?: number;
+    mqtt_connected?: boolean;
+}
+
+export interface DeviceStressTest {
+    enabled?: boolean;
+    frame_counter?: number;
+}
+
 export interface ECGDataPayload {
-    raw: {
-        time: number[];
-        ch1: number[];
-        ch2: number[];
-        ch3: number[];
-    };
+    raw: RawECGData;
     classification_result?: string;
     confidence?: string;
     anomaly_indices: number[];
-    probabilities?: Record<string, number>;
-    latency_ms?: number;
-    runtime?: string;
+    validation?: DeviceValidation;
+    prediction_details?: DevicePrediction;
+    system?: DeviceSystem;
+    network?: DeviceNetwork;
+    stress_test?: DeviceStressTest;
 }
 
 export interface ServerMessage {

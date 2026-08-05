@@ -9,22 +9,31 @@ import { FaqPage } from './presentation/pages/landing/FaqPage';
 // Auth Pages
 import { SplashPage } from './presentation/pages/auth/SplashPage';
 import { LoginPage } from './presentation/pages/auth/LoginPage';
+import { RegisterPage } from './presentation/pages/auth/RegisterPage';
+
+import { SidebarProvider } from './application/context/SidebarContext';
+import { ConnectionProvider } from './application/context/ConnectionContext';
+import { PreferencesProvider } from './application/context/PreferencesContext';
+
+// Admin Pages
+import { AdminDashboardPage } from './presentation/pages/admin/AdminDashboardPage';
+import { AdminMonitorPage } from './presentation/pages/admin/AdminMonitorPage';
+import { AdminUsersPage } from './presentation/pages/admin/AdminUsersPage';
+import { AdminDevicesPage } from './presentation/pages/admin/AdminDevicesPage';
 
 // Doctor Pages
 import { DashboardPage } from './presentation/pages/doctor/DashboardPage';
 import { MonitorPage } from './presentation/pages/doctor/MonitorPage';
 import { AnalyticsPage } from './presentation/pages/doctor/AnalyticsPage';
-import { DeviceBindingPage } from './presentation/pages/doctor/DeviceBindingPage';
 import { QrScannerPage } from './presentation/pages/doctor/QrScannerPage';
 import { ProfilePage } from './presentation/pages/doctor/ProfilePage';
-import { ClinicalSettingsPage } from './presentation/pages/doctor/ClinicalSettingsPage';
 
 // Patient Pages
 import { PatientDashboardPage } from './presentation/pages/patient/PatientDashboardPage';
 import { PatientQrSyncPage } from './presentation/pages/patient/PatientQrSyncPage';
 import { PatientHistoryPage } from './presentation/pages/patient/PatientHistoryPage';
-import { DeviceGuidePage } from './presentation/pages/patient/DeviceGuidePage';
-import { PrivacyControlPage } from './presentation/pages/patient/PrivacyControlPage';
+import { PatientHistoryDetailPage } from './presentation/pages/patient/PatientHistoryDetailPage';
+import { PatientProfilePage } from './presentation/pages/patient/PatientProfilePage';
 import { PatientSettingsPage } from './presentation/pages/patient/PatientSettingsPage';
 
 const TitleSetter: React.FC = () => {
@@ -37,18 +46,21 @@ const TitleSetter: React.FC = () => {
       '/faq': 'FAQ',
       '/auth': 'Auth',
       '/auth/login': 'Login',
+      '/auth/register': 'Register',
+      '/admin/dashboard': 'Admin Dashboard',
+      '/admin/monitor': 'Live Stream Monitor',
+      '/admin/users': 'User Management',
+      '/admin/devices': 'Device Fleet',
       '/doctor/dashboard': 'Doctor Dashboard',
       '/doctor/monitor': 'Live Monitor',
       '/doctor/analytics': 'Analytics',
-      '/doctor/device-binding': 'Device Binding',
       '/doctor/qr-scanner': 'QR Scanner',
       '/doctor/profile': 'Profile',
-      '/doctor/settings': 'Clinical Settings',
       '/patient/dashboard': 'Patient Dashboard',
       '/patient/qr-sync': 'QR Sync',
       '/patient/history': 'History',
       '/patient/device-guide': 'Device Guide',
-      '/patient/privacy-control': 'Privacy Control',
+      '/patient/profile': 'Profil & Keamanan',
       '/patient/settings': 'Patient Settings',
     };
 
@@ -62,6 +74,9 @@ const TitleSetter: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
+      <PreferencesProvider>
+      <ConnectionProvider>
+      <SidebarProvider>
       <TitleSetter />
       <Routes>
         {/* Public Routes */}
@@ -72,24 +87,32 @@ export const App: React.FC = () => {
         {/* Auth Routes */}
         <Route path="/auth" element={<SplashPage />} />
         <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/auth/register" element={<RegisterPage />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/admin/monitor" element={<AdminMonitorPage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/devices" element={<AdminDevicesPage />} />
 
         {/* Doctor Routes */}
         <Route path="/doctor/dashboard" element={<DashboardPage />} />
         <Route path="/doctor/monitor" element={<MonitorPage />} />
         <Route path="/doctor/analytics" element={<AnalyticsPage />} />
-        <Route path="/doctor/device-binding" element={<DeviceBindingPage />} />
         <Route path="/doctor/qr-scanner" element={<QrScannerPage />} />
         <Route path="/doctor/profile" element={<ProfilePage />} />
-        <Route path="/doctor/settings" element={<ClinicalSettingsPage />} />
 
         {/* Patient Routes */}
         <Route path="/patient/dashboard" element={<PatientDashboardPage />} />
         <Route path="/patient/qr-sync" element={<PatientQrSyncPage />} />
         <Route path="/patient/history" element={<PatientHistoryPage />} />
-        <Route path="/patient/device-guide" element={<DeviceGuidePage />} />
-        <Route path="/patient/privacy-control" element={<PrivacyControlPage />} />
+        <Route path="/patient/history/:sessionId" element={<PatientHistoryDetailPage />} />
+        <Route path="/patient/profile" element={<PatientProfilePage />} />
         <Route path="/patient/settings" element={<PatientSettingsPage />} />
       </Routes>
+      </SidebarProvider>
+      </ConnectionProvider>
+      </PreferencesProvider>
     </BrowserRouter>
   );
 };
