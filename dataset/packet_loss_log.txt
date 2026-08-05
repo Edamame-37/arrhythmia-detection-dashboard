@@ -1,1 +1,0 @@
-[2026-07-28 19:05:42] [INFO] Out-of-order or duplicate frame counter received! Expected counter > 5, received 1.
