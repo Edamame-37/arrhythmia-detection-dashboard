@@ -51,8 +51,15 @@ export const MonitorPage: React.FC = () => {
     }, [clinicalStatus]);
 
     const [onlineDevices, setOnlineDevices] = useState<DeviceRecord[]>([]);
+    const [patients, setPatients] = useState<{id: string, name: string}[]>([]);
+    const [selectedPatientId, setSelectedPatientId] = useState<string>('');
 
     useEffect(() => {
+        fetch('http://127.0.0.1:8081/api/patients')
+            .then(res => res.json())
+            .then(data => setPatients(Array.isArray(data) ? data : []))
+            .catch(err => console.error("Error fetching patients:", err));
+
         fetch('http://127.0.0.1:8081/api/devices')
             .then(res => res.json())
             .then(data => setOnlineDevices(data))
@@ -82,6 +89,11 @@ export const MonitorPage: React.FC = () => {
             alert("Tidak ada perangkat yang terhubung.");
             return;
         }
+        
+        if (!isRecording && !selectedPatientId) {
+            alert("Harap pilih pasien terlebih dahulu sebelum memulai perekaman.");
+            return;
+        }
 
         setIsCommandLoading(true);
         try {
@@ -89,7 +101,7 @@ export const MonitorPage: React.FC = () => {
             const response = await fetch(`http://127.0.0.1:8081/api/devices/${displayDeviceId}/command`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command })
+                body: JSON.stringify({ command, patient_id: selectedPatientId })
             });
 
             if (response.ok) {
@@ -158,6 +170,18 @@ export const MonitorPage: React.FC = () => {
 
                         </div>
 
+                        {/* DROPDOWN PEMILIHAN PASIEN (RATA KANAN) */}
+                        <select
+                            value={selectedPatientId}
+                            onChange={(e) => setSelectedPatientId(e.target.value)}
+                            disabled={isRecording}
+                            className="bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-xs font-bold text-charcoal outline-none cursor-pointer"
+                        >
+                            <option value="" disabled>Pilih Pasien</option>
+                            {patients.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="relative flex-1 min-h-[400px]">
