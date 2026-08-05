@@ -3,11 +3,11 @@ import { PublicHeader } from '../../components/layout/PublicHeader';
 import { PublicFooter } from '../../components/layout/PublicFooter';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import fikriImg from '../../../assets/team-profile/Muhammad Fikri.jpg';
-import rizqikaImg from '../../../assets/team-profile/Rizqika Azkiya Algim.jpg';
-import athayaImg from '../../../assets/team-profile/Athaya Rashif Hanang Syah.jpg';
-import rafaImg from '../../../assets/team-profile/Rafa Azlan.jpg';
-import raffiImg from '../../../assets/team-profile/Raffi Arditama.jpg';
+import fikriImg from '../../../assets/team-profile/Muhammad Fikri.JPG';
+import rizqikaImg from '../../../assets/team-profile/Rizqika Azkiya Algim.JPG';
+import athayaImg from '../../../assets/team-profile/Athaya Rashif Hanang Syah.JPG';
+import rafaImg from '../../../assets/team-profile/Rafa Azlan.JPG';
+import raffiImg from '../../../assets/team-profile/Raffi Arditama.JPG';
 
 const RevealContent: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => {
   const [isVisible, setIsVisible] = React.useState(false);
