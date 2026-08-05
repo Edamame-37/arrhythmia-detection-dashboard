@@ -60,10 +60,19 @@ export const MonitorPage: React.FC = () => {
             .then(data => setPatients(Array.isArray(data) ? data : []))
             .catch(err => console.error("Error fetching patients:", err));
 
-        fetch('http://127.0.0.1:8081/api/devices')
-            .then(res => res.json())
-            .then(data => setOnlineDevices(data))
-            .catch(err => console.error("Error fetching devices:", err));
+        const fetchDevices = () => {
+            fetch('http://127.0.0.1:8081/api/devices')
+                .then(res => res.json())
+                .then(data => {
+                    const online = data.filter((d: any) => d.status === 'Online');
+                    setOnlineDevices(online);
+                    if (online.length > 0 && online[0].assigned_to && online[0].assigned_to !== 'Unassigned') {
+                        setSelectedPatientId(prev => prev ? prev : online[0].assigned_to);
+                    }
+                })
+                .catch(err => console.error("Error fetching devices:", err));
+        };
+        fetchDevices();
             
         // Auto-resume if there is an active session
         fetch('http://127.0.0.1:8081/api/sessions')
