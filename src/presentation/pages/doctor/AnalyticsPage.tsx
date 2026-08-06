@@ -16,6 +16,8 @@ import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
+import { APP_CONFIG } from '../../../core/config';
+
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -44,7 +46,7 @@ export const AnalyticsPage: React.FC = () => {
         }
 
         setIsLoading(true);
-        fetch(`http://127.0.0.1:8081/api/records/${sessionId}`)
+        fetch(`${APP_CONFIG.API_URL}/api/records/${sessionId}`)
             .then(res => res.json())
             .then(data => {
                 const loadedEvents: TimelineEvent[] = [];

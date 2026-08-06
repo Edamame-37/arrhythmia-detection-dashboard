@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
+import { APP_CONFIG } from '../../../core/config';
+import { ListSkeleton } from '../../components/shared/Skeleton';
+
+
 
 export interface SessionRecord {
     id: string;
@@ -29,6 +33,8 @@ export const DashboardPage: React.FC = () => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [standbyPatientProfile, setStandbyPatientProfile] = useState<any>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [isLoading, setIsLoading] = useState(true);
+
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -45,7 +51,7 @@ export const DashboardPage: React.FC = () => {
                 const dbPatientId = `pat${numStr.padStart(12, '0')}`;
                 
                 if (dbPatientId) {
-                    fetch(`http://127.0.0.1:8081/api/patients/${dbPatientId}`)
+                    fetch(`${APP_CONFIG.API_URL}/api/patients/${dbPatientId}`)
                         .then(res => {
                             if (!res.ok) throw new Error('API offline');
                             return res.json();
@@ -87,16 +93,19 @@ export const DashboardPage: React.FC = () => {
     }, [connectedPatient?.id]);
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8081/api/sessions')
-            .then(res => res.json())
-            .then(data => setSessions(data))
-            .catch(err => console.error("Error fetching sessions:", err));
-
-        fetch('http://127.0.0.1:8081/api/devices')
-            .then(res => res.json())
-            .then(data => setDevices(data))
-            .catch(err => console.error("Error fetching devices:", err));
+        setIsLoading(true);
+        Promise.all([
+            fetch(`${APP_CONFIG.API_URL}/api/sessions`).then(res => res.json()),
+            fetch(`${APP_CONFIG.API_URL}/api/devices`).then(res => res.json())
+        ])
+        .then(([sessionsData, devicesData]) => {
+            setSessions(sessionsData);
+            setDevices(devicesData);
+        })
+        .catch(err => console.error("Error fetching dashboard data:", err))
+        .finally(() => setIsLoading(false));
     }, []);
+
 
     const activeSessions = sessions.filter(session => !session.ended_at);
     
@@ -169,7 +178,9 @@ export const DashboardPage: React.FC = () => {
                             <span className={`w-2 h-2 rounded-full ${activeSessions.length > 0 ? 'bg-alert-red animate-ping' : 'bg-outline-variant'}`}></span>
                             <span>Sesi Perekaman Aktif</span>
                         </h2>
-                        {activeSessions.length > 0 ? (
+                        {isLoading ? (
+                            <ListSkeleton rows={1} />
+                        ) : activeSessions.length > 0 ? (
                             <div className="space-y-3">
                                 {activeSessions.map(session => (
                                     <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
@@ -202,7 +213,12 @@ export const DashboardPage: React.FC = () => {
                             <span className={`w-2 h-2 rounded-full ${devices.length > 0 ? 'bg-medical-teal animate-ping' : 'bg-outline-variant'}`}></span>
                             <span>Perangkat Online</span>
                         </h2>
-                        {devices.length > 0 ? (
+                        {isLoading ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="bg-surface border border-outline-variant/60 p-4 rounded-xl h-16 animate-pulse bg-slate-200"></div>
+                                <div className="bg-surface border border-outline-variant/60 p-4 rounded-xl h-16 animate-pulse bg-slate-200"></div>
+                            </div>
+                        ) : devices.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {devices.map(device => (
                                     <div key={device.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex items-center gap-3 shadow-sm">

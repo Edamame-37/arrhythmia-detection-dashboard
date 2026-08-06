@@ -17,6 +17,8 @@ import { useSidebar } from '../../../application/context/SidebarContext';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
+import { APP_CONFIG } from '../../../core/config';
+
 
 interface DeviceRecord {
     id: string;
@@ -29,7 +31,9 @@ export const MonitorPage: React.FC = () => {
         isRecording, paths, rPeaks, heartRate, clinicalStatus, timeline,
         startStream, stopStream, fetchSegment, isFilterOn, toggleFilter,
         prediction, deviceId, sessionId, stressTest, createdAt
-    } = useECGStream(import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8080');
+    } = useECGStream(APP_CONFIG.WS_URL);
+
+    const [isLoading, setIsLoading] = useState(true);
 
     const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number | undefined>(undefined);
 
@@ -55,35 +59,28 @@ export const MonitorPage: React.FC = () => {
     const [selectedPatientId, setSelectedPatientId] = useState<string>('');
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8081/api/patients')
-            .then(res => res.json())
-            .then(data => setPatients(Array.isArray(data) ? data : []))
-            .catch(err => console.error("Error fetching patients:", err));
-
-        const fetchDevices = () => {
-            fetch('http://127.0.0.1:8081/api/devices')
-                .then(res => res.json())
-                .then(data => {
-                    const online = data.filter((d: any) => d.status === 'Online');
-                    setOnlineDevices(online);
-                    if (online.length > 0 && online[0].assigned_to && online[0].assigned_to !== 'Unassigned') {
-                        setSelectedPatientId(prev => prev ? prev : online[0].assigned_to);
-                    }
-                })
-                .catch(err => console.error("Error fetching devices:", err));
-        };
-        fetchDevices();
+        setIsLoading(true);
+        Promise.all([
+            fetch(`${APP_CONFIG.API_URL}/api/patients`).then(res => res.json()),
+            fetch(`${APP_CONFIG.API_URL}/api/devices`).then(res => res.json()),
+            fetch(`${APP_CONFIG.API_URL}/api/sessions`).then(res => res.json())
+        ])
+        .then(([patientsData, devicesData, sessionsData]) => {
+            setPatients(Array.isArray(patientsData) ? patientsData : []);
             
-        // Auto-resume if there is an active session
-        fetch('http://127.0.0.1:8081/api/sessions')
-            .then(res => res.json())
-            .then(data => {
-                const activeSessions = data.sessions ? data.sessions.filter((s: any) => !s.ended_at) : [];
-                if (activeSessions.length > 0) {
-                    startStream(); // Only reconnect WebSocket, do not send START command
-                }
-            })
-            .catch(err => console.error("Error fetching sessions for auto-resume:", err));
+            const online = devicesData.filter((d: any) => d.status === 'Online');
+            setOnlineDevices(online);
+            if (online.length > 0 && online[0].assigned_to && online[0].assigned_to !== 'Unassigned') {
+                setSelectedPatientId(prev => prev ? prev : online[0].assigned_to);
+            }
+
+            const activeSessions = sessionsData.sessions ? sessionsData.sessions.filter((s: any) => !s.ended_at) : [];
+            if (activeSessions.length > 0) {
+                startStream(); // Only reconnect WebSocket, do not send START command
+            }
+        })
+        .catch(err => console.error("Error fetching monitor data:", err))
+        .finally(() => setIsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -107,7 +104,7 @@ export const MonitorPage: React.FC = () => {
         setIsCommandLoading(true);
         try {
             const command = isRecording ? "STOP" : "START";
-            const response = await fetch(`http://127.0.0.1:8081/api/devices/${displayDeviceId}/command`, {
+            const response = await fetch(`${APP_CONFIG.API_URL}/api/devices/${displayDeviceId}/command`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ command, patient_id: selectedPatientId })
@@ -129,6 +126,27 @@ export const MonitorPage: React.FC = () => {
 
     const alertTitle = clinicalStatus ? clinicalStatus.fullExplanation.split('.')[0] : 'Anomali Terdeteksi';
     const aiClassResult = clinicalStatus ? clinicalStatus.fullExplanation.split(' ')[2] : 'NORM';
+
+    if (isLoading) {
+        return (
+            <div className="bg-background text-on-surface antialiased overflow-x-hidden min-h-screen flex flex-col">
+                <DoctorSidebar />
+                <Header deviceId="Memuat..." sessionId="Memuat..." />
+                <main className={`pt-[120px] md:pt-24 pb-12 mx-auto w-full px-4 md:px-margin-desktop flex flex-col lg:flex-row gap-6 flex-1 transition-all duration-300 ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
+                    <section className="w-full lg:w-9/12 flex flex-col gap-4 flex-1">
+                        <div className="bg-slate-200/50 dark:bg-slate-800/50 border border-outline-variant/30 rounded-xl p-3 h-14 animate-pulse"></div>
+                        <div className="bg-slate-200/50 dark:bg-slate-800/50 border border-outline-variant/30 rounded-xl h-[400px] animate-pulse flex-grow"></div>
+                        <div className="bg-slate-200/50 dark:bg-slate-800/50 border border-outline-variant/30 rounded-xl h-14 animate-pulse"></div>
+                    </section>
+                    <aside className="w-full lg:w-3/12 flex flex-col gap-6">
+                        <div className="bg-slate-200/50 dark:bg-slate-800/50 border border-outline-variant/30 rounded-xl p-5 h-44 animate-pulse"></div>
+                        <div className="bg-slate-200/50 dark:bg-slate-800/50 border border-outline-variant/30 rounded-xl p-5 h-44 animate-pulse"></div>
+                        <div className="bg-slate-200/50 dark:bg-slate-800/50 border border-outline-variant/30 rounded-xl p-5 h-44 animate-pulse"></div>
+                    </aside>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden min-h-screen flex flex-col">
