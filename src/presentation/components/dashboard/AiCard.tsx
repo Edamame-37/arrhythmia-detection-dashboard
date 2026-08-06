@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
+import { APP_CONFIG } from '../../../core/config';
+
 
 interface AiCardProps {
     sessionId?: string | null;
@@ -37,7 +39,7 @@ export const AiCard: React.FC<AiCardProps> = ({ sessionId, clinicalStatus, aiPro
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(`http://127.0.0.1:8080/api/sessions/${sessionId}/confirmation`, {
+            const res = await fetch(`${APP_CONFIG.ON_DEVICE_API_URL}/api/sessions/${sessionId}/confirmation`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
