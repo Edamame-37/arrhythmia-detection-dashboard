@@ -99,8 +99,9 @@ export const DashboardPage: React.FC = () => {
             fetch(`${APP_CONFIG.API_URL}/api/devices`).then(res => res.json())
         ])
         .then(([sessionsData, devicesData]) => {
-            setSessions(sessionsData);
-            setDevices(devicesData);
+            const sessionsList = sessionsData.sessions ? sessionsData.sessions : (Array.isArray(sessionsData) ? sessionsData : []);
+            setSessions(sessionsList);
+            setDevices(Array.isArray(devicesData) ? devicesData : []);
         })
         .catch(err => console.error("Error fetching dashboard data:", err))
         .finally(() => setIsLoading(false));
