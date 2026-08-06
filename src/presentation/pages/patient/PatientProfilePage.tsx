@@ -154,7 +154,7 @@ export const PatientProfilePage: React.FC = () => {
                 </div>
 
                 <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 -mt-20 relative z-10 space-y-6">
-                    <div className="bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/40 overflow-hidden flex flex-col lg:flex-row">
+                    <div className="bg-surface-container-lowest rounded-[2rem] shadow-xl border border-outline-variant/40 overflow-hidden flex flex-col lg:flex-row">
                         
                         {/* Profile Info Section */}
                         <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-outline-variant/30 bg-surface-container-lowest flex flex-col items-center text-center">
@@ -198,24 +198,24 @@ export const PatientProfilePage: React.FC = () => {
                             {!isEditing ? (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
+                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
                                             <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.firstName')}</p>
                                             <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.patient?.first_name}</p>
                                         </div>
-                                        <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
+                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
                                             <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.lastName')}</p>
                                             <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.patient?.last_name}</p>
                                         </div>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
+                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
                                             <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.dob')}</p>
                                             <p className="text-base font-bold text-charcoal flex items-center gap-2">
                                                 {isLoading ? '---' : (profile?.patient?.date_of_birth ? new Date(profile.patient.date_of_birth).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '-')}
                                             </p>
                                         </div>
-                                        <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
+                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
                                             <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.age')}</p>
                                             <p className="text-base font-bold text-charcoal">
                                                 {isLoading ? '---' : (calculateAge(profile?.patient?.date_of_birth) ? `${calculateAge(profile.patient.date_of_birth)} ${t('profile.yearsOld')}` : '-')}
@@ -314,7 +314,7 @@ export const PatientProfilePage: React.FC = () => {
 
                     {/* Section: Izin Akses Dokter */}
                     {!isLoading && profile?.doctor && !isEditing && (
-                        <div className="bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/40 overflow-hidden">
+                        <div className="bg-surface-container-lowest rounded-[2rem] shadow-xl border border-outline-variant/40 overflow-hidden">
                             <div className="p-6 border-b border-outline-variant/30 bg-surface-container-lowest flex items-center gap-3">
                                 <span className="material-symbols-outlined text-medical-teal text-[24px]">verified_user</span>
                                 <h3 className="text-lg font-bold text-charcoal">{t('profile.doctorAccess')}</h3>
@@ -354,7 +354,7 @@ export const PatientProfilePage: React.FC = () => {
                     {/* Logout Section */}
                     {!isEditing && (
                         <div className="pt-4">
-                            <button onClick={() => setIsLogoutModalOpen(true)} className="w-full bg-surface-container-lowest p-6 rounded-2xl border border-brand-red/20 text-brand-red hover:bg-red-50 hover:border-brand-red/40 transition-all font-bold flex items-center justify-center gap-3 group shadow-sm focus:ring-4 focus:ring-red-100 outline-none">
+                            <button onClick={() => setIsLogoutModalOpen(true)} className="w-full bg-surface-container-lowest p-6 rounded-[2rem] border border-brand-red/20 text-brand-red hover:bg-red-50 hover:border-brand-red/40 transition-all font-bold flex items-center justify-center gap-3 group shadow-sm focus:ring-4 focus:ring-red-100 outline-none">
                                 <span className="material-symbols-outlined text-[24px] group-hover:scale-110 group-hover:-translate-x-1 transition-transform">logout</span>
                                 <span className="text-lg">{t('profile.logout')}</span>
                             </button>
@@ -367,7 +367,7 @@ export const PatientProfilePage: React.FC = () => {
 
             {/* Success Popup */}
             {showSuccessPopup && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-surface-container-lowest border border-medical-teal/20 shadow-xl p-4 rounded-xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300 pointer-events-none">
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-surface-container-lowest border border-medical-teal/20 shadow-xl p-4 rounded-2xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300 pointer-events-none">
                     <span className="material-symbols-outlined text-medical-teal text-[28px]">check_circle</span>
                     <p className="font-bold text-charcoal text-sm md:text-base pr-2">{t('profile.saveSuccess')}</p>
                 </div>

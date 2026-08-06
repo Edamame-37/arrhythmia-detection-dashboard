@@ -69,7 +69,7 @@ export const PatientHistoryPage: React.FC = () => {
                         {sessions.length === 0 ? (
                             <div className="text-center text-on-surface-variant p-8 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm">{t('history.noHistory')}</div>
                         ) : sessions.map(session => (
-                            <article key={session.id} className="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-medical-teal/40 transition-colors">
+                            <article key={session.id} className="bg-surface-container-lowest p-5 rounded-2xl shadow-sm border border-outline-variant/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-medical-teal/40 transition-colors">
                                 <div>
                                     <h2 className="font-label-bold text-label-bold text-charcoal mb-1">{t('history.recordingSession')}</h2>
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-on-surface-variant text-sm">
