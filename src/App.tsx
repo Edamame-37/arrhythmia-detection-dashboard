@@ -75,46 +75,46 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <PreferencesProvider>
-      <ConnectionProvider>
-      <SidebarProvider>
-      <TitleSetter />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/how-it-works" element={<HowItWorksPage />} />
-        <Route path="/faq" element={<FaqPage />} />
+        <ConnectionProvider>
+          <SidebarProvider>
+            <TitleSetter />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/how-it-works" element={<HowItWorksPage />} />
+              <Route path="/faq" element={<FaqPage />} />
 
-        {/* Auth Routes */}
-        <Route path="/auth" element={<SplashPage />} />
-        <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/auth/register" element={<RegisterPage />} />
+              {/* Auth Routes */}
+              <Route path="/auth" element={<SplashPage />} />
+              <Route path="/auth/login" element={<LoginPage />} />
+              <Route path="/auth/register" element={<RegisterPage />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-        <Route path="/admin/monitor" element={<AdminMonitorPage />} />
-        <Route path="/admin/users" element={<AdminUsersPage />} />
-        <Route path="/admin/devices" element={<AdminDevicesPage />} />
+              {/* Admin Routes */}
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin/users" element={<AdminUsersPage />} />
+              <Route path="/admin/devices" element={<AdminDevicesPage />} />
+              <Route path="/admin/monitor" element={<AdminMonitorPage />} />
 
-        {/* Doctor Routes */}
-        <Route path="/doctor/dashboard" element={<DashboardPage />} />
-        <Route path="/doctor/monitor" element={<MonitorPage />} />
-        <Route path="/doctor/analytics" element={<AnalyticsPage />} />
-        <Route path="/doctor/qr-scanner" element={<QrScannerPage />} />
-        <Route path="/doctor/profile" element={<ProfilePage />} />
+              {/* Doctor Routes */}
+              <Route path="/doctor/dashboard" element={<DashboardPage />} />
+              <Route path="/doctor/qr-scanner" element={<QrScannerPage />} />
+              <Route path="/doctor/monitor" element={<MonitorPage />} />
+              <Route path="/doctor/analytics" element={<AnalyticsPage />} />
+              <Route path="/doctor/profile" element={<ProfilePage />} />
 
-        {/* Patient Routes */}
-        <Route path="/patient/dashboard" element={<PatientDashboardPage />} />
-        <Route path="/patient/qr-sync" element={<PatientQrSyncPage />} />
-        <Route path="/patient/history" element={<PatientHistoryPage />} />
-        <Route path="/patient/history/:sessionId" element={<PatientHistoryDetailPage />} />
-        <Route path="/patient/profile" element={<PatientProfilePage />} />
-        <Route path="/patient/settings" element={<PatientSettingsPage />} />
+              {/* Patient Routes */}
+              <Route path="/patient/dashboard" element={<PatientDashboardPage />} />
+              <Route path="/patient/qr-sync" element={<PatientQrSyncPage />} />
+              <Route path="/patient/history" element={<PatientHistoryPage />} />
+              <Route path="/patient/history/:sessionId" element={<PatientHistoryDetailPage />} />
+              <Route path="/patient/profile" element={<PatientProfilePage />} />
+              <Route path="/patient/settings" element={<PatientSettingsPage />} />
 
-        {/* Catch-all Redirect to Landing Page */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      </SidebarProvider>
-      </ConnectionProvider>
+              {/* Catch-all Redirect to Landing Page */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </SidebarProvider>
+        </ConnectionProvider>
       </PreferencesProvider>
     </BrowserRouter>
   );
