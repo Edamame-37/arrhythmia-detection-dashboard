@@ -3,11 +3,12 @@ import { PublicHeader } from '../../components/layout/PublicHeader';
 import { PublicFooter } from '../../components/layout/PublicFooter';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import fikriImg from '../../../assets/team-profile/Muhammad Fikri.JPG';
-import rizqikaImg from '../../../assets/team-profile/Rizqika Azkiya Algim.JPG';
-import athayaImg from '../../../assets/team-profile/Athaya Rashif Hanang Syah.JPG';
-import rafaImg from '../../../assets/team-profile/Rafa Azlan.JPG';
-import raffiImg from '../../../assets/team-profile/Raffi Arditama.JPG';
+import fikriImg from '../../../assets/team-profile/Muhammad Fikri.webp';
+import rizqikaImg from '../../../assets/team-profile/Rizqika Azkiya Algim.webp';
+import athayaImg from '../../../assets/team-profile/Athaya Rashif Hanang Syah.webp';
+import rafaImg from '../../../assets/team-profile/Rafa Azlan.webp';
+import raffiImg from '../../../assets/team-profile/Raffi Arditama.webp';
+
 
 const RevealContent: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -61,7 +62,7 @@ export const HomePage: React.FC = () => {
           
           {/* MOBILE: Immersive Background Image */}
           <div className="absolute inset-0 z-0 md:hidden bg-luxury-navy">
-            <img alt="Heart monitor device background" className="w-full h-full object-cover object-bottom opacity-100" src="/images/hero_mobile.png" />
+            <img alt="Heart monitor device background" className="w-full h-full object-cover object-bottom opacity-100" src="/images/hero_mobile.webp" />
             <div className="absolute inset-0 bg-gradient-to-b from-luxury-navy/90 via-transparent to-transparent"></div>
           </div>
 
@@ -95,7 +96,7 @@ export const HomePage: React.FC = () => {
               <div className="absolute -inset-10 bg-clinical-blue/5 dark:bg-luxury-gold/5 rounded-full blur-3xl group-hover:bg-clinical-blue/10 dark:group-hover:bg-luxury-gold/10 transition-colors duration-700"></div>
 
               <div className="relative aspect-[4/3] md:aspect-square rounded-[2rem] overflow-hidden shadow-[0px_30px_60px_rgba(0,0,0,0.08)] dark:shadow-[0px_40px_80px_rgba(0,0,0,0.4)] border border-clinical-charcoal/5 dark:border-luxury-gold/20">
-                <img alt="Heart monitor device" className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal opacity-90 dark:opacity-100" src="/images/hero.png" />
+                <img alt="Heart monitor device" className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal opacity-90 dark:opacity-100" src="/images/hero.webp" />
 
                 <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 bg-white/70 dark:bg-luxury-navy/60 backdrop-blur-2xl p-4 md:p-6 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm transition-colors duration-700">
                   <div className="flex items-center justify-between mb-2 md:mb-4">
@@ -136,7 +137,7 @@ export const HomePage: React.FC = () => {
               <div className="flex-1 w-full relative">
                 <div className="absolute inset-0 border border-clinical-blue/20 dark:border-luxury-gold/30 rounded-[2rem] transform translate-x-3 translate-y-3 md:translate-x-4 md:translate-y-4 group-hover:translate-x-5 group-hover:translate-y-5 transition-transform duration-700"></div>
                 <div className="relative rounded-[2rem] overflow-hidden shadow-xl aspect-[16/9] md:aspect-[4/3] bg-clinical-surface dark:bg-luxury-muted/10">
-                  <img src="/images/realtime.png" alt="Real-time monitoring" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <img src="/images/realtime.webp" alt="Real-time monitoring" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
               </div>
               <div className="flex-1 space-y-4 md:space-y-6 md:pl-8">
@@ -157,7 +158,7 @@ export const HomePage: React.FC = () => {
               <div className="flex-1 w-full relative">
                 <div className="absolute inset-0 border border-clinical-red/20 dark:border-luxury-navy/20 rounded-[2rem] transform -translate-x-3 translate-y-3 md:-translate-x-4 md:translate-y-4 group-hover:-translate-x-5 group-hover:translate-y-5 transition-transform duration-700"></div>
                 <div className="relative rounded-[2rem] overflow-hidden shadow-xl aspect-[16/9] md:aspect-[4/3] bg-clinical-surface dark:bg-luxury-muted/10">
-                  <img src="/images/notifications.png" alt="Smart notifications" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <img src="/images/notifications.webp" alt="Smart notifications" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 </div>
               </div>
               <div className="flex-1 space-y-4 md:space-y-6 md:pr-8">
