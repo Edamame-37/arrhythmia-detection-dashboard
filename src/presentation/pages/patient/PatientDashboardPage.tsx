@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { APP_CONFIG } from '../../../core/config';
 
 interface PatientProfile {
   patient: {
@@ -61,7 +62,7 @@ export const PatientDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchDashboardProfile = () => {
       const userId = localStorage.getItem('user_id') || '1';
-      fetch(`http://127.0.0.1:8081/api/patients/${userId}`)
+      fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`)
         .then(res => {
           if (!res.ok) throw new Error('API offline');
           return res.json();
@@ -75,7 +76,7 @@ export const PatientDashboardPage: React.FC = () => {
           }
         });
 
-      fetch(`http://127.0.0.1:8081/api/patients/${userId}/sessions`)
+      fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}/sessions`)
         .then(res => res.json())
         .then(data => setSessions(data))
         .catch(err => console.error("Error fetching sessions:", err));
@@ -98,7 +99,7 @@ export const PatientDashboardPage: React.FC = () => {
     const fetchDoctorProfile = () => {
       const docIdToFetch = (connectedDoctor && connectedDoctor.id) || (activeSession && activeSession.doctor_id);
       if (docIdToFetch) {
-        fetch(`http://127.0.0.1:8081/api/doctors/${docIdToFetch}`)
+        fetch(`${APP_CONFIG.API_URL}/api/doctors/${docIdToFetch}`)
           .then(res => {
             if (!res.ok) throw new Error('Doctor API offline');
             return res.json();

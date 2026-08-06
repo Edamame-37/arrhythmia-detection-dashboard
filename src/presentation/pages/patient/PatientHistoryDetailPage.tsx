@@ -10,6 +10,8 @@ import type { ECGPaths, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { APP_CONFIG } from '../../../core/config';
+
 
 interface PatientProfile {
     patient: {
@@ -39,13 +41,13 @@ export const PatientHistoryDetailPage: React.FC = () => {
 
     useEffect(() => {
         const userId = localStorage.getItem('user_id') || '1';
-        fetch(`http://127.0.0.1:8081/api/patients/${userId}`)
+        fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`)
             .then(res => res.json())
             .then(data => setProfile(data))
             .catch(console.error);
 
         setIsLoading(true);
-        fetch(`http://127.0.0.1:8081/api/records/${sessionId}`)
+        fetch(`${APP_CONFIG.API_URL}/api/records/${sessionId}`)
             .then(res => res.json())
             .then(data => {
                 const loadedEvents: TimelineEvent[] = [];

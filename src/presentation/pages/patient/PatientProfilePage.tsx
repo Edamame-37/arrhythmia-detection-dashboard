@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogoutModal } from '../../components/shared/LogoutModal';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { APP_CONFIG } from '../../../core/config';
 
 export const PatientProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -34,7 +35,7 @@ export const PatientProfilePage: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            const response = await fetch(`http://127.0.0.1:8081/api/patients/${userId}`);
+            const response = await fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`);
             if (!response.ok) throw new Error(t('profile.fetchError'));
             const data = await response.json();
             setProfile(data);
@@ -94,7 +95,7 @@ export const PatientProfilePage: React.FC = () => {
         const userId = localStorage.getItem('user_id') || '1';
         
         try {
-            const response = await fetch(`http://127.0.0.1:8081/api/patients/${userId}`, {
+            const response = await fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

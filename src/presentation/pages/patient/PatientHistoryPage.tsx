@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { APP_CONFIG } from '../../../core/config';
 
 interface SessionRecord {
     id: string;
@@ -30,12 +31,12 @@ export const PatientHistoryPage: React.FC = () => {
 
     useEffect(() => {
         const userId = localStorage.getItem('user_id') || '1';
-        fetch(`http://127.0.0.1:8081/api/patients/${userId}`)
+        fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`)
             .then(res => res.json())
             .then(data => setProfile(data))
             .catch(console.error);
 
-        fetch(`http://127.0.0.1:8081/api/patients/${userId}/sessions`)
+        fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}/sessions`)
             .then(res => res.json())
             .then(data => {
                 setSessions(data || []);
