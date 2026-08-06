@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 
 // Landing Pages
 import { HomePage } from './presentation/pages/landing/HomePage';
@@ -109,6 +109,9 @@ export const App: React.FC = () => {
         <Route path="/patient/history/:sessionId" element={<PatientHistoryDetailPage />} />
         <Route path="/patient/profile" element={<PatientProfilePage />} />
         <Route path="/patient/settings" element={<PatientSettingsPage />} />
+
+        {/* Catch-all Redirect to Landing Page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </SidebarProvider>
       </ConnectionProvider>
