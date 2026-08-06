@@ -279,7 +279,7 @@ export const QrScannerPage: React.FC = () => {
             </div>
             <h3 className="text-2xl font-bold text-charcoal mb-2">Pasien Terhubung!</h3>
 
-            <div className="bg-surface-container-lowest rounded-xl p-4 my-6 border border-outline-variant/50">
+            <div className="bg-surface-container-lowest rounded-2xl p-4 my-6 border border-outline-variant/50">
               <p className="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-1">Identitas Pasien</p>
               <p className="font-bold font-mono text-lg text-charcoal mb-1">{foundPatient?.id}</p>
               <p className="text-on-surface font-medium">{foundPatient?.name}</p>

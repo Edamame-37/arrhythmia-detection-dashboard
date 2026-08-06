@@ -147,7 +147,7 @@ export const DashboardPage: React.FC = () => {
                 <div className="px-6 max-w-container-max mx-auto mt-6">
                     {activeSessions.length > 0 && (
                         <section className="mb-6">
-                            <div className="bg-medical-teal/10 border-2 border-medical-teal/30 rounded-xl p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+                            <div className="bg-medical-teal/5 border border-medical-teal/20 rounded-[2rem] p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
                                 <div className="flex gap-4 relative z-10">
                                     <div className="bg-medical-teal text-white p-3 rounded-lg h-fit flex items-center justify-center">
                                         <span className="material-symbols-outlined text-[28px] animate-pulse">monitor_heart</span>
@@ -183,7 +183,7 @@ export const DashboardPage: React.FC = () => {
                         ) : activeSessions.length > 0 ? (
                             <div className="space-y-3">
                                 {activeSessions.map(session => (
-                                    <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                                    <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                                         <div className="flex items-center gap-4 w-full sm:w-auto">
                                             <div className="w-10 h-10 rounded-full bg-medical-teal/10 flex items-center justify-center font-bold text-medical-teal text-base">
                                                 {session.patient_name ? session.patient_name.substring(0, 2).toUpperCase() : 'UK'}
@@ -202,7 +202,7 @@ export const DashboardPage: React.FC = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="bg-surface border border-outline-variant/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
+                            <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
                                 <p className="text-sm text-on-surface-variant">Tidak ada perekaman saat ini.</p>
                             </div>
                         )}
@@ -215,13 +215,13 @@ export const DashboardPage: React.FC = () => {
                         </h2>
                         {isLoading ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="bg-surface border border-outline-variant/60 p-4 rounded-xl h-16 animate-pulse bg-slate-200"></div>
-                                <div className="bg-surface border border-outline-variant/60 p-4 rounded-xl h-16 animate-pulse bg-slate-200"></div>
+                                <div className="bg-surface border border-outline-variant/60 p-4 rounded-2xl h-16 animate-pulse bg-slate-200"></div>
+                                <div className="bg-surface border border-outline-variant/60 p-4 rounded-2xl h-16 animate-pulse bg-slate-200"></div>
                             </div>
                         ) : devices.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {devices.map(device => (
-                                    <div key={device.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex items-center gap-3 shadow-sm">
+                                    <div key={device.id} className="bg-surface border border-outline-variant/60 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
                                         <div className="w-10 h-10 rounded-full bg-medical-teal/10 flex items-center justify-center text-medical-teal">
                                             <span className="material-symbols-outlined text-xl">router</span>
                                         </div>
@@ -233,7 +233,7 @@ export const DashboardPage: React.FC = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="bg-surface border border-outline-variant/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
+                            <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
                                 <p className="text-sm text-on-surface-variant">Belum ada perangkat yang terhubung ke dashboard.</p>
                             </div>
                         )}
@@ -248,7 +248,7 @@ export const DashboardPage: React.FC = () => {
                         </div>
                         <div className="space-y-3">
                             {displayPatient && activeSessions.length === 0 ? (
-                                <div className="bg-gradient-to-r from-surface to-medical-teal/5 border border-medical-teal/30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                                <div className="bg-gradient-to-r from-surface to-medical-teal/5 border border-medical-teal/20 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-medical-teal/10 flex items-center justify-center text-base font-bold text-medical-teal uppercase border border-medical-teal/20 overflow-hidden">
                                             {displayPatient.photo ? (
@@ -277,13 +277,13 @@ export const DashboardPage: React.FC = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-surface border border-outline-variant/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
+                                <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
                                     <p className="text-sm text-on-surface-variant">Tidak ada pasien yang menunggu saat ini.</p>
                                 </div>
                             )}
                         </div>
                     </section>
-
+ 
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-base font-bold text-charcoal flex items-center gap-2">
@@ -295,14 +295,14 @@ export const DashboardPage: React.FC = () => {
                                 <span className="material-symbols-outlined text-xs">arrow_forward</span>
                             </button>
                         </div>
-
+ 
                         <div className="space-y-3">
                             {sessions.length === 0 ? (
-                                <div className="bg-surface border border-outline-variant/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
+                                <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
                                     <p className="text-sm text-on-surface-variant">Belum ada riwayat sesi yang tersimpan.</p>
                                 </div>
                             ) : sessions.map(session => (
-                                <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex items-center justify-between gap-4 opacity-80 interactive-card">
+                                <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-2xl flex items-center justify-between gap-4 opacity-80 interactive-card">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center font-bold text-outline uppercase">
                                             {session.patient_name ? session.patient_name.substring(0, 2) : 'UK'}

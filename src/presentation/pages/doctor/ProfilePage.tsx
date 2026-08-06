@@ -145,7 +145,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 -mt-20 relative z-10">
-                    <div className="bg-white rounded-2xl shadow-xl border border-outline-variant/40 overflow-hidden flex flex-col lg:flex-row">
+                    <div className="bg-white rounded-[2rem] shadow-xl border border-outline-variant/40 overflow-hidden flex flex-col lg:flex-row">
                         
                         {/* Profile Info Section */}
                         <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-outline-variant/30 bg-surface-container-lowest flex flex-col items-center text-center">
@@ -188,17 +188,17 @@ export const ProfilePage: React.FC = () => {
                             {!isEditing ? (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
+                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
                                             <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">Nama Depan</p>
                                             <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.first_name}</p>
                                         </div>
-                                        <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
+                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
                                             <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">Nama Belakang</p>
                                             <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.last_name}</p>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50">
+                                    <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50">
                                         <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">Email Registrasi (Read-only)</p>
                                         <div className="flex items-center justify-between">
                                             <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.email}</p>
@@ -206,7 +206,7 @@ export const ProfilePage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="bg-surface-container-low/30 p-5 rounded-xl border border-outline-variant/50">
+                                    <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50">
                                         <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">ID Pengguna (Read-only)</p>
                                         <p className="text-sm font-mono text-on-surface-variant font-bold">{isLoading ? '---' : profile?.id}</p>
                                     </div>
