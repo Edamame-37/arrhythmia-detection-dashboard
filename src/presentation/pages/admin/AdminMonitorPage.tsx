@@ -4,13 +4,15 @@ import { ECGCanvas } from '../../components/canvas/ECGCanvas';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { APP_CONFIG } from '../../../core/config';
+
 
 export const AdminMonitorPage: React.FC = () => {
     const {
         isRecording, paths, rPeaks, timeline,
         startStream, stopStream, isFilterOn, toggleFilter,
         system, network, prediction, stressTest, createdAt, receivedAt, deviceId, sessionId
-    } = useECGStream(import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8080');
+    } = useECGStream(APP_CONFIG.WS_URL);
 
     const [speed, setSpeed] = useState<25 | 50>(25);
     const { isOpen, toggleSidebar } = useSidebar();

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { APP_CONFIG } from '../../../core/config';
+
 
 interface AdminUser {
     id: string;
@@ -17,7 +19,7 @@ export const AdminUsersPage: React.FC = () => {
 
     useEffect(() => {
         const token = localStorage.getItem('auth_token') || '';
-        fetch('http://127.0.0.1:8081/api/admin/users', {
+        fetch(`${APP_CONFIG.API_URL}/api/admin/users`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
             .then(res => res.json())

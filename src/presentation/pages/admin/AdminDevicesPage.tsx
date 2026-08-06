@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { APP_CONFIG } from '../../../core/config';
+
 
 interface DeviceRecord {
     id: string;
@@ -17,7 +19,7 @@ export const AdminDevicesPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8081/api/admin/devices')
+        fetch(`${APP_CONFIG.API_URL}/api/admin/devices`)
             .then(res => res.json())
             .then(data => {
                 setDevices(data);
