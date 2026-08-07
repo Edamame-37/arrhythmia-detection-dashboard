@@ -24,7 +24,7 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({
 
     return (
         <div 
-            className="fixed top-20 right-4 md:right-10 w-[90%] md:w-[400px] bg-alert-red text-white p-4 rounded-xl shadow-2xl flex items-start gap-4 border border-red-300 floating-alert z-[100] transition-all duration-300"
+            className="fixed top-20 right-4 md:right-10 w-[90%] md:w-[400px] bg-clinical-red text-white p-4 rounded-xl shadow-[0px_20px_40px_rgba(220,38,38,0.2)] flex items-start gap-4 border border-clinical-red/20 floating-alert z-[100] transition-all duration-300"
             style={{ animation: 'slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}
         >
             {/* Icon Alarm Medis Berkedip */}
