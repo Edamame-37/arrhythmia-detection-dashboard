@@ -16,6 +16,7 @@ import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
+import { API_URL } from '../../../config/env';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -27,10 +28,6 @@ export const AnalyticsPage: React.FC = () => {
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [showPatientSelector, setShowPatientSelector] = useState(!sessionId);
-
-    // Filter states
-    const [filterPatientId, setFilterPatientId] = useState<string>('');
-    const [filterDate, setFilterDate] = useState<string>('');
 
     const { isOpen, toggleSidebar } = useSidebar();
 
@@ -44,7 +41,7 @@ export const AnalyticsPage: React.FC = () => {
         }
 
         setIsLoading(true);
-        fetch(`http://127.0.0.1:8081/api/records/${sessionId}`)
+        fetch(`${API_URL}/api/records/${sessionId}`)
             .then(res => res.json())
             .then(data => {
                 const loadedEvents: TimelineEvent[] = [];
@@ -75,13 +72,13 @@ export const AnalyticsPage: React.FC = () => {
                         const calculated = calculateEinthovenPoint(finalI, finalII);
                         const currentX = Number((xIndex * X_STEP).toFixed(2));
                         
-                        paths.I.push(`${currentX},${(120 - finalI * 80).toFixed(2)}`);
-                        paths.II.push(`${currentX},${(120 - finalII * 80).toFixed(2)}`);
-                        paths.III.push(`${currentX},${(120 - finalIII * 80).toFixed(2)}`);
-                        paths.aVR.push(`${currentX},${(120 - calculated.aVR * 80).toFixed(2)}`);
-                        paths.aVL.push(`${currentX},${(120 - calculated.aVL * 80).toFixed(2)}`);
-                        paths.aVF.push(`${currentX},${(120 - calculated.aVF * 80).toFixed(2)}`);
-                        paths.V1.push(`${currentX},120.00`);
+                        paths.I.push(`${currentX},${(240 - finalI * 80).toFixed(2)}`);
+                        paths.II.push(`${currentX},${(240 - finalII * 80).toFixed(2)}`);
+                        paths.III.push(`${currentX},${(240 - finalIII * 80).toFixed(2)}`);
+                        paths.aVR.push(`${currentX},${(240 - calculated.aVR * 80).toFixed(2)}`);
+                        paths.aVL.push(`${currentX},${(240 - calculated.aVL * 80).toFixed(2)}`);
+                        paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
+                        paths.V1.push(`${currentX},240.00`);
                         xIndex++;
                     }
                     
@@ -118,16 +115,7 @@ export const AnalyticsPage: React.FC = () => {
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
 
-    // Mock Patient Data for Selection
-    const mockPatients = [
-        { id: 'pat001', name: 'Budi Santoso', sessions: [{ id: 'ses000000000001', date: '2026-07-31 09:15' }] },
-        { id: 'pat002', name: 'Siti Aminah', sessions: [{ id: 'ses_1234567890', date: '2026-07-30 14:20' }] }
-    ];
-
-    const filteredSessions = mockPatients
-        .filter(p => !filterPatientId || p.id === filterPatientId)
-        .flatMap(p => p.sessions.map(s => ({ ...s, patientName: p.name })))
-        .filter(s => !filterDate || s.date.startsWith(filterDate));
+    // Data Pasien dan Sesi diambil dari Dashboard, AnalyticsPage difokuskan untuk viewer
 
     // Derive props for the cards from currentSegment
     const clinicalStatus: ClinicalExplanation | null = currentSegment ? {
@@ -139,9 +127,6 @@ export const AnalyticsPage: React.FC = () => {
     const heartRate = currentSegment?.heartRate || "--";
     const stressTest = currentSegment?.stressTest || null;
     let createdAt = currentSegment?.createdAt || null;
-    if (!createdAt || createdAt === "---") {
-        createdAt = mockPatients.flatMap(p => p.sessions).find(s => s.id === sessionId)?.date || null;
-    }
     const aiProbabilities = currentSegment?.aiProbabilities || null;
     const deviceId = currentSegment?.deviceId || "---";
     const aiMetrics = currentSegment?.aiMetrics || null;
@@ -176,62 +161,22 @@ export const AnalyticsPage: React.FC = () => {
                 </div>
             </header>
 
-            {/* --- FILTER TOOLBAR (DI BAWAH HEADER) --- */}
+            {/* --- TOOLBAR INFORMASI --- */}
             <div className="bg-surface border-b border-outline-variant/30 w-full px-4 md:px-6 py-3 shadow-sm z-30 relative flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-medical-teal/10 p-2 rounded-lg text-medical-teal">
                         <span className="material-symbols-outlined text-[20px]">folder_managed</span>
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold text-charcoal">Arsip Rekaman Klinis</h2>
-                        <p className="text-[11px] text-on-surface-variant">Filter berdasarkan tanggal dan pilih pasien untuk meninjau rekaman EKG historis.</p>
+                        <h2 className="text-sm font-bold text-charcoal">Mode Peninjauan Sesi</h2>
+                        <p className="text-[11px] text-on-surface-variant">Menampilkan detail rekaman EKG untuk Sesi: {sessionId ? sessionId : 'Tidak Ada'}</p>
                     </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row flex-1 md:max-w-xl items-center gap-3">
-                    <div className="flex-1 w-full flex items-center bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-3 py-2 focus-within:border-medical-teal focus-within:ring-1 focus-within:ring-medical-teal/20 transition-all shadow-sm">
-                        <span className="material-symbols-outlined text-on-surface-variant text-[18px] mr-2">calendar_month</span>
-                        <input 
-                            type="date" 
-                            value={filterDate}
-                            onChange={(e) => {
-                                setFilterDate(e.target.value);
-                                setFilterPatientId('');
-                            }}
-                            className="w-full bg-transparent text-charcoal text-sm font-medium outline-none" 
-                        />
-                    </div>
-                    
-                    <div className="flex-1 w-full flex items-center bg-surface-container-lowest border border-outline-variant/60 rounded-lg px-3 py-2 focus-within:border-medical-teal focus-within:ring-1 focus-within:ring-medical-teal/20 transition-all shadow-sm">
-                        <span className="material-symbols-outlined text-on-surface-variant text-[18px] mr-2">person</span>
-                        <select 
-                            value={filterPatientId}
-                            onChange={(e) => {
-                                const selectedId = e.target.value;
-                                setFilterPatientId(selectedId);
-                                if (selectedId && filterDate) {
-                                    const session = mockPatients.find(p => p.id === selectedId)?.sessions.find(s => s.date.startsWith(filterDate));
-                                    if (session) {
-                                        window.location.href = `/doctor/analytics?sessionId=${session.id}`;
-                                    }
-                                }
-                            }}
-                            disabled={!filterDate}
-                            className="w-full bg-transparent text-charcoal text-sm font-medium outline-none cursor-pointer appearance-none disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            {!filterDate ? (
-                                <option value="">-- Pilih Tanggal Dahulu --</option>
-                            ) : (
-                                <>
-                                    <option value="">-- Pilih Pasien --</option>
-                                    {mockPatients.filter(p => p.sessions.some(s => s.date.startsWith(filterDate))).map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </>
-                            )}
-                        </select>
-                        <span className="material-symbols-outlined text-on-surface-variant text-[18px] ml-2 pointer-events-none">arrow_drop_down</span>
-                    </div>
+                <div className="flex items-center gap-3">
+                    <button onClick={() => window.history.back()} className="text-xs font-bold text-on-surface-variant hover:text-medical-teal border border-outline-variant px-4 py-2 rounded-lg hover:border-medical-teal transition-all">
+                        Kembali ke Dashboard
+                    </button>
                 </div>
             </div>
 
@@ -295,7 +240,7 @@ export const AnalyticsPage: React.FC = () => {
                 <aside className="w-full lg:w-3/12 flex flex-col gap-6">
                     
                     <VitalCard heartRate={heartRate} clinicalStatus={clinicalStatus} stressTest={stressTest} createdAt={createdAt} />
-                    <AiCard sessionId={sessionId} clinicalStatus={clinicalStatus} aiProbabilities={aiProbabilities} />
+                    <AiCard sessionId={sessionId} rawClassification={currentEvent?.classResult || null} />
                     <div className="mt-auto">
                         <DeviceCard deviceId={deviceId} aiMetrics={aiMetrics} isLive={false} />
                     </div>

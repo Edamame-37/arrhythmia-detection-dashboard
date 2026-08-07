@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_URL } from '../../../config/env';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export const RegisterPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8081/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role, email, password, first_name: firstName, last_name: lastName, date_of_birth: dob, gender })

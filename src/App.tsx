@@ -23,7 +23,7 @@ import { AdminDevicesPage } from './presentation/pages/admin/AdminDevicesPage';
 
 // Doctor Pages
 import { DashboardPage } from './presentation/pages/doctor/DashboardPage';
-import { MonitorPage } from './presentation/pages/doctor/MonitorPage';
+// import { MonitorPage } from './presentation/pages/doctor/MonitorPage';
 import { AnalyticsPage } from './presentation/pages/doctor/AnalyticsPage';
 import { QrScannerPage } from './presentation/pages/doctor/QrScannerPage';
 import { ProfilePage } from './presentation/pages/doctor/ProfilePage';
@@ -35,6 +35,8 @@ import { PatientHistoryPage } from './presentation/pages/patient/PatientHistoryP
 import { PatientHistoryDetailPage } from './presentation/pages/patient/PatientHistoryDetailPage';
 import { PatientProfilePage } from './presentation/pages/patient/PatientProfilePage';
 import { PatientSettingsPage } from './presentation/pages/patient/PatientSettingsPage';
+import { PatientMonitorPage } from './presentation/pages/patient/PatientMonitorPage';
+import { PatientDeviceScannerPage } from './presentation/pages/patient/PatientDeviceScannerPage';
 
 const TitleSetter: React.FC = () => {
   const location = useLocation();
@@ -52,7 +54,6 @@ const TitleSetter: React.FC = () => {
       '/admin/users': 'User Management',
       '/admin/devices': 'Device Fleet',
       '/doctor/dashboard': 'Doctor Dashboard',
-      '/doctor/monitor': 'Live Monitor',
       '/doctor/analytics': 'Analytics',
       '/doctor/qr-scanner': 'QR Scanner',
       '/doctor/profile': 'Profile',
@@ -62,6 +63,7 @@ const TitleSetter: React.FC = () => {
       '/patient/device-guide': 'Device Guide',
       '/patient/profile': 'Profil & Keamanan',
       '/patient/settings': 'Patient Settings',
+      '/patient/monitor': 'Live Monitor',
     };
 
     const pageName = titles[location.pathname] || 'App';
@@ -97,18 +99,18 @@ export const App: React.FC = () => {
 
         {/* Doctor Routes */}
         <Route path="/doctor/dashboard" element={<DashboardPage />} />
-        <Route path="/doctor/monitor" element={<MonitorPage />} />
         <Route path="/doctor/analytics" element={<AnalyticsPage />} />
         <Route path="/doctor/qr-scanner" element={<QrScannerPage />} />
         <Route path="/doctor/profile" element={<ProfilePage />} />
 
-        {/* Patient Routes */}
         <Route path="/patient/dashboard" element={<PatientDashboardPage />} />
         <Route path="/patient/qr-sync" element={<PatientQrSyncPage />} />
+        <Route path="/patient/device-scanner" element={<PatientDeviceScannerPage />} />
         <Route path="/patient/history" element={<PatientHistoryPage />} />
         <Route path="/patient/history/:sessionId" element={<PatientHistoryDetailPage />} />
         <Route path="/patient/profile" element={<PatientProfilePage />} />
         <Route path="/patient/settings" element={<PatientSettingsPage />} />
+        <Route path="/patient/monitor" element={<PatientMonitorPage />} />
       </Routes>
       </SidebarProvider>
       </ConnectionProvider>

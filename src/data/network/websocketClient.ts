@@ -6,6 +6,7 @@
 
 import type { ServerMessage } from '../../core/types/ecgTypes';
 import { verifyChecksum } from '../security/checksum';
+import { WS_URL } from '../../config/env';
 
 export const getWebSocketHost = (): string => {
     return window.location.hostname === '10.0.2.2' ? '10.0.2.2' : '127.0.0.1';
@@ -24,7 +25,7 @@ export class ECGWebSocketClient {
         if (endpoint.startsWith('ws://') || endpoint.startsWith('wss://')) {
             this.url = endpoint;
         } else {
-            const baseUrl = import.meta.env.VITE_WS_URL || `ws://${getWebSocketHost()}:8080`;
+            const baseUrl = WS_URL;
             this.url = `${baseUrl.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
         }
     }

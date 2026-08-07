@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { API_URL } from '../../../config/env';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const isAdmin = queryParams.get('admin') === 'true';
-  const [role, setRole] = useState<'pasien' | 'dokter' | 'admin'>(isAdmin ? 'admin' : 'dokter');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,17 +23,17 @@ export const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      const response = await fetch('http://127.0.0.1:8081/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role })
+        body: JSON.stringify({ email, password })
       });
       const data = await response.json();
       
       if (data.success && data.user_id) {
         // Save user ID to localStorage
         localStorage.setItem('user_id', data.user_id.toString());
-        localStorage.setItem('user_role', data.role || role);
+        localStorage.setItem('user_role', data.role);
         if (data.token) {
           localStorage.setItem('auth_token', data.token);
         }
@@ -77,29 +74,6 @@ export const LoginPage: React.FC = () => {
                 {error && (
                     <div className="bg-red-50 border border-alert-red/30 text-alert-red p-3 rounded-lg text-sm text-center font-bold">
                         {error}
-                    </div>
-                )}
-
-                {!isAdmin ? (
-                    <div className="flex bg-surface-container p-1 rounded-lg w-full my-6">
-                        <button 
-                            type="button"
-                            onClick={() => { setRole('pasien'); setError(''); }}
-                            className={`flex-1 py-2 px-2 md:px-4 rounded-md font-label-bold text-label-bold transition-all text-xs md:text-sm ${role === 'pasien' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-                        >
-                            Pasien
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => { setRole('dokter'); setError(''); }}
-                            className={`flex-1 py-2 px-2 md:px-4 rounded-md font-label-bold text-label-bold transition-all text-xs md:text-sm ${role === 'dokter' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-                        >
-                            Dokter / Nakes
-                        </button>
-                    </div>
-                ) : (
-                    <div className="w-full text-center my-6">
-                        <span className="inline-block bg-medical-teal/10 text-medical-teal font-bold px-4 py-2 rounded-lg text-sm">Portal Administrator</span>
                     </div>
                 )}
                 <form className="w-full space-y-5" onSubmit={handleLogin}>

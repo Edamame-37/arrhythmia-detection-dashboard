@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
+import { API_URL } from '../../../config/env';
 
 export interface SessionRecord {
     id: string;
     device_id: string;
-    patient_id: number | null;
+    patient_id: string | null;
     patient_name: string | null;
     started_at: string;
     ended_at: string | null;
@@ -45,7 +46,7 @@ export const DashboardPage: React.FC = () => {
                 const dbPatientId = `pat${numStr.padStart(12, '0')}`;
                 
                 if (dbPatientId) {
-                    fetch(`http://127.0.0.1:8081/api/patients/${dbPatientId}`)
+                    fetch(`${API_URL}/api/patients/${dbPatientId}`)
                         .then(res => {
                             if (!res.ok) throw new Error('API offline');
                             return res.json();
@@ -87,14 +88,30 @@ export const DashboardPage: React.FC = () => {
     }, [connectedPatient?.id]);
 
     useEffect(() => {
-        fetch('http://127.0.0.1:8081/api/sessions')
+        fetch(`${API_URL}/api/sessions`)
             .then(res => res.json())
-            .then(data => setSessions(data))
+            .then(data => {
+                if (data && Array.isArray(data.sessions)) {
+                    setSessions(data.sessions);
+                } else if (Array.isArray(data)) {
+                    setSessions(data);
+                } else {
+                    setSessions([]);
+                }
+            })
             .catch(err => console.error("Error fetching sessions:", err));
 
-        fetch('http://127.0.0.1:8081/api/devices')
+        fetch(`${API_URL}/api/devices`)
             .then(res => res.json())
-            .then(data => setDevices(data))
+            .then(data => {
+                if (data && Array.isArray(data.devices)) {
+                    setDevices(data.devices);
+                } else if (Array.isArray(data)) {
+                    setDevices(data);
+                } else {
+                    setDevices([]);
+                }
+            })
             .catch(err => console.error("Error fetching devices:", err));
     }, []);
 
@@ -102,13 +119,17 @@ export const DashboardPage: React.FC = () => {
     
     const displayPatient = standbyPatientProfile ? {
         name: `${standbyPatientProfile.first_name} ${standbyPatientProfile.last_name}`,
-        id: connectedPatient?.id || `PAT-000${standbyPatientProfile.id}-XYZ`,
-        photo: standbyPatientProfile.profile_photo
+        id: standbyPatientProfile.id,
+        photo: standbyPatientProfile.profile_photo || null
     } : connectedPatient ? {
         name: connectedPatient.name,
         id: connectedPatient.id,
         photo: connectedPatient.profile_photo || null
     } : null;
+
+    const filteredHistorySessions = displayPatient 
+        ? sessions.filter(s => s.patient_id === displayPatient.id || (s.patient_name && s.patient_name.includes(displayPatient.name)))
+        : sessions;
 
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full">
@@ -271,8 +292,8 @@ export const DashboardPage: React.FC = () => {
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-base font-bold text-charcoal flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-outline-variant"></span>
-                                <span>Riwayat Sesi Hari Ini</span>
+                                <span className={`w-2 h-2 rounded-full ${displayPatient ? 'bg-medical-teal' : 'bg-outline-variant'}`}></span>
+                                <span>{displayPatient ? `Riwayat Rekaman: ${displayPatient.name}` : 'Riwayat Seluruh Pasien'}</span>
                             </h2>
                             <button onClick={() => navigate('/doctor/analytics')} className="text-medical-teal font-bold text-sm hover:underline flex items-center gap-1 transition-all hover:gap-2">
                                 <span>Lihat Semua Arsip</span>
@@ -281,11 +302,11 @@ export const DashboardPage: React.FC = () => {
                         </div>
 
                         <div className="space-y-3">
-                            {sessions.length === 0 ? (
+                            {filteredHistorySessions.length === 0 ? (
                                 <div className="bg-surface border border-outline-variant/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
                                     <p className="text-sm text-on-surface-variant">Belum ada riwayat sesi yang tersimpan.</p>
                                 </div>
-                            ) : sessions.map(session => (
+                            ) : filteredHistorySessions.map(session => (
                                 <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex items-center justify-between gap-4 opacity-80 interactive-card">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center font-bold text-outline uppercase">

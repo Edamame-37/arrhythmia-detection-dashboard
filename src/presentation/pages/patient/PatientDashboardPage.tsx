@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { API_URL } from '../../../config/env';
 
 interface PatientProfile {
   patient: {
@@ -31,6 +32,10 @@ export const PatientDashboardPage: React.FC = () => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showUnsyncModal, setShowUnsyncModal] = useState(false);
+  
+  const [syncedDeviceId, setSyncedDeviceId] = useState<string | null>(localStorage.getItem('synced_device_id'));
+  const [localRecordingStopped, setLocalRecordingStopped] = useState(localStorage.getItem('web_recording_stopped') === 'true');
 
   const greetings = tArray('dashboard.greetingsArray');
   const healthTips = tArray('dashboard.healthTipsListArray');
@@ -61,7 +66,7 @@ export const PatientDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchDashboardProfile = () => {
       const userId = localStorage.getItem('user_id') || '1';
-      fetch(`http://127.0.0.1:8081/api/patients/${userId}`)
+      fetch(`${API_URL}/api/patients/${userId}`)
         .then(res => {
           if (!res.ok) throw new Error('API offline');
           return res.json();
@@ -75,7 +80,7 @@ export const PatientDashboardPage: React.FC = () => {
           }
         });
 
-      fetch(`http://127.0.0.1:8081/api/patients/${userId}/sessions`)
+      fetch(`${API_URL}/api/patients/${userId}/sessions`)
         .then(res => res.json())
         .then(data => setSessions(data))
         .catch(err => console.error("Error fetching sessions:", err));
@@ -92,13 +97,13 @@ export const PatientDashboardPage: React.FC = () => {
   }, []);
 
   const activeSession = sessions.find(s => !s.ended_at);
-  const isRecording = !!activeSession;
+  const isRecording = !!activeSession && !localRecordingStopped;
 
   useEffect(() => {
     const fetchDoctorProfile = () => {
       const docIdToFetch = (connectedDoctor && connectedDoctor.id) || (activeSession && activeSession.doctor_id);
       if (docIdToFetch) {
-        fetch(`http://127.0.0.1:8081/api/doctors/${docIdToFetch}`)
+        fetch(`${API_URL}/api/doctors/${docIdToFetch}`)
           .then(res => {
             if (!res.ok) throw new Error('Doctor API offline');
             return res.json();
@@ -154,98 +159,134 @@ export const PatientDashboardPage: React.FC = () => {
   } : null;
 
   return (
-    <div className="text-on-surface w-full">
+    <div className="bg-clinical-surface/30 text-clinical-charcoal w-full min-h-screen flex flex-col font-medium transition-colors duration-700 relative">
+      <div className="absolute inset-0 ecg-grid opacity-[0.15] z-0 pointer-events-none"></div>
 
+      <div className="relative z-10 flex flex-col flex-1">
       {/* Top Navigation Bar */}
       <PatientHeader />
       {/* Main Content Area */}
-      <main className="max-w-container-max mx-auto px-gutter py-8">
+      <main className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Main Patient Monitoring */}
-          <div className="lg:col-span-8 flex flex-col h-full gap-6">
+          <div className="lg:col-span-8 flex flex-col h-full gap-8">
             {/* Live Device Status */}
             {isRecording && (
-              <section className="glass-card rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden relative">
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isRecording ? 'bg-status-green/10' : 'bg-outline-variant/30'}`}>
-                    <span className={`material-symbols-outlined text-3xl ${isRecording ? 'text-status-green' : 'text-on-surface-variant'}`}>sensors</span>
+              <section className="bg-white border border-clinical-charcoal/5 rounded-[2rem] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 relative group z-10">
+                <div className="flex items-start gap-5">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center border border-clinical-charcoal/5 group-hover:scale-110 transition-transform duration-700 ${isRecording ? 'bg-blue-50/50 text-clinical-blue' : 'bg-slate-50 text-clinical-charcoal/40'}`}>
+                    <span className={`material-symbols-outlined text-[26px] ${isRecording ? 'text-clinical-blue animate-pulse' : 'text-clinical-charcoal/40'}`}>sensors</span>
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-headline-md text-headline-md text-on-surface">{isRecording ? t('dashboard.deviceRecording') : t('dashboard.deviceInactive')}</h2>
-                      <div className={`w-2.5 h-2.5 rounded-full ${isRecording ? 'bg-status-green pulse-dot' : 'bg-outline-variant'}`}></div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-xl font-bold font-display text-clinical-charcoal">{isRecording ? t('dashboard.deviceRecording') : t('dashboard.deviceInactive')}</h2>
+                      <div className={`w-2.5 h-2.5 rounded-full ${isRecording ? 'bg-clinical-blue shadow-[0_0_10px_rgba(23,107,206,0.5)] animate-pulse' : 'bg-slate-300'}`}></div>
                     </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">{isRecording ? t('dashboard.deviceRecordingDesc') : t('dashboard.deviceInactiveDesc')}</p>
+                    <p className="text-sm font-medium text-clinical-charcoal/60 mt-1">{isRecording ? t('dashboard.deviceRecordingDesc') : t('dashboard.deviceInactiveDesc')}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6 bg-surface-container-low p-4 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-status-green">battery_very_low</span>
-                    <span className="font-label-bold text-label-bold">85% - {t('dashboard.batteryGood')}</span>
+                <div className="flex flex-wrap items-center gap-4 md:gap-6 bg-white border border-clinical-charcoal/5 p-4 rounded-2xl">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-clinical-charcoal/80">
+                    <span className="material-symbols-outlined text-clinical-blue text-[18px]">battery_very_low</span>
+                    <span>85% - {t('dashboard.batteryGood')}</span>
                   </div>
-                  <div className="w-px h-6 bg-outline-variant"></div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">wifi</span>
-                    <span className="font-label-bold text-label-bold">{t('dashboard.cloudSync')}</span>
+                  <div className="hidden md:block w-px h-6 bg-clinical-charcoal/10"></div>
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-clinical-charcoal/80">
+                    <span className="material-symbols-outlined text-clinical-blue text-[18px]">wifi</span>
+                    <span>{t('dashboard.cloudSync')}</span>
                   </div>
+                  <div className="hidden md:block w-px h-6 bg-clinical-charcoal/10"></div>
+                  <button 
+                    onClick={() => {
+                        setLocalRecordingStopped(true);
+                        localStorage.setItem('web_recording_stopped', 'true');
+                    }}
+                    className="flex items-center gap-2 text-clinical-red hover:bg-red-50/50 px-4 py-2 rounded-full transition-colors font-bold uppercase tracking-widest text-[10px]"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">stop_circle</span>
+                    Hentikan Rekaman
+                  </button>
                 </div>
               </section>
             )}
             {/* Daily Trend Visualization */}
-            <div className="bg-gradient-to-br from-white to-medical-teal/5 p-6 md:p-8 rounded-3xl shadow-sm border border-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden backdrop-blur-sm">
-              <div className="absolute top-0 right-0 w-72 h-72 bg-medical-teal/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl pointer-events-none"></div>
-              <div className="absolute bottom-0 left-10 w-48 h-48 bg-brand-red/5 rounded-full translate-y-1/2 blur-3xl pointer-events-none"></div>
-
+            <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1">
               <div className="z-10 flex flex-col">
-                <h2 className="text-2xl md:text-3xl font-bold text-charcoal mb-2 flex items-center flex-wrap gap-2">
-                  {getGreeting()}, <span className="bg-clip-text text-transparent bg-gradient-to-r from-medical-teal to-brand-navy">{profile?.patient.first_name || 'Memuat...'}</span>
+                <h2 className="text-2xl md:text-3xl font-bold font-display text-clinical-charcoal mb-2 flex items-center flex-wrap gap-2">
+                  {getGreeting()}, <span className="text-clinical-blue">{profile?.patient.first_name || 'Memuat...'}</span>
                   <span className="inline-block origin-bottom-right hover:rotate-12 transition-transform cursor-default">👋</span>
                 </h2>
-                <p className="text-base md:text-lg text-on-surface-variant/70 max-w-2xl leading-relaxed">{randomGreetingText}</p>
+                <p className="text-base md:text-lg text-clinical-charcoal/70 max-w-2xl leading-relaxed">{randomGreetingText}</p>
               </div>
-              <div className="w-16 h-16 rounded-2xl bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center shrink-0 z-10 border border-white shadow-lg shadow-medical-teal/5 hidden md:flex hover:scale-105 active:scale-95 transition-transform duration-300 group cursor-pointer" title="Jaga kesehatan jantung Anda!">
-                <span className="material-symbols-outlined text-4xl text-brand-red transition-transform duration-300 group-hover:scale-125 group-active:scale-90" style={{ fontVariationSettings: '"FILL" 1' }}>favorite</span>
+              <div className="w-16 h-16 rounded-2xl bg-clinical-surface flex items-center justify-center shrink-0 z-10 border border-clinical-charcoal/5 shadow-sm hidden md:flex hover:scale-105 active:scale-95 transition-transform duration-300 group cursor-pointer" title="Jaga kesehatan jantung Anda!">
+                <span className="material-symbols-outlined text-4xl text-clinical-red transition-transform duration-300 group-hover:scale-125 group-active:scale-90" style={{ fontVariationSettings: '"FILL" 1' }}>favorite</span>
               </div>
             </div>
 
-            <h3 className="font-headline-md text-headline-md text-charcoal mb-0 mt-auto">{t('dashboard.menuAccess')}</h3>
+            <h3 className="text-xl font-bold font-display text-clinical-charcoal mb-0 mt-auto">{t('dashboard.menuAccess')}</h3>
             <div className="flex flex-col gap-4 flex-1">
-              <div onClick={() => navigate('/patient/qr-sync')} className="bg-gradient-to-br from-medical-teal to-brand-navy border-transparent text-white p-6 rounded-2xl flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group overflow-hidden relative border flex-1">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+              <div onClick={() => navigate('/patient/monitor')} className="bg-white text-clinical-charcoal border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] p-6 rounded-[2rem] flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700 group overflow-hidden relative flex-1">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none text-clinical-blue">
+                  <span className="material-symbols-outlined text-[160px] translate-x-1/4">monitor_heart</span>
+                </div>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 z-10 transition-colors bg-clinical-surface text-clinical-blue group-hover:bg-clinical-blue group-hover:text-white duration-700">
+                  <span className="material-symbols-outlined text-3xl">monitor_heart</span>
+                </div>
+                <div className="flex flex-col z-10">
+                  <p className="text-xl font-bold font-display mb-1 text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">Live Monitor</p>
+                  <p className="text-sm text-clinical-charcoal/60">Pantau gelombang jantung Anda secara real-time</p>
+                </div>
+              </div>
+
+              <div onClick={() => navigate('/patient/qr-sync')} className="bg-white text-clinical-charcoal border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] p-6 rounded-[2rem] flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700 group overflow-hidden relative flex-1">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none text-clinical-blue">
                   <span className="material-symbols-outlined text-[160px] translate-x-1/4">qr_code_2</span>
                 </div>
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 z-10 transition-colors bg-surface-container-lowest/20 backdrop-blur-sm border border-white/30 text-white">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 z-10 transition-colors bg-clinical-surface text-clinical-blue group-hover:bg-clinical-blue group-hover:text-white duration-700">
                   <span className="material-symbols-outlined text-3xl">qr_code_2</span>
                 </div>
                 <div className="flex flex-col z-10">
-                  <p className="text-xl font-bold mb-1 text-white">{t('dashboard.qrSyncTitle')}</p>
-                  <p className="text-base text-white/80">{t('dashboard.qrSyncDesc')}</p>
+                  <p className="text-xl font-bold font-display mb-1 text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">{t('dashboard.qrSyncTitle')}</p>
+                  <p className="text-sm text-clinical-charcoal/60">{t('dashboard.qrSyncDesc')}</p>
                 </div>
               </div>
 
-              <div onClick={() => navigate('/patient/history')} className="bg-gradient-to-br from-medical-teal to-brand-navy border-transparent text-white p-6 rounded-2xl flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group overflow-hidden relative border flex-1">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+              <div onClick={() => navigate('/patient/device-scanner')} className="bg-white text-clinical-charcoal border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] p-6 rounded-[2rem] flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700 group overflow-hidden relative flex-1">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none text-clinical-blue">
+                  <span className="material-symbols-outlined text-[160px] translate-x-1/4">sensors</span>
+                </div>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 z-10 transition-colors bg-clinical-surface text-clinical-blue group-hover:bg-clinical-blue group-hover:text-white duration-700">
+                  <span className="material-symbols-outlined text-3xl">sensors</span>
+                </div>
+                <div className="flex flex-col z-10">
+                  <p className="text-xl font-bold font-display mb-1 text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">Sinkronisasi Alat</p>
+                  <p className="text-sm text-clinical-charcoal/60">Pindai kode QR dari alat fisik EKG Anda</p>
+                </div>
+              </div>
+
+              <div onClick={() => navigate('/patient/history')} className="bg-white text-clinical-charcoal border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] p-6 rounded-[2rem] flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700 group overflow-hidden relative flex-1">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none text-clinical-blue">
                   <span className="material-symbols-outlined text-[160px] translate-x-1/4">history</span>
                 </div>
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 z-10 transition-colors bg-surface-container-lowest/20 backdrop-blur-sm border border-white/30 text-white">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 z-10 transition-colors bg-clinical-surface text-clinical-blue group-hover:bg-clinical-blue group-hover:text-white duration-700">
                   <span className="material-symbols-outlined text-3xl">history</span>
                 </div>
                 <div className="flex flex-col z-10">
-                  <p className="text-xl font-bold mb-1 text-white">{t('dashboard.historyTitle')}</p>
-                  <p className="text-base text-white/80">{t('dashboard.historyDesc')}</p>
+                  <p className="text-xl font-bold font-display mb-1 text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">{t('dashboard.historyTitle')}</p>
+                  <p className="text-sm text-clinical-charcoal/60">{t('dashboard.historyDesc')}</p>
                 </div>
               </div>
 
-              <div onClick={() => navigate('/patient/settings')} className="bg-gradient-to-br from-medical-teal to-brand-navy border-transparent text-white p-6 rounded-2xl flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all group overflow-hidden relative border flex-1">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+              <div onClick={() => navigate('/patient/settings')} className="bg-white text-clinical-charcoal border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] p-6 rounded-[2rem] flex items-center gap-4 md:gap-6 cursor-pointer hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700 group overflow-hidden relative flex-1">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none text-clinical-blue">
                   <span className="material-symbols-outlined text-[160px] translate-x-1/4">person</span>
                 </div>
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 z-10 transition-colors bg-surface-container-lowest/20 backdrop-blur-sm border border-white/30 text-white">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 z-10 transition-colors bg-clinical-surface text-clinical-blue group-hover:bg-clinical-blue group-hover:text-white duration-700">
                   <span className="material-symbols-outlined text-3xl">person</span>
                 </div>
                 <div className="flex flex-col z-10">
-                  <p className="text-xl font-bold mb-1 text-white">{t('dashboard.settingsTitle')}</p>
-                  <p className="text-base text-white/80">{t('dashboard.settingsDesc')}</p>
+                  <p className="text-xl font-bold font-display mb-1 text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">{t('dashboard.settingsTitle')}</p>
+                  <p className="text-sm text-clinical-charcoal/60">{t('dashboard.settingsDesc')}</p>
                 </div>
               </div>
             </div>
@@ -255,15 +296,15 @@ export const PatientDashboardPage: React.FC = () => {
           <aside className="lg:col-span-4 space-y-8">
             {/* Connected Doctor Card */}
             {/* Connected Doctor Card */}
-            <div className="bg-surface-container-lowest rounded-3xl p-8 border border-surface-container-high shadow-sm flex flex-col items-center text-center">
-              <div className="w-full flex justify-center border-b border-surface-container-high pb-4 mb-6">
-                <h4 className="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest">{t('dashboard.connectedDoctor')}</h4>
+            <div className="bg-white rounded-[2rem] p-8 border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] flex flex-col items-center text-center transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1">
+              <div className="w-full flex justify-center border-b border-clinical-charcoal/10 pb-4 mb-6">
+                <h4 className="font-bold text-[11px] text-clinical-charcoal/60 uppercase tracking-widest">{t('dashboard.connectedDoctor')}</h4>
               </div>
 
               {displayDoctor ? (
                 <>
                   <div className="relative mb-4">
-                    <div className="w-24 h-24 rounded-full border-4 border-surface-container-high overflow-hidden shadow-sm flex items-center justify-center bg-surface-container text-3xl font-bold text-on-surface-variant">
+                    <div className="w-24 h-24 rounded-full border-4 border-clinical-surface overflow-hidden shadow-sm flex items-center justify-center bg-slate-50 text-3xl font-bold text-clinical-charcoal/40">
                       {displayDoctor.photo ? (
                         <img src={displayDoctor.photo} alt="Doctor" className="w-full h-full object-cover" />
                       ) : (
@@ -274,21 +315,21 @@ export const PatientDashboardPage: React.FC = () => {
                       <div className="absolute bottom-1 right-1 bg-status-green w-5 h-5 rounded-full border-4 border-white"></div>
                     )}
                   </div>
-                  <h5 className="font-headline-md text-headline-md text-charcoal">{displayDoctor.name}</h5>
+                  <h5 className="text-lg font-bold font-display text-clinical-charcoal">{displayDoctor.name}</h5>
                   {displayDoctor.hospital && (
-                    <p className="font-body-md text-body-md text-on-surface-variant mb-4">{displayDoctor.hospital}</p>
+                    <p className="text-sm font-medium text-clinical-charcoal/60 mb-4">{displayDoctor.hospital}</p>
                   )}
 
                   {displayDoctor.isLive ? (
                     <div className="bg-status-green/10 px-4 py-2 rounded-full mb-8">
-                      <span className="font-label-bold text-label-bold text-status-green flex items-center gap-2">
+                      <span className="text-[12px] font-bold text-status-green flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span>
                         {t('dashboard.liveMonitoring')}
                       </span>
                     </div>
                   ) : (
-                    <div className="bg-medical-teal/10 px-4 py-2 rounded-full mb-8">
-                      <span className="font-label-bold text-label-bold text-medical-teal flex items-center gap-2">
+                    <div className="bg-clinical-blue/10 px-4 py-2 rounded-full mb-8">
+                      <span className="text-[12px] font-bold text-clinical-blue flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 1' }}>verified_user</span>
                         {t('dashboard.primaryDoctor')}
                       </span>
@@ -296,12 +337,12 @@ export const PatientDashboardPage: React.FC = () => {
                   )}
 
                   <div className="w-full mt-4 space-y-3">
-                    <button onClick={() => alert(t('dashboard.comingSoon'))} className="w-full py-3 bg-surface-container hover:bg-surface-container-high text-on-surface-variant font-label-bold text-label-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => alert(t('dashboard.comingSoon'))} className="w-full py-3 bg-clinical-surface hover:brightness-95 text-clinical-charcoal font-bold text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-sm">chat</span>
                       {t('dashboard.sendMessage')}
                     </button>
                     {displayDoctor.isLive && (
-                      <button onClick={() => setShowDisconnectModal(true)} className="w-full py-3 bg-error/10 hover:bg-error/20 text-error font-label-bold text-label-bold rounded-lg transition-colors flex items-center justify-center gap-2 border border-error/20">
+                      <button onClick={() => setShowDisconnectModal(true)} className="w-full py-3 bg-red-50 hover:bg-red-100 text-clinical-red font-bold text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-100">
                         <span className="material-symbols-outlined text-sm">sync_disabled</span>
                         {t('dashboard.cancelSync')}
                       </button>
@@ -310,38 +351,88 @@ export const PatientDashboardPage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <div className="w-24 h-24 rounded-full bg-surface-container-high flex items-center justify-center mb-6 text-on-surface-variant/50">
+                  <div className="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center mb-6 text-clinical-charcoal/30">
                     <span className="material-symbols-outlined text-5xl">person_off</span>
                   </div>
-                  <h5 className="font-headline-md text-headline-md text-charcoal mb-2">{t('dashboard.notConnected')}</h5>
-                  <p className="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">{t('dashboard.notConnectedDesc')}</p>
+                  <h5 className="text-lg font-bold font-display text-clinical-charcoal mb-2">{t('dashboard.notConnected')}</h5>
+                  <p className="text-sm font-medium text-clinical-charcoal/60 mb-6 leading-relaxed">{t('dashboard.notConnectedDesc')}</p>
 
-                  <div className="bg-surface-container-high px-4 py-2 rounded-full mb-8">
-                    <span className="font-label-bold text-label-bold text-on-surface-variant flex items-center gap-2">
+                  <div className="bg-clinical-surface px-4 py-2 rounded-full mb-8">
+                    <span className="text-[12px] font-bold text-clinical-charcoal/60 flex items-center gap-2">
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 1' }}>pending</span>
                       {t('dashboard.waitingAssignment')}
                     </span>
                   </div>
 
                   <div className="w-full mt-2">
-                    <button onClick={() => navigate('/patient/qr-sync')} className="w-full py-3 bg-medical-teal text-white font-label-bold text-label-bold rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm">
-                      <span className="material-symbols-outlined text-sm">qr_code_2</span>
-                      {t('dashboard.qrSyncTitle')}
+                    <button onClick={() => navigate('/patient/qr-sync')} className="w-full py-3 bg-clinical-blue text-white font-bold text-[13px] rounded-lg hover:brightness-110 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-[0px_10px_20px_rgba(23,107,206,0.2)]">
+                      <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
+                      Sinkronisasi Dokter
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Connected Device Card */}
+            <div className="bg-white rounded-[2rem] p-8 border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] flex flex-col items-center text-center transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1">
+              <div className="w-full flex justify-center border-b border-clinical-charcoal/10 pb-4 mb-6">
+                <h4 className="font-bold text-[11px] text-clinical-charcoal/60 uppercase tracking-widest">Status Perangkat</h4>
+              </div>
+              
+              {syncedDeviceId ? (
+                <>
+                  <div className="relative mb-4">
+                    <div className="w-24 h-24 rounded-full border-4 border-clinical-surface overflow-hidden shadow-sm flex items-center justify-center bg-slate-50 text-3xl font-bold text-clinical-charcoal/40">
+                      <span className="material-symbols-outlined text-5xl">sensors</span>
+                    </div>
+                    <div className="absolute bottom-1 right-1 bg-status-green w-5 h-5 rounded-full border-4 border-white"></div>
+                  </div>
+                  
+                  <h5 className="text-lg font-bold font-display text-clinical-charcoal">{syncedDeviceId}</h5>
+                  <p className="text-sm font-medium text-clinical-charcoal/60 mb-6 leading-relaxed">Alat siap digunakan.</p>
+
+                  <div className="w-full space-y-3">
+                    <button onClick={() => navigate('/patient/monitor')} className="w-full py-3 bg-clinical-blue text-white font-bold text-[13px] rounded-lg hover:brightness-110 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-[0px_10px_20px_rgba(23,107,206,0.2)]">
+                      <span className="material-symbols-outlined text-sm">monitor_heart</span>
+                      Live Monitor
+                    </button>
+                    <button onClick={() => setShowUnsyncModal(true)} className="w-full py-3 bg-red-50 hover:bg-red-100 text-clinical-red font-bold text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-100">
+                      <span className="material-symbols-outlined text-sm">sync_disabled</span>
+                      Putuskan Alat
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="relative mb-4 opacity-60">
+                    <div className="w-24 h-24 rounded-full border-4 border-clinical-surface overflow-hidden shadow-sm flex items-center justify-center bg-slate-50 text-3xl font-bold text-clinical-charcoal/40">
+                      <span className="material-symbols-outlined text-5xl">sensors_off</span>
+                    </div>
+                  </div>
+                  
+                  <h5 className="text-lg font-bold font-display text-clinical-charcoal">Belum Terhubung</h5>
+                  <p className="text-sm font-medium text-clinical-charcoal/60 mb-6 leading-relaxed">Silakan sinkronisasi alat fisik EKG Anda terlebih dahulu.</p>
+
+                  <div className="w-full">
+                    <button onClick={() => navigate('/patient/device-scanner')} className="w-full py-3 bg-clinical-surface hover:brightness-95 text-clinical-charcoal font-bold text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
+                      Mulai Sinkronisasi
                     </button>
                   </div>
                 </>
               )}
             </div>
             {/* System Information Card */}
-            <div className="rounded-3xl p-8 bg-brand-navy text-white overflow-hidden relative shadow-lg">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <span className="material-symbols-outlined text-6xl">favorite</span>
+            <div className="rounded-[2rem] p-8 bg-white border border-clinical-charcoal/5 overflow-hidden relative shadow-[0px_20px_40px_rgba(0,0,0,0.04)] hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] transition-all duration-700 hover:-translate-y-1 text-clinical-charcoal">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <span className="material-symbols-outlined text-6xl text-clinical-blue">favorite</span>
               </div>
-              <h4 className="font-label-bold text-label-bold mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">info</span>
+              <h4 className="font-bold text-[13px] mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm text-clinical-blue">info</span>
                 {t('dashboard.healthTips')}
               </h4>
-              <p className="font-body-sm text-body-sm text-surface-variant leading-relaxed">
+              <p className="text-sm font-medium text-clinical-charcoal/60 leading-relaxed">
                 {randomHealthTipText}
               </p>
             </div>
@@ -353,38 +444,84 @@ export const PatientDashboardPage: React.FC = () => {
 
       {/* Disconnect Modals */}
       {showDisconnectModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm border border-outline-variant shadow-xl animate-in zoom-in-50 fade-in duration-500 ease-spring">
-            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center mb-4 text-error">
-              <span className="material-symbols-outlined text-2xl">warning</span>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-clinical-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm border border-clinical-charcoal/5 shadow-2xl animate-in zoom-in-50 fade-in duration-500 ease-spring">
+            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6 text-clinical-red mx-auto border border-red-100">
+              <span className="material-symbols-outlined text-3xl">warning</span>
             </div>
-            <h3 className="font-headline-md text-headline-md text-charcoal mb-2">{t('dashboard.cancelSyncModalTitle')}</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mb-6">{t('dashboard.cancelSyncModalDesc')}</p>
+            <h3 className="text-xl font-bold font-display text-clinical-charcoal mb-2 text-center">{t('dashboard.cancelSyncModalTitle')}</h3>
+            <p className="text-sm font-medium text-clinical-charcoal/60 mb-8 text-center">{t('dashboard.cancelSyncModalDesc')}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowDisconnectModal(false)} className="flex-1 py-2 rounded-lg font-label-bold text-label-bold border border-outline-variant hover:bg-surface-container text-on-surface-variant transition-colors">{t('dashboard.cancel')}</button>
+              <button onClick={() => setShowDisconnectModal(false)} className="flex-1 py-3 rounded-lg font-bold text-[13px] bg-clinical-surface hover:brightness-95 text-clinical-charcoal transition-colors">{t('dashboard.cancel')}</button>
               <button onClick={() => {
                 disconnectAll();
                 setShowDisconnectModal(false);
                 setShowSuccessModal(true);
-              }} className="flex-1 py-2 rounded-lg font-label-bold text-label-bold bg-error text-white hover:bg-red-600 transition-colors shadow-sm">{t('dashboard.yesDisconnect')}</button>
+              }} className="flex-1 py-3 rounded-lg font-bold text-[13px] bg-clinical-red text-white hover:brightness-110 transition-colors shadow-sm hover:shadow-[0px_10px_20px_rgba(220,38,38,0.2)]">{t('dashboard.yesDisconnect')}</button>
             </div>
           </div>
         </div>
       )}
 
       {showSuccessModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm border border-outline-variant shadow-xl text-center animate-in zoom-in-50 fade-in duration-500 ease-spring">
-            <div className="w-16 h-16 rounded-full bg-status-green/10 flex items-center justify-center mb-4 text-status-green mx-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-clinical-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm border border-clinical-charcoal/5 shadow-2xl text-center animate-in zoom-in-50 fade-in duration-500 ease-spring">
+            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-6 text-clinical-blue mx-auto border border-blue-100">
               <span className="material-symbols-outlined text-3xl">check_circle</span>
             </div>
-            <h3 className="font-headline-md text-headline-md text-charcoal mb-2">{t('dashboard.successDisconnectTitle')}</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mb-6">{t('dashboard.successDisconnectDesc')}</p>
-            <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 rounded-lg font-label-bold text-label-bold bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm">{t('dashboard.close')}</button>
+            <h3 className="text-xl font-bold font-display text-clinical-charcoal mb-2">{t('dashboard.successDisconnectTitle')}</h3>
+            <p className="text-sm font-medium text-clinical-charcoal/60 mb-8">{t('dashboard.successDisconnectDesc')}</p>
+            <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 rounded-lg font-bold text-[13px] bg-clinical-blue text-white hover:brightness-110 transition-colors shadow-sm hover:shadow-[0px_10px_20px_rgba(23,107,206,0.2)]">{t('dashboard.close')}</button>
           </div>
         </div>
       )}
 
+      {/* Unsync Confirmation Modal */}
+      {showUnsyncModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-clinical-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm border border-clinical-charcoal/5 shadow-2xl text-center animate-in zoom-in-50 fade-in duration-500 ease-spring">
+            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6 text-clinical-red mx-auto border border-red-100">
+              <span className="material-symbols-outlined text-3xl">link_off</span>
+            </div>
+            <h3 className="text-xl font-bold font-display text-clinical-charcoal mb-2">Putuskan Alat?</h3>
+            <p className="text-sm font-medium text-clinical-charcoal/60 mb-8 leading-relaxed">
+              Anda akan memutuskan sinkronisasi dengan alat <strong>{syncedDeviceId}</strong>. Anda perlu menyinkronkan ulang untuk merekam aktivitas jantung.
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={async () => {
+                  if (syncedDeviceId) {
+                    try {
+                      await fetch(`${API_URL}/api/devices/${syncedDeviceId}/assign`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ patient_id: null })
+                      });
+                    } catch (e) {
+                      console.error("Gagal unassign device:", e);
+                    }
+                  }
+                  localStorage.removeItem('synced_device_id');
+                  setSyncedDeviceId(null);
+                  setShowUnsyncModal(false);
+                }} 
+                className="w-full py-3.5 rounded-lg font-bold text-[13px] bg-clinical-red text-white hover:brightness-110 transition-colors shadow-sm hover:shadow-[0px_10px_20px_rgba(220,38,38,0.2)]"
+              >
+                Ya, Putuskan
+              </button>
+              <button 
+                onClick={() => setShowUnsyncModal(false)} 
+                className="w-full py-3.5 rounded-lg font-bold text-[13px] bg-clinical-surface hover:brightness-95 text-clinical-charcoal transition-colors"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      </div>
     </div>
   );
 };

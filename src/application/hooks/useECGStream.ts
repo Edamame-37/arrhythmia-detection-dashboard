@@ -61,6 +61,7 @@ export interface UseECGStreamReturn {
     receivedAt: string | null;
     deviceId: string;
     sessionId: string;
+    rawClassification: string | null;
 }
 
 export const useECGStream = (endpoint: string): UseECGStreamReturn => {
@@ -80,6 +81,7 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
     const [receivedAt, setReceivedAt] = useState<string | null>(null);
     const [deviceId, setDeviceId] = useState<string>("MENUNGGU PERANGKAT...");
     const [sessionId, setSessionId] = useState<string>("MENUNGGU SESI...");
+    const [rawClassification, setRawClassification] = useState<string | null>(null);
 
     // --- MANAJEMEN FILTER STATE ---
     const [isFilterOn, setIsFilterOn] = useState<boolean>(true);
@@ -112,7 +114,11 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
 
     const processDataChunk = useCallback((payload: ECGDataPayload, timestamp?: string) => {
         const { raw, classification_result, anomaly_indices, prediction_details, system: sysData, network: netData, stress_test } = payload;
-        const isAnomaly = anomaly_indices && anomaly_indices.length > 0;
+        
+        const isNormal = classification_result?.toUpperCase() === 'NORMAL' || classification_result?.toUpperCase() === 'NORM';
+        const isAnomaly = !isNormal;
+        
+        if (classification_result) setRawClassification(classification_result);
 
         if (prediction_details) setPrediction(prediction_details);
         if (sysData) setSystem(sysData);
@@ -151,14 +157,14 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
 
             const currentX = Number((xIndex * X_STEP).toFixed(2));
 
-            // Kalkulasi koordinat Y untuk seluruh 7 saluran (Skala Medis Standar: 1mV = 80px, Center = 120px)
-            const yI = 120 - finalI * 80;
-            const yII = 120 - finalII * 80;
-            const yIII = 120 - finalIII * 80;
-            const yaVR = 120 - calculated.aVR * 80;
-            const yaVL = 120 - calculated.aVL * 80;
-            const yaVF = 120 - calculated.aVF * 80;
-            const yV1 = 120.00;
+            // Kalkulasi koordinat Y untuk seluruh 7 saluran (Skala Medis Standar: 1mV = 80px, Center = 240px)
+            const yI = 240 - finalI * 80;
+            const yII = 240 - finalII * 80;
+            const yIII = 240 - finalIII * 80;
+            const yaVR = 240 - calculated.aVR * 80;
+            const yaVL = 240 - calculated.aVL * 80;
+            const yaVF = 240 - calculated.aVF * 80;
+            const yV1 = 240.00;
 
             currentPaths.I.push(`${currentX},${yI.toFixed(2)}`);
             currentPaths.II.push(`${currentX},${yII.toFixed(2)}`);
@@ -240,10 +246,14 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
             clientRef.current = new ECGWebSocketClient(endpoint);
             clientRef.current.onMessage = (msg: ServerMessage) => {
                 if (msg.type === 'summary' && msg.data) {
-                    const summaries = msg.data.map(seg => ({
-                        index: (seg as any).index, timeStr: formatTime((seg as any).index * 10),
-                        isAnomaly: (seg as any).is_anomaly, classResult: (seg as any).class_result
-                    }));
+                    const summaries = msg.data.map(seg => {
+                        const classRes = (seg as any).class_result;
+                        const isNormal = classRes?.toUpperCase() === 'NORMAL' || classRes?.toUpperCase() === 'NORM';
+                        return {
+                            index: (seg as any).index, timeStr: formatTime((seg as any).index * 10),
+                            isAnomaly: !isNormal, classResult: classRes
+                        };
+                    });
                     setTimeline(summaries);
                 }
                 else if (msg.type === 'live_data' || msg.type === 'segment_data') {
@@ -265,7 +275,7 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
 
     const startStream = () => {
         if (isRecording) return;
-        setIsRecording(true); setTimeline([]); setClinicalStatus(null); setHeartRate('--');
+        setIsRecording(true); setTimeline([]); setClinicalStatus(null); setHeartRate('--'); setRawClassification(null);
 
         dataRef.current = {
             xIndex: 0, currentPaths: { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] },
@@ -290,6 +300,6 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
     return {
         isRecording, paths, rPeaks, heartRate, clinicalStatus, timeline,
         startStream, stopStream, fetchSummary, fetchSegment,
-        isFilterOn, toggleFilter, system, network, prediction, stressTest, createdAt, receivedAt, deviceId, sessionId
+        isFilterOn, toggleFilter, system, network, prediction, stressTest, createdAt, receivedAt, deviceId, sessionId, rawClassification
     };
 };

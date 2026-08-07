@@ -4,6 +4,7 @@ import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { LogoutModal } from '../../components/shared/LogoutModal';
 import { useConnection } from '../../../application/context/ConnectionContext';
+import { API_URL } from '../../../config/env';
 interface DoctorProfile {
     id: string;
     first_name: string;
@@ -37,7 +38,7 @@ export const ProfilePage: React.FC = () => {
         navigate('/auth/login');
         return;
     }
-    fetch(`http://127.0.0.1:8081/api/doctors/${userId}`)
+    fetch(`${API_URL}/api/doctors/${userId}`)
         .then(res => {
             if (!res.ok) throw new Error('Gagal mengambil profil dokter');
             return res.json();
@@ -86,7 +87,7 @@ export const ProfilePage: React.FC = () => {
       setError('');
       
       try {
-          const response = await fetch(`http://127.0.0.1:8081/api/doctors/${profile.id}`, {
+          const response = await fetch(`${API_URL}/api/doctors/${profile.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

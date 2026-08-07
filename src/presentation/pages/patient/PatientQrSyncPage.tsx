@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { API_URL } from '../../../config/env';
 
 interface PatientProfile {
   patient: {
@@ -20,7 +21,7 @@ export const PatientQrSyncPage: React.FC = () => {
 
   useEffect(() => {
     const userId = localStorage.getItem('user_id') || '1';
-    fetch(`http://127.0.0.1:8081/api/patients/${userId}`)
+    fetch(`${API_URL}/api/patients/${userId}`)
       .then(res => res.json())
       .then(data => setProfile(data))
       .catch(err => console.error("Error fetching patient profile:", err));
@@ -35,33 +36,30 @@ export const PatientQrSyncPage: React.FC = () => {
   };
 
   return (
-    <div className="text-on-surface w-full bg-surface-gray min-h-screen flex flex-col">
+    <div className="text-clinical-charcoal w-full bg-clinical-surface/30 min-h-screen flex flex-col relative">
+      <div className="absolute inset-0 ecg-grid opacity-[0.15] z-0 pointer-events-none"></div>
       {/* Top Navigation Bar */}
       <PatientHeader />
 
       {/* Main Content Area */}
-      <main className="max-w-5xl w-full mx-auto px-gutter py-8 md:py-12 flex flex-col flex-grow justify-center">
-
-        {/* Animated Background decorative elements */}
-        <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-medical-teal/10 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"></div>
-        <div className="fixed bottom-1/4 right-1/4 w-80 h-80 bg-brand-navy/5 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <main className="max-w-5xl w-full mx-auto px-gutter py-8 md:py-12 flex flex-col flex-grow justify-center relative z-10">
 
 
         {/* Sync Card Two-Column Layout */}
-        <div className="bg-surface-container-lowest rounded-[2rem] shadow-xl shadow-medical-teal/5 border border-surface-container-high flex flex-col md:flex-row w-full relative overflow-hidden group">
+        <div className="bg-white rounded-[2rem] border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] transition-all duration-700 flex flex-col md:flex-row w-full relative overflow-hidden group">
 
           {/* Left Side: QR Code Area */}
-          <div className="md:w-1/2 p-6 md:p-12 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-outline-variant/30 relative bg-surface-container-lowest z-10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-medical-teal/5 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-110"></div>
+          <div className="md:w-1/2 p-6 md:p-12 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-clinical-charcoal/10 relative bg-white z-10">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-clinical-blue/5 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-110"></div>
 
 
-            <h1 className="font-headline-md text-headline-md text-charcoal mb-2 z-10 text-center">{t('qrSync.title')}</h1>
-            <p className="font-body-sm text-body-sm text-on-surface-variant max-w-[240px] text-center leading-relaxed mb-8 z-10">
+            <h1 className="text-3xl font-extrabold font-display text-clinical-charcoal mb-2 z-10 text-center">{t('qrSync.title')}</h1>
+            <p className="text-[13px] font-medium text-clinical-charcoal/60 mb-8 z-10 text-center max-w-sm">
               {t('qrSync.desc')}
             </p>
 
             {/* Real QR Code Display */}
-            <div className="bg-white p-4 rounded-3xl shadow-md border border-outline-variant/30 mb-8 z-10 group-hover:shadow-lg transition-shadow duration-500 hover:scale-105">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-clinical-charcoal/10 mb-8 z-10 group-hover:shadow-md transition-shadow duration-500 hover:scale-105">
               {profile ? (
                 <QRCode
                   value={`ecgrhythmia://sync/patient/${profile.patient.id}`}
@@ -72,50 +70,50 @@ export const PatientQrSyncPage: React.FC = () => {
                   style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                 />
               ) : (
-                <div className="w-[200px] h-[200px] flex items-center justify-center bg-surface-container-lowest animate-pulse rounded-2xl">
-                  <span className="material-symbols-outlined text-outline-variant text-5xl">qr_code_2</span>
+                <div className="w-[200px] h-[200px] flex items-center justify-center bg-slate-50 animate-pulse rounded-2xl">
+                  <span className="material-symbols-outlined text-clinical-charcoal/40 text-5xl">qr_code_2</span>
                 </div>
               )}
             </div>
 
             {/* Patient ID Info */}
-            <div className="w-full bg-surface-container-lowest rounded-2xl p-4 flex flex-col items-center gap-1 border border-outline-variant z-10 shadow-inner group-hover:border-medical-teal/30 transition-colors">
-              <span className="text-[10px] font-label-md text-on-surface-variant uppercase tracking-widest font-bold">{t('qrSync.patientId')}</span>
-              <p className="font-mono text-lg font-bold text-charcoal tracking-[0.1em]">
+            <div className="w-full bg-clinical-surface/50 rounded-2xl p-4 flex flex-col items-center gap-1 border border-clinical-charcoal/10 z-10 shadow-inner group-hover:border-clinical-blue/30 transition-colors">
+              <p className="text-[10px] font-bold text-clinical-charcoal/60 uppercase tracking-widest">{t('qrSync.yourId')}</p>
+              <p className="font-mono text-lg font-bold text-clinical-charcoal tracking-[0.1em]">
                 {patientIdFormatted}
               </p>
             </div>
           </div>
 
           {/* Right Side: Instructions & Security */}
-          <div className="md:w-1/2 p-6 md:p-12 flex flex-col justify-center bg-surface-gray z-10">
-            <h2 className="text-xl font-bold text-charcoal mb-6">{t('qrSync.howToSync')}</h2>
+          <div className="md:w-1/2 p-6 md:p-12 bg-slate-50 z-10 relative flex flex-col justify-center">
+            <h2 className="text-xl font-bold font-display text-clinical-charcoal mb-6">{t('qrSync.howToSync')}</h2>
 
             <div className="flex flex-col gap-6">
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-medical-teal text-white flex items-center justify-center shrink-0 font-bold shadow-sm">1</div>
+                <div className="w-10 h-10 rounded-full bg-clinical-blue/10 flex items-center justify-center text-clinical-blue font-bold shrink-0 shadow-sm border border-clinical-blue/20">1</div>
                 <div>
-                  <h3 className="font-bold text-charcoal text-base mb-1">{t('qrSync.step1Title')}</h3>
-                  <p className="text-sm text-on-surface-variant leading-relaxed">{t('qrSync.step1Desc')}</p>
+                  <h3 className="font-bold text-[15px] text-clinical-charcoal mb-1">{t('qrSync.step1Title')}</h3>
+                  <p className="text-[13px] font-medium text-clinical-charcoal/60 leading-relaxed">{t('qrSync.step1Desc')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-medical-teal text-white flex items-center justify-center shrink-0 font-bold shadow-sm">2</div>
+                <div className="w-10 h-10 rounded-full bg-clinical-blue/10 flex items-center justify-center text-clinical-blue font-bold shrink-0 shadow-sm border border-clinical-blue/20">2</div>
                 <div>
-                  <h3 className="font-bold text-charcoal text-base mb-1">{t('qrSync.step2Title')}</h3>
-                  <p className="text-sm text-on-surface-variant leading-relaxed">{t('qrSync.step2Desc')}</p>
+                  <h3 className="font-bold text-[15px] text-clinical-charcoal mb-1">{t('qrSync.step2Title')}</h3>
+                  <p className="text-[13px] font-medium text-clinical-charcoal/60 leading-relaxed">{t('qrSync.step2Desc')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-medical-teal text-white flex items-center justify-center shrink-0 font-bold shadow-sm">3</div>
+                <div className="w-10 h-10 rounded-full bg-clinical-blue/10 flex items-center justify-center text-clinical-blue font-bold shrink-0 shadow-sm border border-clinical-blue/20">3</div>
                 <div>
-                  <h3 className="font-bold text-charcoal text-base mb-1">{t('qrSync.step3Title')}</h3>
-                  <p className="text-sm text-on-surface-variant leading-relaxed">{t('qrSync.step3Desc')}</p>
+                  <h3 className="font-bold text-[15px] text-clinical-charcoal mb-1">{t('qrSync.step3Title')}</h3>
+                  <p className="text-[13px] font-medium text-clinical-charcoal/60 leading-relaxed">{t('qrSync.step3Desc')}</p>
                 </div>
               </div>
             </div>
 
-            <hr className="border-outline-variant/50 my-8" />
+            <hr className="border-clinical-charcoal/10 my-8" />
 
             {/* Security Badge */}
             <div className="bg-status-green/5 border border-status-green/20 rounded-2xl p-5 flex items-center gap-4">
@@ -130,7 +128,7 @@ export const PatientQrSyncPage: React.FC = () => {
                   </span>
                   {t('qrSync.encrypted')}
                 </h4>
-                <p className="text-xs text-on-surface-variant">{t('qrSync.encryptedDesc')}</p>
+                <p className="text-xs text-clinical-charcoal/60">{t('qrSync.encryptedDesc')}</p>
               </div>
             </div>
 
