@@ -4,6 +4,7 @@ import { LogoutModal } from '../../components/shared/LogoutModal';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { usePreferences } from '../../../application/context/PreferencesContext';
 import { useTranslation } from '../../../application/hooks/useTranslation';
+import { SUPPORT_CONTACT } from '../../../config/env';
 
 export const PatientSettingsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -123,7 +124,7 @@ export const PatientSettingsPage: React.FC = () => {
                         <section className="bg-white rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)]">
                             <div className="divide-y divide-clinical-charcoal/5">
 
-                                <a href="https://wa.me/6281227884743" target="_blank" rel="noopener noreferrer" className="w-full p-6 flex items-center justify-between gap-4 hover:bg-clinical-surface transition-colors duration-300 text-left group cursor-pointer block">
+                                <a href={SUPPORT_CONTACT} target="_blank" rel="noopener noreferrer" className="w-full p-6 flex items-center justify-between gap-4 hover:bg-clinical-surface transition-colors duration-300 text-left group cursor-pointer block">
                                     <div>
                                         <h3 className="text-[15px] font-bold text-clinical-charcoal mb-0.5 group-hover:text-clinical-blue transition-colors">{t('settings.support')}</h3>
                                         <p className="text-[13px] font-medium text-clinical-charcoal/60">{t('settings.supportDesc')}</p>
