@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { LogoutModal } from '../shared/LogoutModal';
-import { APP_CONFIG } from '../../../core/config';
-
+import { API_URL } from '../../../config/env';
 
 export const DoctorSidebar: React.FC = () => {
     const navigate = useNavigate();
@@ -21,7 +20,7 @@ export const DoctorSidebar: React.FC = () => {
     useEffect(() => {
         const userId = localStorage.getItem('user_id');
         if (userId) {
-            fetch(`${APP_CONFIG.API_URL}/api/doctors/${userId}`)
+            fetch(`${API_URL}/api/doctors/${userId}`)
                 .then(res => res.json())
                 .then(data => setProfile(data))
                 .catch(err => console.error("Failed to load profile for sidebar", err));
@@ -34,8 +33,8 @@ export const DoctorSidebar: React.FC = () => {
         <>
             {/* Mobile Overlay */}
             {isOpen && (
-                <div 
-                    className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-40 md:hidden transition-opacity" 
+                <div
+                    className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
                     onClick={closeSidebar}
                 />
             )}
@@ -63,10 +62,6 @@ export const DoctorSidebar: React.FC = () => {
                         <span className="text-sm">Pasien Baru (QR)</span>
                     </Link>
 
-                    <Link onClick={handleNavClick} className={`flex items-center gap-3 px-4 py-3 rounded-lg font-semibold shadow-sm transition-all ${isActive('/doctor/monitor') ? 'bg-medical-teal text-white' : 'text-on-surface-variant hover:bg-surface-container-low group'}`} to="/doctor/monitor">
-                        <span className={`material-symbols-outlined ${isActive('/doctor/monitor') ? '' : 'text-outline group-hover:text-medical-teal'}`}>monitor_heart</span>
-                        <span className="text-sm">Live Monitor</span>
-                    </Link>
                     <Link onClick={handleNavClick} className={`flex items-center gap-3 px-4 py-3 rounded-lg font-semibold shadow-sm transition-all ${isActive('/doctor/analytics') ? 'bg-medical-teal text-white' : 'text-on-surface-variant hover:bg-surface-container-low group'}`} to="/doctor/analytics">
                         <span className={`material-symbols-outlined ${isActive('/doctor/analytics') ? '' : 'text-outline group-hover:text-medical-teal'}`}>history</span>
                         <span className="text-sm">Riwayat Klinis</span>

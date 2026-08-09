@@ -21,6 +21,7 @@ interface ECGCanvasProps {
     classResult?: string;
     speed?: 25 | 50; // mm/s
     timeOffset?: number; // Untuk mode Analytics
+    scale?: number; // Prop untuk physical zoom scaling
 }
 
 export const ECGCanvas: React.FC<ECGCanvasProps> = ({
@@ -29,14 +30,15 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({
     isAnomaly = false,
     classResult = "NORM",
     speed = 25,
-    timeOffset = 0
+    timeOffset = 0,
+    scale = 1.0
 }) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [pointerX, setPointerX] = useState<number | null>(null);
     const [pointerY, setPointerY] = useState<number | null>(null);
 
     const canvasWidth = speed === 25 ? 2000 : 1000;
-    const lead2Stroke = isAnomaly ? '#E71D36' : '#001F54';
+    const lead2Stroke = '#001F54';
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!canvasRef.current) return;
@@ -134,7 +136,7 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({
 
     return (
         <div className="flex-1 overflow-auto custom-scrollbar relative flex flex-col bg-[#FFF9FA]" id="ecg-scroll-container">
-            <div className="flex flex-col relative" style={{ minWidth: `${canvasWidth + 64}px` }}>
+            <div className="flex flex-col relative" style={{ minWidth: `${canvasWidth + 64}px`, zoom: scale } as React.CSSProperties}>
 
                 {/* Header Batas Scroll Kiri */}
                 <div className="sticky top-0 h-[40px] flex z-50 pointer-events-none bg-white rounded-tl-xl border-b border-pink-300">
@@ -143,15 +145,17 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({
 
                 <div className="relative flex flex-row">
                     {/* Y-Axis Skala Garis Tepi (Kiri) */}
-                    <div className="sticky left-0 w-16 h-[1440px] flex-shrink-0 bg-white/95 backdrop-blur z-30 shadow-[2px_0_5px_rgba(0,0,0,0.03)] relative">
+                    <div className="sticky left-0 w-16 h-[2880px] flex-shrink-0 bg-white/95 backdrop-blur z-30 shadow-[2px_0_5px_rgba(0,0,0,0.03)] relative">
                         {Array.from({ length: 6 }).map((_, idx) => (
-                            <div key={idx} className="absolute w-full h-[240px]" style={{ top: `${idx * 240}px` }}>
+                            <div key={idx} className="absolute w-full h-[480px]" style={{ top: `${idx * 480}px` }}>
                                 {idx < 5 && <div className="absolute bottom-0 left-0 w-full border-b-[2px] border-pink-300/80"></div>}
-                                <span className="absolute top-[40px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">+1.0mV</span>
-                                <span className="absolute top-[80px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">+0.5mV</span>
-                                <span className="absolute top-[120px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">0</span>
-                                <span className="absolute top-[160px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">-0.5mV</span>
-                                <span className="absolute top-[200px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">-1.0mV</span>
+                                <span className="absolute top-[0px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">+3.0mV</span>
+                                <span className="absolute top-[80px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">+2.0mV</span>
+                                <span className="absolute top-[160px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">+1.0mV</span>
+                                <span className="absolute top-[240px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">0</span>
+                                <span className="absolute top-[320px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">-1.0mV</span>
+                                <span className="absolute top-[400px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">-2.0mV</span>
+                                <span className="absolute top-[480px] left-1.5 md:left-2 text-[9px] font-mono-data font-bold text-red-600 leading-none -translate-y-1/2">-3.0mV</span>
                             </div>
                         ))}
                     </div>
@@ -159,7 +163,7 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({
                     {/* Area Canvas Interaktif Utama */}
                     <div
                         className="relative z-10 flex flex-col cursor-crosshair -mt-[40px]"
-                        style={{ width: `${canvasWidth}px`, height: '1480px' }}
+                        style={{ width: `${canvasWidth}px`, height: '2920px' }}
                         ref={canvasRef} onMouseMove={handlePointerMove} onTouchMove={handlePointerMove}
                         onMouseEnter={() => setPointerX(0)} onMouseLeave={hidePointer} onTouchStart={() => setPointerX(0)} onTouchEnd={hidePointer}
                     >
@@ -169,16 +173,16 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({
                         </svg>
 
                         {/* SATU CANVAS RAKSASA (GRID + GELOMBANG EKG TERINTEGRASI) */}
-                        <svg className="absolute top-[40px] left-0 pointer-events-none z-10 overflow-visible" width={canvasWidth} height={1440} viewBox={`0 0 ${canvasWidth} 1440`} xmlns="http://www.w3.org/2000/svg">
+                        <svg className="absolute top-[40px] left-0 pointer-events-none z-10 overflow-visible" width={canvasWidth} height={2880} viewBox={`0 0 ${canvasWidth} 2880`} xmlns="http://www.w3.org/2000/svg">
                             {/* Layer 1: Definisi & Latar Belakang Grid */}
                             <defs>
                                 <pattern id="smallGrid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="#FFD1DC" strokeWidth="0.5" /></pattern>
                                 <pattern id="largeGrid" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="url(#smallGrid)" /><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#FFA6C9" strokeWidth="1.2" /></pattern>
                             </defs>
-                            <rect width={canvasWidth} height={1440} fill="url(#largeGrid)" />
+                            <rect width={canvasWidth} height={2880} fill="url(#largeGrid)" />
 
                             {/* Garis Pemisah Antar Baris */}
-                            {[1, 2, 3, 4, 5].map(i => <line key={i} x1="0" y1={i * 240} x2={canvasWidth} y2={i * 240} stroke="rgba(255, 166, 201, 0.8)" strokeWidth="2" />)}
+                            {[1, 2, 3, 4, 5].map(i => <line key={i} x1="0" y1={i * 480} x2={canvasWidth} y2={i * 480} stroke="rgba(255, 166, 201, 0.8)" strokeWidth="2" />)}
 
                             {/* Layer 2: Saluran Gelombang (Digeser otomatis dengan transform-translate) */}
                             {/* 1. Lead I */}
@@ -188,44 +192,44 @@ export const ECGCanvas: React.FC<ECGCanvasProps> = ({
                             </g>
 
                             {/* 2. Lead II */}
-                            <g transform="translate(0, 240)">
+                            <g transform="translate(0, 480)">
                                 <path d={paths.II.length > 0 ? `M${paths.II.join(' L')}` : ""} fill="none" stroke={lead2Stroke} strokeWidth="1.5" strokeLinejoin="round" />
                                 {renderMarkers('yII', true)}
                             </g>
 
                             {/* 3. Lead III */}
-                            <g transform="translate(0, 480)">
+                            <g transform="translate(0, 960)">
                                 <path d={paths.III.length > 0 ? `M${paths.III.join(' L')}` : ""} fill="none" stroke="#001F54" strokeWidth="1.5" strokeLinejoin="round" />
                                 {renderMarkers('yIII')}
                             </g>
 
                             {/* 4. aVR (Menggunakan matriks skala matematika murni untuk pembalikan) */}
-                            <g transform="translate(0, 960) scale(1, -1)">
+                            <g transform="translate(0, 1920) scale(1, -1)">
                                 <path d={paths.aVR.length > 0 ? `M${paths.aVR.join(' L')}` : ""} fill="none" stroke="#001F54" strokeWidth="1.5" strokeLinejoin="round" />
                                 {renderMarkers('yaVR')}
                             </g>
 
                             {/* 5. aVL */}
-                            <g transform="translate(0, 960)">
+                            <g transform="translate(0, 1920)">
                                 <path d={paths.aVL.length > 0 ? `M${paths.aVL.join(' L')}` : ""} fill="none" stroke="#001F54" strokeWidth="1.5" strokeLinejoin="round" />
                                 {renderMarkers('yaVL')}
                             </g>
 
                             {/* 6. aVF */}
-                            <g transform="translate(0, 1200)">
+                            <g transform="translate(0, 2400)">
                                 <path d={paths.aVF.length > 0 ? `M${paths.aVF.join(' L')}` : ""} fill="none" stroke="#001F54" strokeWidth="1.5" strokeLinejoin="round" />
                                 {renderMarkers('yaVF')}
                             </g>
                         </svg>
 
                         {/* Layer 3: Label Nama Saluran (Floating / Absolute Position) */}
-                        <div className="absolute top-[40px] left-0 w-full h-[1440px] pointer-events-none z-20">
+                        <div className="absolute top-[40px] left-0 w-full h-[2880px] pointer-events-none z-20">
                             <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '8px' }}>Lead I</div>
-                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '248px' }}>Lead II</div>
-                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '488px' }}>Lead III</div>
-                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '728px' }}>aVR (Calculated)</div>
-                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '968px' }}>aVL (Calculated)</div>
-                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '1208px' }}>aVF (Calculated)</div>
+                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '488px' }}>Lead II</div>
+                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '968px' }}>Lead III</div>
+                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '1448px' }}>aVR (Calculated)</div>
+                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '1928px' }}>aVL (Calculated)</div>
+                            <div className="absolute left-2 bg-white/80 backdrop-blur px-2 py-0.5 rounded border border-pink-200 font-mono-data font-bold text-brand-navy text-[10px] shadow-sm" style={{ top: '2408px' }}>aVF (Calculated)</div>
                         </div>
 
                         {/* Layer 4: Interaksi Pointer Mouse & Tooltip (Paling Atas) */}

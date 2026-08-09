@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogoutModal } from '../../components/shared/LogoutModal';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
-import { APP_CONFIG } from '../../../core/config';
+import { API_URL } from '../../../config/env';
 
 export const PatientProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -35,11 +35,11 @@ export const PatientProfilePage: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            const response = await fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`);
+            const response = await fetch(`${API_URL}/api/patients/${userId}`);
             if (!response.ok) throw new Error(t('profile.fetchError'));
             const data = await response.json();
             setProfile(data);
-            
+
             // Populate form data
             if (data && data.patient) {
                 setFormData({
@@ -52,7 +52,7 @@ export const PatientProfilePage: React.FC = () => {
         } catch (err: any) {
             console.error("Error fetching patient profile:", err);
             setError(err.message || t('profile.fetchError'));
-            
+
             // Fallback for UI visualization if server is off
             const savedMock = localStorage.getItem('mock_patient_profile');
             let mockData;
@@ -93,9 +93,9 @@ export const PatientProfilePage: React.FC = () => {
         setIsSaving(true);
         setError('');
         const userId = localStorage.getItem('user_id') || '1';
-        
+
         try {
-            const response = await fetch(`${APP_CONFIG.API_URL}/api/patients/${userId}`, {
+            const response = await fetch(`${API_URL}/api/patients/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -105,7 +105,7 @@ export const PatientProfilePage: React.FC = () => {
                     profile_photo: formData.profile_photo || null
                 })
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 setIsEditing(false);
@@ -128,7 +128,7 @@ export const PatientProfilePage: React.FC = () => {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData({...formData, profile_photo: reader.result as string});
+                setFormData({ ...formData, profile_photo: reader.result as string });
             };
             reader.readAsDataURL(file);
         }
@@ -138,43 +138,43 @@ export const PatientProfilePage: React.FC = () => {
         if (!dobString) return null;
         const dob = new Date(dobString);
         const diffMs = Date.now() - dob.getTime();
-        const ageDate = new Date(diffMs); 
+        const ageDate = new Date(diffMs);
         return Math.abs(ageDate.getUTCFullYear() - 1970);
     };
 
     return (
-        <div className="bg-background text-on-surface antialiased overflow-hidden flex flex-col h-screen w-full font-sans">
+        <div className="bg-clinical-surface/30 text-clinical-charcoal antialiased overflow-hidden flex flex-col h-screen w-full">
             <PatientHeader />
 
-            <main className="flex-1 overflow-y-auto custom-scrollbar bg-surface-container-lowest relative">
+            <main className="flex-1 overflow-y-auto custom-scrollbar relative">
+                <div className="absolute inset-0 ecg-grid opacity-[0.15] z-0 pointer-events-none"></div>
                 {/* Premium Banner */}
-                <div className="w-full h-48 bg-gradient-to-r from-medical-teal to-brand-navy relative overflow-hidden shrink-0">
+                <div className="w-full h-48 bg-clinical-blue relative overflow-hidden shrink-0 z-0">
                     <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                 </div>
 
                 <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 -mt-20 relative z-10 space-y-6">
-                    <div className="bg-surface-container-lowest rounded-[2rem] shadow-xl border border-outline-variant/40 overflow-hidden flex flex-col lg:flex-row">
-                        
+                    <div className="bg-white rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden flex flex-col lg:flex-row transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)]">
+
                         {/* Profile Info Section */}
-                        <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-outline-variant/30 bg-surface-container-lowest flex flex-col items-center text-center">
-                            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-surface-container flex items-center justify-center mb-6 ring-4 ring-medical-teal/20">
+                        <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-clinical-charcoal/10 flex flex-col items-center text-center">
+                            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-sm bg-clinical-surface flex items-center justify-center mb-6 ring-4 ring-clinical-blue/20">
                                 {profile?.patient?.profile_photo ? (
                                     <img alt="Profile" className="w-full h-full object-cover" src={profile.patient.profile_photo} />
                                 ) : (
-                                    <span className="material-symbols-outlined text-6xl text-on-surface-variant">person</span>
+                                    <span className="material-symbols-outlined text-6xl text-clinical-charcoal/30">person</span>
                                 )}
                             </div>
-                            <h2 className="text-2xl font-extrabold text-charcoal tracking-tight mb-1">
+                            <h2 className="text-2xl font-extrabold text-clinical-charcoal tracking-tight mb-1">
                                 {isLoading ? t('profile.loading') : (profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.notFound'))}
                             </h2>
-                            <p className="text-xs font-bold text-medical-teal uppercase tracking-[0.2em] mb-6 flex items-center gap-1 justify-center">
+                            <p className="text-xs font-bold text-clinical-blue uppercase tracking-[0.2em] mb-6 flex items-center gap-1 justify-center">
                                 <span className="material-symbols-outlined text-[14px]">badge</span>
                                 {profile?.patient?.id ? `PAT-${profile.patient.id.toString().padStart(4, '0')}` : '---'}
                             </p>
-                            
+
                             {!isEditing && (
-                                <button onClick={() => setIsEditing(true)} disabled={isLoading || !profile} className="w-full bg-inverse-surface text-inverse-on-surface hover:bg-black font-bold py-3 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2">
+                                <button onClick={() => setIsEditing(true)} disabled={isLoading || !profile} className="w-full bg-clinical-charcoal text-white hover:brightness-110 font-bold py-3 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                     {t('profile.editProfile')}
                                 </button>
@@ -182,14 +182,14 @@ export const PatientProfilePage: React.FC = () => {
                         </div>
 
                         {/* Details & Form Section */}
-                        <div className="p-8 lg:p-12 lg:w-2/3 bg-surface-container-lowest">
-                            <h3 className="text-lg font-bold text-charcoal mb-6 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-medical-teal">manage_accounts</span>
+                        <div className="p-8 lg:p-12 lg:w-2/3 bg-white">
+                            <h3 className="text-lg font-bold text-clinical-charcoal mb-6 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-clinical-blue">manage_accounts</span>
                                 {isEditing ? t('profile.updateInfo') : t('profile.accountDetails')}
                             </h3>
 
                             {error && (
-                                <div className="mb-6 p-4 bg-red-50 border-l-4 border-alert-red text-alert-red text-sm font-bold rounded-r-lg flex items-center gap-3">
+                                <div className="mb-6 p-4 bg-red-50 border-l-4 border-clinical-red text-clinical-red text-sm font-bold rounded-r-lg flex items-center gap-3">
                                     <span className="material-symbols-outlined">error</span>
                                     {error}
                                 </div>
@@ -198,26 +198,26 @@ export const PatientProfilePage: React.FC = () => {
                             {!isEditing ? (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.firstName')}</p>
-                                            <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.patient?.first_name}</p>
+                                        <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
+                                            <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.firstName')}</p>
+                                            <p className="text-base font-bold text-clinical-charcoal">{isLoading ? '---' : profile?.patient?.first_name}</p>
                                         </div>
-                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.lastName')}</p>
-                                            <p className="text-base font-bold text-charcoal">{isLoading ? '---' : profile?.patient?.last_name}</p>
+                                        <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
+                                            <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.lastName')}</p>
+                                            <p className="text-base font-bold text-clinical-charcoal">{isLoading ? '---' : profile?.patient?.last_name}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.dob')}</p>
-                                            <p className="text-base font-bold text-charcoal flex items-center gap-2">
-                                                {isLoading ? '---' : (profile?.patient?.date_of_birth ? new Date(profile.patient.date_of_birth).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '-')}
+                                        <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
+                                            <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.dob')}</p>
+                                            <p className="text-base font-bold text-clinical-charcoal flex items-center gap-2">
+                                                {isLoading ? '---' : (profile?.patient?.date_of_birth ? new Date(profile.patient.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-')}
                                             </p>
                                         </div>
-                                        <div className="bg-surface-container-low/30 p-5 rounded-2xl border border-outline-variant/50 transition-all hover:border-medical-teal/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-outline uppercase font-bold tracking-widest mb-1">{t('profile.age')}</p>
-                                            <p className="text-base font-bold text-charcoal">
+                                        <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
+                                            <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.age')}</p>
+                                            <p className="text-base font-bold text-clinical-charcoal">
                                                 {isLoading ? '---' : (calculateAge(profile?.patient?.date_of_birth) ? `${calculateAge(profile.patient.date_of_birth)} ${t('profile.yearsOld')}` : '-')}
                                             </p>
                                         </div>
@@ -227,58 +227,58 @@ export const PatientProfilePage: React.FC = () => {
                                 <form onSubmit={handleSaveProfile} className="space-y-5">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-charcoal uppercase tracking-wider">{t('profile.firstName')}</label>
-                                            <input 
-                                                type="text" 
+                                            <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.firstName')}</label>
+                                            <input
+                                                type="text"
                                                 required
                                                 value={formData.first_name}
-                                                onChange={e => setFormData({...formData, first_name: e.target.value})}
-                                                className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-teal focus:border-transparent text-charcoal font-medium transition-all"
+                                                onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-clinical-charcoal/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-clinical-blue focus:border-transparent text-clinical-charcoal font-medium transition-all"
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-charcoal uppercase tracking-wider">{t('profile.lastName')}</label>
-                                            <input 
-                                                type="text" 
+                                            <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.lastName')}</label>
+                                            <input
+                                                type="text"
                                                 required
                                                 value={formData.last_name}
-                                                onChange={e => setFormData({...formData, last_name: e.target.value})}
-                                                className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-teal focus:border-transparent text-charcoal font-medium transition-all"
+                                                onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-clinical-charcoal/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-clinical-blue focus:border-transparent text-clinical-charcoal font-medium transition-all"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-charcoal uppercase tracking-wider">{t('profile.dob')}</label>
-                                        <input 
-                                            type="date" 
+                                        <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.dob')}</label>
+                                        <input
+                                            type="date"
                                             value={formData.date_of_birth}
-                                            onChange={e => setFormData({...formData, date_of_birth: e.target.value})}
-                                            className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-teal focus:border-transparent text-charcoal font-medium transition-all"
+                                            onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })}
+                                            className="w-full px-4 py-3 bg-white border border-clinical-charcoal/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-clinical-blue focus:border-transparent text-clinical-charcoal font-medium transition-all"
                                         />
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-charcoal uppercase tracking-wider">{t('profile.uploadPhoto')}</label>
+                                        <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.uploadPhoto')}</label>
                                         <div className="flex items-center gap-4">
                                             {formData.profile_photo && formData.profile_photo.startsWith('data:') && (
-                                                <div className="w-12 h-12 rounded-full overflow-hidden border border-outline-variant shrink-0">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden border border-clinical-charcoal/10 shrink-0">
                                                     <img src={formData.profile_photo} alt="Preview" className="w-full h-full object-cover" />
                                                 </div>
                                             )}
-                                            <input 
-                                                type="file" 
+                                            <input
+                                                type="file"
                                                 accept="image/*"
                                                 onChange={handlePhotoChange}
-                                                className="w-full text-sm text-on-surface-variant file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-medical-teal/10 file:text-medical-teal hover:file:bg-medical-teal/20 transition-all cursor-pointer"
+                                                className="w-full text-sm text-clinical-charcoal/60 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-clinical-blue/10 file:text-clinical-blue hover:file:bg-clinical-blue/20 transition-all cursor-pointer"
                                             />
                                         </div>
-                                        <p className="text-[10px] text-on-surface-variant">{t('profile.uploadHint')}</p>
+                                        <p className="text-[10px] text-clinical-charcoal/60">{t('profile.uploadHint')}</p>
                                     </div>
 
-                                    <div className="flex gap-3 pt-4 border-t border-outline-variant/30 mt-6">
-                                        <button 
-                                            type="button" 
+                                    <div className="flex gap-3 pt-4 border-t border-clinical-charcoal/10 mt-6">
+                                        <button
+                                            type="button"
                                             onClick={() => {
                                                 setIsEditing(false);
                                                 setError('');
@@ -291,14 +291,14 @@ export const PatientProfilePage: React.FC = () => {
                                                     });
                                                 }
                                             }}
-                                            className="flex-1 px-6 py-3 border-2 border-outline-variant text-charcoal font-bold rounded-xl hover:bg-surface-container transition-all"
+                                            className="flex-1 px-6 py-3 border-2 border-clinical-charcoal/10 text-clinical-charcoal font-bold rounded-xl hover:bg-clinical-surface transition-all"
                                         >
                                             {t('profile.cancel')}
                                         </button>
-                                        <button 
-                                            type="submit" 
+                                        <button
+                                            type="submit"
                                             disabled={isSaving}
-                                            className="flex-1 px-6 py-3 bg-medical-teal text-white font-bold rounded-xl hover:bg-teal-700 transition-all shadow-md active:scale-95 disabled:opacity-70 flex justify-center items-center gap-2"
+                                            className="flex-1 px-6 py-3 bg-clinical-blue text-white font-bold rounded-xl hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-70 flex justify-center items-center gap-2 hover:shadow-[0px_10px_20px_rgba(23,107,206,0.2)]"
                                         >
                                             {isSaving ? (
                                                 <><span className="material-symbols-outlined animate-spin text-[18px]">sync</span> {t('profile.saving')}</>
@@ -314,36 +314,36 @@ export const PatientProfilePage: React.FC = () => {
 
                     {/* Section: Izin Akses Dokter */}
                     {!isLoading && profile?.doctor && !isEditing && (
-                        <div className="bg-surface-container-lowest rounded-[2rem] shadow-xl border border-outline-variant/40 overflow-hidden">
-                            <div className="p-6 border-b border-outline-variant/30 bg-surface-container-lowest flex items-center gap-3">
-                                <span className="material-symbols-outlined text-medical-teal text-[24px]">verified_user</span>
-                                <h3 className="text-lg font-bold text-charcoal">{t('profile.doctorAccess')}</h3>
+                        <div className="bg-white rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)]">
+                            <div className="p-6 border-b border-clinical-charcoal/10 flex items-center gap-3">
+                                <span className="material-symbols-outlined text-clinical-blue text-[24px]">verified_user</span>
+                                <h3 className="text-lg font-bold text-clinical-charcoal">{t('profile.doctorAccess')}</h3>
                             </div>
                             <div className="p-6 md:p-8">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="flex items-center gap-5">
                                         <div className="relative">
-                                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 p-0.5 bg-surface-container-lowest border-medical-teal">
+                                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 p-0.5 bg-slate-50 border-clinical-blue">
                                                 {profile.doctor.profile_photo ? (
-                                                    <img className="w-full h-full rounded-full object-cover" src={profile.doctor.profile_photo} alt={`Dr. ${profile.doctor.first_name}`}/>
+                                                    <img className="w-full h-full rounded-full object-cover" src={profile.doctor.profile_photo} alt={`Dr. ${profile.doctor.first_name}`} />
                                                 ) : (
-                                                    <span className="material-symbols-outlined text-[32px] w-full h-full flex items-center justify-center text-on-surface-variant bg-surface-container-lowest">person</span>
+                                                    <span className="material-symbols-outlined text-[32px] w-full h-full flex items-center justify-center text-clinical-charcoal/30 bg-slate-50">person</span>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 border-2 border-white rounded-full bg-green-500 shadow-sm"></div>
+                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 border-2 border-white rounded-full bg-status-green shadow-sm"></div>
                                         </div>
                                         <div>
-                                            <h4 className="font-headline-sm text-headline-sm text-charcoal font-bold">Dr. {profile.doctor.first_name} {profile.doctor.last_name}</h4>
-                                            <p className="text-label-md font-label-md text-on-surface-variant">{t('profile.doctorRole')} <span className="text-outline-variant mx-1">•</span> {profile.doctor.hospital || 'Klinik Jantung Sehat'}</p>
-                                            
+                                            <h4 className="text-lg text-clinical-charcoal font-bold font-display">Dr. {profile.doctor.first_name} {profile.doctor.last_name}</h4>
+                                            <p className="text-sm font-medium text-clinical-charcoal/60">{t('profile.doctorRole')} <span className="text-clinical-charcoal/20 mx-1">•</span> {profile.doctor.hospital || 'Klinik Jantung Sehat'}</p>
+
                                             <span className="inline-flex items-center mt-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-widest border border-green-200">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-status-green mr-1.5"></span>
                                                 {t('profile.accessActive')}
                                             </span>
                                         </div>
                                     </div>
-                                    
-                                    <button onClick={() => alert(t('profile.revokeAlert'))} className="w-full md:w-auto px-6 py-2.5 rounded-full border border-brand-red text-brand-red font-label-bold text-label-bold hover:bg-brand-red hover:text-white transition-all shadow-sm focus:ring-4 focus:ring-red-100">
+
+                                    <button onClick={() => alert(t('profile.revokeAlert'))} className="w-full md:w-auto px-6 py-2.5 rounded-full border border-clinical-red text-clinical-red font-bold text-[13px] hover:bg-clinical-red hover:text-white transition-all shadow-sm focus:ring-4 focus:ring-red-100">
                                         {t('profile.revokeAccess')}
                                     </button>
                                 </div>
@@ -354,7 +354,7 @@ export const PatientProfilePage: React.FC = () => {
                     {/* Logout Section */}
                     {!isEditing && (
                         <div className="pt-4">
-                            <button onClick={() => setIsLogoutModalOpen(true)} className="w-full bg-surface-container-lowest p-6 rounded-[2rem] border border-brand-red/20 text-brand-red hover:bg-red-50 hover:border-brand-red/40 transition-all font-bold flex items-center justify-center gap-3 group shadow-sm focus:ring-4 focus:ring-red-100 outline-none">
+                            <button onClick={() => setIsLogoutModalOpen(true)} className="w-full bg-white p-6 rounded-[2rem] border border-clinical-red/20 text-clinical-red hover:bg-red-50/50 hover:border-clinical-red/40 transition-all font-bold flex items-center justify-center gap-3 group shadow-[0px_20px_40px_rgba(0,0,0,0.04)] hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] outline-none">
                                 <span className="material-symbols-outlined text-[24px] group-hover:scale-110 group-hover:-translate-x-1 transition-transform">logout</span>
                                 <span className="text-lg">{t('profile.logout')}</span>
                             </button>
@@ -367,9 +367,9 @@ export const PatientProfilePage: React.FC = () => {
 
             {/* Success Popup */}
             {showSuccessPopup && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-surface-container-lowest border border-medical-teal/20 shadow-xl p-4 rounded-2xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300 pointer-events-none">
-                    <span className="material-symbols-outlined text-medical-teal text-[28px]">check_circle</span>
-                    <p className="font-bold text-charcoal text-sm md:text-base pr-2">{t('profile.saveSuccess')}</p>
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white border border-clinical-charcoal/10 shadow-[0px_20px_40px_rgba(0,0,0,0.08)] p-4 rounded-xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300 pointer-events-none">
+                    <span className="material-symbols-outlined text-status-green text-[28px]">check_circle</span>
+                    <p className="font-bold text-clinical-charcoal text-sm md:text-base pr-2">{t('profile.saveSuccess')}</p>
                 </div>
             )}
         </div>

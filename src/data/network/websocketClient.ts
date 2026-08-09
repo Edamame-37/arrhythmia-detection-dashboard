@@ -6,8 +6,7 @@
 
 import type { ServerMessage } from '../../core/types/ecgTypes';
 import { verifyChecksum } from '../security/checksum';
-import { APP_CONFIG } from '../../core/config';
-
+import { WS_URL } from '../../config/env';
 
 export const getWebSocketHost = (): string => {
     return window.location.hostname === '10.0.2.2' ? '10.0.2.2' : '127.0.0.1';
@@ -16,7 +15,7 @@ export const getWebSocketHost = (): string => {
 export class ECGWebSocketClient {
     private ws: WebSocket | null = null;
     private url: string;
-    
+
     public onMessage?: (data: ServerMessage) => void;
     public onError?: (error: Event | string) => void;
     public onClose?: () => void;
@@ -26,7 +25,7 @@ export class ECGWebSocketClient {
         if (endpoint.startsWith('ws://') || endpoint.startsWith('wss://')) {
             this.url = endpoint;
         } else {
-            const baseUrl = APP_CONFIG.WS_URL;
+            const baseUrl = WS_URL;
             this.url = `${baseUrl.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
         }
     }
@@ -47,7 +46,7 @@ export class ECGWebSocketClient {
         this.ws.onmessage = async (event: MessageEvent) => {
             try {
                 const data: ServerMessage = JSON.parse(event.data);
-                
+
                 if (data.type === 'live_data' || data.type === 'segment_data') {
                     if (data.data_payload && data.sha256_checksum) {
                         const isValid = await verifyChecksum(data.data_payload, data.sha256_checksum);

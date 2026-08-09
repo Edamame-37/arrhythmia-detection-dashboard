@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
-import { APP_CONFIG } from '../../../core/config';
-
+import { useSecurity } from '../../../application/context/SecurityContext';
+import { API_URL } from '../../../config/env';
 
 interface AdminStats {
     total_patients: number;
@@ -13,6 +13,7 @@ interface AdminStats {
 
 export const AdminDashboardPage: React.FC = () => {
     const { isOpen, toggleSidebar } = useSidebar();
+    const { isDevToolsBlocked, toggleDevToolsBlocker } = useSecurity();
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -20,7 +21,7 @@ export const AdminDashboardPage: React.FC = () => {
     useEffect(() => {
         const fetchStats = () => {
             const token = localStorage.getItem('auth_token') || '';
-            fetch(`${APP_CONFIG.API_URL}/api/admin/stats`, {
+            fetch(`${API_URL}/api/admin/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
                 .then(res => res.json())
@@ -41,7 +42,7 @@ export const AdminDashboardPage: React.FC = () => {
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
             <AdminSidebar />
-            
+
             <main id="main-content" className={`pb-24 md:pb-12 transition-all duration-300 min-h-screen flex flex-col ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
                 <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 py-4 flex items-center gap-4 max-w-container-max mx-auto w-full">
                     <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
@@ -101,6 +102,26 @@ export const AdminDashboardPage: React.FC = () => {
                                     <span className="text-sm font-mono-data font-bold text-charcoal">SYNCED</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Security Settings */}
+                    <div className="bg-surface border border-outline-variant/60 rounded-xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-charcoal">Global DevTools Protection</h2>
+                                <p className="text-sm text-on-surface-variant mt-1">Blocks right-click and DevTools shortcuts to enhance application security.</p>
+                            </div>
+                            <label className="flex items-center cursor-pointer">
+                                <div className="relative">
+                                    <input type="checkbox" className="sr-only" checked={isDevToolsBlocked} onChange={toggleDevToolsBlocker} />
+                                    <div className={`block w-14 h-8 rounded-full transition-colors ${isDevToolsBlocked ? 'bg-medical-teal' : 'bg-outline-variant/50'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full shadow transition-transform ${isDevToolsBlocked ? 'transform translate-x-6' : ''}`}></div>
+                                </div>
+                                <div className="ml-3 text-sm font-bold text-charcoal w-8">
+                                    {isDevToolsBlocked ? 'ON' : 'OFF'}
+                                </div>
+                            </label>
                         </div>
                     </div>
                 </div>
