@@ -13,7 +13,6 @@ import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { useECGScale } from '../../../application/hooks/useECGScale';
-import { ECGCalibrationModal } from '../../components/shared/ECGCalibrationModal';
 import { API_URL } from '../../../config/env';
 
 interface PatientProfile {
@@ -37,10 +36,7 @@ export const PatientHistoryDetailPage: React.FC = () => {
     const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [segments, setSegments] = useState<Record<number, any>>({});
     
-    // Scale state
-    const { scale, saveScale, resetScale } = useECGScale();
-    const [isCalibrationModalOpen, setIsCalibrationModalOpen] = useState(false);
-
+    const { scale } = useECGScale();
     const getInitials = (firstName: string, lastName: string) => {
         if (!firstName && !lastName) return '';
         return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
@@ -204,17 +200,6 @@ export const PatientHistoryDetailPage: React.FC = () => {
                                     </div>
                                 </div>
                                 
-                                {/* TOMBOL KALIBRASI */}
-                                <button 
-                                    onClick={() => setIsCalibrationModalOpen(true)} 
-                                    className={`border px-5 py-2.5 rounded-full font-bold uppercase tracking-wider text-[10px] transition-all duration-300 flex items-center gap-2 outline-none hover:-translate-y-0.5 hover:shadow-sm ${scale !== 1.0 ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-clinical-surface text-clinical-charcoal/60 border-clinical-charcoal/5'}`}
-                                    title="Mode Layar Fisik Khusus Asus TUF (1mm layar = 1mm nyata)"
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        laptop_mac
-                                    </span>
-                                    <span className="hidden sm:inline">{scale !== 1.0 ? 'Mode Fisik: ON' : 'Mode Fisik'}</span>
-                                </button>
                             </div>
 
                             {/* Pembungkus Kanvas 7-Lead */}
@@ -307,13 +292,6 @@ export const PatientHistoryDetailPage: React.FC = () => {
                 <nav className="hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-20 bg-white border-t border-clinical-charcoal/10 z-50">
                 </nav>
             </div>
-            <ECGCalibrationModal 
-                isOpen={isCalibrationModalOpen}
-                onClose={() => setIsCalibrationModalOpen(false)}
-                currentScale={scale}
-                onSaveScale={saveScale}
-                onResetScale={resetScale}
-            />
         </div>
     );
 };

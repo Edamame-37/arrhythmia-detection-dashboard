@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { API_URL } from '../../config/env';
 import { ECGWebSocketClient } from '../../data/network/websocketClient';
 import { calculateEinthovenPoint } from '../../core/algorithms/einthoven';
 import { PanTompkins } from '../../core/algorithms/panTompkins';
@@ -112,7 +113,11 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
         recentSamples: [] as SamplePoint[] // Look-Back Buffer untuk akurasi puncak
     });
 
-    const processDataChunk = useCallback((payload: ECGDataPayload, timestamp?: string) => {
+    const preRegisteredFramesRef = useRef<Set<string>>(new Set());
+    const unlinkedFramesRef = useRef<string[]>([]);
+    const lastSessionIdRef = useRef<string | null>(null);
+
+    const processDataChunk = useCallback((payload: ECGDataPayload, timestamp?: string, currentSessionId?: string | null) => {
         const { raw, classification_result, anomaly_indices, prediction_details, system: sysData, network: netData, stress_test } = payload;
         
         const isNormal = classification_result?.toUpperCase() === 'NORMAL' || classification_result?.toUpperCase() === 'NORM';
@@ -138,6 +143,28 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
                 currentPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
                 peakBuffer = []; rrIntervals = []; currentRPeaks = []; recentSamples = [];
                 ptRef.current.reset();
+            }
+
+            if (xIndex === 0) {
+                const currentIntervalStr = `${formatTime(timelineSeconds)} - ${formatTime(timelineSeconds + 10)}`;
+                if (!preRegisteredFramesRef.current.has(currentIntervalStr)) {
+                    preRegisteredFramesRef.current.add(currentIntervalStr);
+                    const frameId = `fra${Date.now()}${Math.floor(Math.random() * 1000)}`;
+                    
+                    fetch(`${API_URL}/api/frames`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: frameId,
+                            time_interval: currentIntervalStr,
+                            session_id: currentSessionId || null
+                        })
+                    }).catch(e => console.error("Gagal preregister frame:", e));
+
+                    if (!currentSessionId) {
+                        unlinkedFramesRef.current.push(frameId);
+                    }
+                }
             }
 
             const rawI = ch1[i];
@@ -258,13 +285,28 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
                 }
                 else if (msg.type === 'live_data' || msg.type === 'segment_data') {
                     if (msg.device_id) setDeviceId(msg.device_id);
-                    if (msg.session_id) setSessionId(msg.session_id);
+                    if (msg.session_id) {
+                        setSessionId(msg.session_id);
+                        lastSessionIdRef.current = msg.session_id;
+                        
+                        // Link frames that were created before session_id was available
+                        if (unlinkedFramesRef.current.length > 0) {
+                            unlinkedFramesRef.current.forEach(frameId => {
+                                fetch(`${API_URL}/api/frames/${frameId}/session`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ session_id: msg.session_id })
+                                }).catch(e => console.error("Gagal link session ke frame:", e));
+                            });
+                            unlinkedFramesRef.current = [];
+                        }
+                    }
                     if (msg.data_payload) {
                         if (msg.type === 'segment_data') {
                             dataRef.current.xIndex = TOTAL_POINTS;
                             dataRef.current.timelineSeconds = (msg.data_payload as any).segment_index * 10;
                         }
-                        processDataChunk(msg.data_payload, msg.timestamp);
+                        processDataChunk(msg.data_payload, msg.timestamp, msg.session_id || lastSessionIdRef.current);
                     }
                 }
                 else if (msg.type === 'status') setIsRecording(false);
@@ -281,6 +323,9 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
             xIndex: 0, currentPaths: { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] },
             peakBuffer: [], rrIntervals: [], timelineSeconds: 0, currentRPeaks: [], recentSamples: []
         };
+        preRegisteredFramesRef.current.clear();
+        unlinkedFramesRef.current = [];
+        lastSessionIdRef.current = null;
         ptRef.current.reset();
         dcBlockerRef.current.reset();
 

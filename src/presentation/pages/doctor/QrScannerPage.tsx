@@ -9,7 +9,7 @@ import { API_URL } from '../../../config/env';
 export const QrScannerPage: React.FC = () => {
   const navigate = useNavigate();
   const { isOpen, toggleSidebar } = useSidebar();
-  const { setConnectedPatient, setConnectedDoctor, disconnectAll } = useConnection();
+  const { addConnectedPatient, setConnectedDoctor, disconnectAll } = useConnection();
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const isProcessing = useRef(false);
@@ -40,10 +40,11 @@ export const QrScannerPage: React.FC = () => {
               isProcessing.current = true;
               const parts = decodedText.split('/');
               const idToFetch = parts[parts.length - 1];
-              const numId = parseInt(idToFetch.replace(/[^0-9]/g, '')) || 1;
-              setInputValue(`PAT-${numId.toString().padStart(4, '0')}-XYZ`);
+              const numStr = idToFetch.replace(/[^0-9]/g, '');
+              const validNumStr = numStr || '1';
+              setInputValue(`PAT-${validNumStr.padStart(4, '0')}-XYZ`);
 
-              fetchPatientData(numId);
+              fetchPatientData(validNumStr);
             } else {
               // Invalid QR Code format
               isProcessing.current = true;
@@ -87,39 +88,29 @@ export const QrScannerPage: React.FC = () => {
     };
   }, []);
 
-  const fetchPatientData = async (id: number) => {
+  const fetchPatientData = async (numStr: string) => {
     setIsLoading(true);
 
     try {
       // Simulate an error if ID is 0 or 9999 (allow manual failure for testing)
-      if (id === 0 || id === 9999) {
+      if (numStr === '0' || numStr === '9999') {
         throw new Error('Simulated Not Found');
       }
 
-      let patientData;
-      try {
-        const response = await fetch(`${API_URL}/api/patients/${id}`);
-        if (!response.ok) throw new Error('Patient not found');
+      const dbPatientId = `pat${numStr.padStart(12, '0')}`;
+      const response = await fetch(`${API_URL}/api/patients/${dbPatientId}`);
+      if (!response.ok) throw new Error('Patient not found');
 
-        const data = await response.json();
-        patientData = data.patient;
-      } catch (apiErr) {
-        console.warn("Backend API offline or failed, using mock data for demo", apiErr);
-        await new Promise(resolve => setTimeout(resolve, 800)); // simulate network delay
-        patientData = {
-          id: id,
-          first_name: "Test",
-          last_name: "Patient"
-        };
-      }
+      const data = await response.json();
+      const patientData = data.patient;
 
       const patientDisplay = {
-        id: `PAT-${patientData.id.toString().padStart(4, '0')}-XYZ`,
+        id: `PAT-${numStr.padStart(4, '0')}-XYZ`,
         name: `${patientData.first_name} ${patientData.last_name}`
       };
       
       setFoundPatient(patientDisplay);
-      setConnectedPatient({
+      await addConnectedPatient({
         id: patientDisplay.id,
         name: patientDisplay.name,
         profile_photo: patientData.profile_photo || undefined,
@@ -170,8 +161,7 @@ export const QrScannerPage: React.FC = () => {
       return;
     }
 
-    const idToFetch = parseInt(parsedId);
-    fetchPatientData(idToFetch);
+    fetchPatientData(parsedId);
   };
 
   const closeErrorModal = () => {
@@ -180,30 +170,30 @@ export const QrScannerPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen flex">
+    <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full min-h-screen flex">
 
 
       <DoctorSidebar />
 
       <main id="main-content" className={`flex-grow min-h-screen pb-24 md:pb-12 transition-all duration-300 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
-        <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 py-4 flex justify-between items-center max-w-container-max mx-auto">
+        <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-6 py-4 flex justify-between items-center max-w-container-max mx-auto">
           <div className="flex items-center gap-3">
-            <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+            <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
               <span className="material-symbols-outlined">menu</span>
             </button>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-charcoal">Scanner Pasien</h1>
-              <p className="text-xs text-on-surface-variant mt-0.5">Scan QR code atau masukkan ID Pasien</p>
+              <h1 className="text-2xl font-headline-md tracking-tight text-clinical-charcoal">Scanner Pasien</h1>
+              <p className="text-xs font-body-sm text-clinical-charcoal/70 mt-0.5">Scan QR code atau masukkan ID Pasien</p>
             </div>
           </div>
         </header>
 
         <div className="p-4 md:p-6 max-w-4xl mx-auto">
-          <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm overflow-hidden p-4 md:p-10">
+          <div className="bg-white-container-lowest rounded-3xl border border-clinical-blue/20 shadow-sm overflow-hidden p-4 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
 
               <div className="flex flex-col gap-4">
-                <div className="w-full aspect-square bg-surface-container-lowest border border-outline-variant/50 rounded-3xl relative shadow-sm overflow-hidden group">
+                <div className="w-full aspect-square bg-white-container-lowest border border-clinical-blue/20/50 rounded-3xl relative shadow-sm overflow-hidden group">
 
                   {/* The HTML5 QR Code Scanner Container */}
                   <div id="reader" className="w-full h-full [&_video]:object-cover [&_video]:w-full [&_video]:h-full border-none"></div>
@@ -224,7 +214,7 @@ export const QrScannerPage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-center mt-2">
-                  <button className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-medical-teal font-medium transition-colors bg-surface-container px-4 py-2 rounded-full">
+                  <button className="flex items-center gap-2 text-sm font-body-sm text-clinical-charcoal/70 hover:text-clinical-blue font-medium transition-colors bg-white-container px-4 py-2 rounded-full">
                     <span className="material-symbols-outlined text-[18px]">{cameraError || !isCameraActive ? 'videocam_off' : 'videocam'}</span>
                     {cameraError ? 'Kamera Gagal Akses' : (isCameraActive ? 'Status Kamera Aktif' : 'Status Kamera Tidak Aktif')}
                   </button>
@@ -233,8 +223,8 @@ export const QrScannerPage: React.FC = () => {
 
               <div className="flex flex-col gap-6 justify-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-charcoal mb-2">Sinkronisasi Manual</h2>
-                  <p className="text-sm text-on-surface-variant mb-6 leading-relaxed">Masukkan ID Pasien secara manual jika kode QR sulit dipindai atau stiker rusak.</p>
+                  <h2 className="text-2xl font-headline-md text-clinical-charcoal mb-2">Sinkronisasi Manual</h2>
+                  <p className="text-sm font-body-sm text-clinical-charcoal/70 mb-6 leading-relaxed">Masukkan ID Pasien secara manual jika kode QR sulit dipindai atau stiker rusak.</p>
 
                   <div className="relative">
                     <input
@@ -243,7 +233,7 @@ export const QrScannerPage: React.FC = () => {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                       placeholder="Contoh: PAT-0001-XYZ"
-                      className="w-full bg-surface border border-outline-variant rounded-2xl p-4 pl-12 text-lg focus:ring-2 focus:ring-medical-teal focus:border-medical-teal outline-none font-mono uppercase tracking-widest shadow-sm transition-shadow hover:shadow-md"
+                      className="w-full bg-white border border-clinical-blue/20 rounded-2xl p-4 pl-12 text-lg focus:ring-2 focus:ring-medical-teal focus:border-clinical-blue outline-none font-mono uppercase tracking-widest shadow-sm transition-shadow hover:shadow-md"
                     />
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant">badge</span>
                   </div>
@@ -251,7 +241,7 @@ export const QrScannerPage: React.FC = () => {
                 <button
                   onClick={handleSearch}
                   disabled={isLoading}
-                  className="w-full bg-medical-teal text-white py-4 rounded-2xl font-bold text-base hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-clinical-blue text-white py-4 rounded-2xl font-headline-md text-base font-body-md hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
@@ -276,12 +266,12 @@ export const QrScannerPage: React.FC = () => {
             <div className="w-20 h-20 bg-status-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <span className="material-symbols-outlined text-5xl text-status-green" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span>
             </div>
-            <h3 className="text-2xl font-bold text-charcoal mb-2">Pasien Terhubung!</h3>
+            <h3 className="text-2xl font-headline-md text-clinical-charcoal mb-2">Pasien Terhubung!</h3>
 
-            <div className="bg-surface-container-lowest rounded-xl p-4 my-6 border border-outline-variant/50">
-              <p className="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-1">Identitas Pasien</p>
-              <p className="font-bold font-mono text-lg text-charcoal mb-1">{foundPatient?.id}</p>
-              <p className="text-on-surface font-medium">{foundPatient?.name}</p>
+            <div className="bg-white-container-lowest rounded-xl p-4 my-6 border border-clinical-blue/20/50">
+              <p className="text-xs font-body-sm text-clinical-charcoal/70 uppercase tracking-widest font-headline-md mb-1">Identitas Pasien</p>
+              <p className="font-headline-md font-mono text-lg text-clinical-charcoal mb-1">{foundPatient?.id}</p>
+              <p className="text-clinical-charcoal font-medium">{foundPatient?.name}</p>
             </div>
 
             <div className="flex gap-3 mt-8">
@@ -289,10 +279,10 @@ export const QrScannerPage: React.FC = () => {
                 disconnectAll();
                 setShowSuccessModal(false);
                 isProcessing.current = false;
-              }} className="flex-1 bg-surface-container text-on-surface font-bold py-3.5 rounded-xl hover:bg-surface-container-high transition-colors">
+              }} className="flex-1 bg-white-container text-clinical-charcoal font-headline-md py-3.5 rounded-xl hover:bg-white-container-high transition-colors">
                 Cancel
               </button>
-              <button onClick={() => navigate('/doctor/dashboard')} className="flex-[2] bg-medical-teal text-white py-3.5 rounded-xl font-bold shadow-md hover:brightness-110 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2">
+              <button onClick={() => navigate('/doctor/dashboard')} className="flex-[2] bg-clinical-blue text-white py-3.5 rounded-xl font-headline-md shadow-md hover:brightness-110 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2">
                 <span className="material-symbols-outlined text-[20px]">dashboard</span>
                 Kembali ke Dashboard
               </button>
@@ -307,15 +297,15 @@ export const QrScannerPage: React.FC = () => {
           <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 text-center shadow-2xl border-2 border-brand-red/10 animate-in zoom-in-50 fade-in duration-500 ease-spring">
             <div className="w-20 h-20 bg-brand-red/10 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden">
               <div className="absolute inset-0 bg-brand-red/20 animate-ping"></div>
-              <span className="material-symbols-outlined text-5xl text-brand-red relative z-10" style={{ fontVariationSettings: '"FILL" 1' }}>error</span>
+              <span className="material-symbols-outlined text-5xl text-clinical-red relative z-10" style={{ fontVariationSettings: '"FILL" 1' }}>error</span>
             </div>
-            <h3 className="text-2xl font-bold text-charcoal mb-3">Koneksi Gagal</h3>
+            <h3 className="text-2xl font-headline-md text-clinical-charcoal mb-3">Koneksi Gagal</h3>
 
-            <p className="text-sm text-on-surface-variant mb-8 leading-relaxed px-2">
+            <p className="text-sm font-body-sm text-clinical-charcoal/70 mb-8 leading-relaxed px-2">
               {modalErrorMsg}
             </p>
 
-            <button onClick={closeErrorModal} className="w-full bg-brand-red text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brand-red/90 hover:-translate-y-0.5 transition-all active:scale-95">
+            <button onClick={closeErrorModal} className="w-full bg-brand-red text-white py-3.5 rounded-xl font-headline-md shadow-md hover:bg-brand-red/90 hover:-translate-y-0.5 transition-all active:scale-95">
               Tutup dan Coba Lagi
             </button>
           </div>

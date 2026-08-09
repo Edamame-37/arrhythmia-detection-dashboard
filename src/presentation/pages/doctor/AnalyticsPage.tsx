@@ -5,13 +5,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ECGCanvas } from '../../components/canvas/ECGCanvas';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
+import { PanTompkins } from '../../../core/algorithms/panTompkins';
+import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { useConnection } from '../../../application/context/ConnectionContext';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
@@ -23,16 +26,62 @@ const useQuery = () => new URLSearchParams(useLocation().search);
 export const AnalyticsPage: React.FC = () => {
     const query = useQuery();
     const sessionId = query.get('sessionId') || '';
+    const navigate = useNavigate();
+
+    const [allSessions, setAllSessions] = useState<any[]>([]);
+    const [patientPhotos, setPatientPhotos] = useState<Record<string, string>>({});
 
     const [speed, setSpeed] = useState<25 | 50>(25);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [showPatientSelector, setShowPatientSelector] = useState(!sessionId);
+    const [selectedPatientFilter, setSelectedPatientFilter] = useState<string>('ALL');
 
     const { isOpen, toggleSidebar } = useSidebar();
+    const { connectedPatients } = useConnection();
 
     const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [segments, setSegments] = useState<Record<number, any>>({});
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/sessions`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && Array.isArray(data.sessions)) {
+                    setAllSessions(data.sessions);
+                } else if (Array.isArray(data)) {
+                    setAllSessions(data);
+                }
+            })
+            .catch(err => console.error("Error fetching sessions:", err));
+    }, []);
+
+    useEffect(() => {
+        if (allSessions.length > 0) {
+            const uniquePatientIds = Array.from(new Set(allSessions.map(s => s.patient_id).filter(Boolean)));
+            
+            uniquePatientIds.forEach(id => {
+                // Hindari fetch berulang jika sudah ada di state
+                setPatientPhotos(prev => {
+                    if (prev[id as string]) return prev;
+                    
+                    fetch(`${API_URL}/api/patients/${id}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data && data.patient && data.patient.profile_photo) {
+                                setPatientPhotos(p => ({
+                                    ...p,
+                                    [id as string]: data.patient.profile_photo
+                                }));
+                            }
+                        })
+                        .catch(e => console.error("Error fetching patient", id, e));
+                        
+                    return prev;
+                });
+            });
+        }
+    }, [allSessions]);
 
     useEffect(() => {
         if (!sessionId) {
@@ -48,27 +97,39 @@ export const AnalyticsPage: React.FC = () => {
                 const loadedSegments: Record<number, any> = {};
                 
                 data.forEach((payload: any, i: number) => {
-                    const isAnomaly = payload.anomaly_indices && payload.anomaly_indices.length > 0;
+                    const isAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) ||
+                        (payload.prediction?.label && payload.prediction.label !== "Normal" && payload.prediction.label !== "NORM") || false;
                     loadedEvents.push({
                         index: i,
                         timeStr: `${Math.floor(i / 6).toString().padStart(2, '0')}:${((i % 6) * 10).toString().padStart(2, '0')}`,
                         isAnomaly,
-                        classResult: payload.classification_result || "NORM"
+                        classResult: payload.prediction?.label || payload.classification_result || "NORM"
                     });
                     
                     let xIndex = 0;
                     const TOTAL_POINTS = 2500;
                     const X_STEP = 2000 / TOTAL_POINTS;
-                    const ch1 = payload.raw?.ch1 || [];
+                    const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
                     const ch2 = payload.raw?.ch2 || [];
                     const ch3 = payload.raw?.ch3 || [];
                     
                     const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
                     
-                    for (let j = 0; j < ch1.length; j++) {
-                        const finalI = ch1[j];
-                        const finalII = ch2[j];
-                        const finalIII = ch3[j];
+                    const pt = new PanTompkins(250);
+                    const rrIntervals: number[] = [];
+                    let lastPeakIndex = -1;
+                    
+                    for (let j = 0; j < samples.length; j++) {
+                        let finalI, finalII, finalIII;
+                        if (Array.isArray(samples[j])) {
+                            finalI = samples[j][0] || 0;
+                            finalII = samples[j][1] || 0;
+                            finalIII = samples[j][2] || 0;
+                        } else {
+                            finalI = samples[j] || 0;
+                            finalII = ch2[j] || 0;
+                            finalIII = ch3[j] || 0;
+                        }
                         const calculated = calculateEinthovenPoint(finalI, finalII);
                         const currentX = Number((xIndex * X_STEP).toFixed(2));
                         
@@ -79,15 +140,26 @@ export const AnalyticsPage: React.FC = () => {
                         paths.aVL.push(`${currentX},${(240 - calculated.aVL * 80).toFixed(2)}`);
                         paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
                         paths.V1.push(`${currentX},240.00`);
+                        
+                        if (pt.detectRealTime(finalII, j)) {
+                            if (lastPeakIndex !== -1) {
+                                rrIntervals.push((j - lastPeakIndex) / 250);
+                            }
+                            lastPeakIndex = j;
+                        }
+                        
                         xIndex++;
                     }
                     
+                    const evalResult = evaluateIrregularity(rrIntervals);
+                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || "--");
+                    
                     loadedSegments[i] = {
                         paths,
-                        rPeaks: [], // Peak detection history will be added later
+                        rPeaks: [], 
                         isAnomaly,
                         diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
-                        heartRate: payload.validation?.hr || payload.heart_rate || "--",
+                        heartRate: calculatedHR,
                         frameId: payload.message_id || payload.frame_id || "---",
                         deviceId: payload.device_id || "---",
                         createdAt: payload.created_at || "---",
@@ -114,6 +186,8 @@ export const AnalyticsPage: React.FC = () => {
 
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
+    
+    const currentSessionMeta = allSessions.find(s => s.id === sessionId);
 
     // Data Pasien dan Sesi diambil dari Dashboard, AnalyticsPage difokuskan untuk viewer
 
@@ -134,65 +208,133 @@ export const AnalyticsPage: React.FC = () => {
     const network = currentSegment?.network || null;
 
     return (
-        <div className="bg-background text-on-surface antialiased overflow-x-hidden min-h-screen">
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen">
             <DoctorSidebar />
             
 
 
             <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
             {/* --- HEADER KOMPONEN --- */}
-            <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center w-full">
+            <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full">
                 
                 <div className="flex items-center gap-3">
-                    <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+                    <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
                         <span className="material-symbols-outlined">menu</span>
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-charcoal">Riwayat Klinis</h1>
-                        <p className="text-xs text-on-surface-variant mt-0.5">Peninjauan rekam historis EKG dan AI Analytics</p>
+                        <h1 className="text-2xl font-headline-md tracking-tight text-clinical-charcoal">Riwayat Klinis</h1>
+                        <p className="text-xs font-body-sm text-clinical-charcoal/70 mt-0.5">Peninjauan rekam historis EKG dan AI Analytics</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 md:gap-4">
-                    <button className="bg-medical-teal hover:bg-primary-container text-white font-bold text-[10px] md:text-xs px-3 md:px-5 py-2 md:py-2.5 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 shadow-sm outline-none">
-                        <span className="material-symbols-outlined text-[16px] md:text-[18px]">picture_as_pdf</span>
-                        <span className="hidden sm:inline">CETAK PDF</span>
-                    </button>
-                </div>
+
             </header>
 
             {/* --- TOOLBAR INFORMASI --- */}
-            <div className="bg-surface border-b border-outline-variant/30 w-full px-4 md:px-6 py-3 shadow-sm z-30 relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white border-b border-clinical-blue/20/30 w-full shadow-sm z-30 relative">
+                <div className="max-w-container-max mx-auto px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="bg-medical-teal/10 p-2 rounded-lg text-medical-teal">
+                    <div className="bg-clinical-blue/10 p-2 rounded-lg text-clinical-blue">
                         <span className="material-symbols-outlined text-[20px]">folder_managed</span>
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold text-charcoal">Mode Peninjauan Sesi</h2>
-                        <p className="text-[11px] text-on-surface-variant">Menampilkan detail rekaman EKG untuk Sesi: {sessionId ? sessionId : 'Tidak Ada'}</p>
+                        <h2 className="text-sm font-body-sm font-headline-md text-clinical-charcoal">{!sessionId ? 'Daftar Seluruh Riwayat Sesi' : 'Mode Peninjauan Sesi'}</h2>
+                        <p className="text-[11px] text-clinical-charcoal/70">
+                            {!sessionId ? 'Pilih sesi dari daftar di bawah untuk melihat detail rekaman.' : (currentSessionMeta ? `Pasien: ${currentSessionMeta.patient_name || 'Anonim'} | Mulai: ${new Date(currentSessionMeta.started_at).toLocaleString('id-ID')} | Sesi: ${sessionId}` : `Menampilkan detail rekaman EKG untuk Sesi: ${sessionId}`)}
+                        </p>
                     </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                    <button onClick={() => window.history.back()} className="text-xs font-bold text-on-surface-variant hover:text-medical-teal border border-outline-variant px-4 py-2 rounded-lg hover:border-medical-teal transition-all">
-                        Kembali ke Dashboard
+                    {!sessionId && (
+                        <select
+                            value={selectedPatientFilter}
+                            onChange={(e) => setSelectedPatientFilter(e.target.value)}
+                            className="text-xs font-body-sm text-clinical-charcoal border border-clinical-blue/20 px-3 py-2 rounded-lg bg-white outline-none focus:border-clinical-blue transition-all cursor-pointer"
+                        >
+                            <option value="ALL">Semua Pasien</option>
+                            {Array.from(new Map(
+                                allSessions
+                                    .filter(s => s.patient_id)
+                                    .map(s => [s.patient_id, { id: s.patient_id, name: s.patient_name || 'Pasien Anonim' }])
+                            ).values()).map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    )}
+                    <button onClick={() => navigate(-1)} className="text-xs font-body-sm font-headline-md text-clinical-charcoal/70 hover:text-clinical-blue border border-clinical-blue/20 px-4 py-2 rounded-lg hover:border-clinical-blue transition-all">
+                        Kembali
                     </button>
+                </div>
                 </div>
             </div>
 
             {/* --- KONTEN UTAMA --- */}
-            <div className="mt-6 mx-auto w-full px-4 md:px-6 flex flex-col lg:flex-row gap-6 flex-1">
+            {!sessionId ? (() => {
+                if (connectedPatients.length === 0) {
+                    return (
+                        <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
+                            <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
+                                <p className="text-sm font-body-sm text-clinical-charcoal/70">
+                                    Sambungkan ke pasien untuk melihat riwayat rekaman.
+                                </p>
+                            </div>
+                        </div>
+                    );
+                }
+
+                const filteredSessions = selectedPatientFilter === 'ALL' 
+                    ? allSessions 
+                    : allSessions.filter(s => s.patient_id === selectedPatientFilter);
+                
+                return (
+                <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
+                    <div className="space-y-3">
+                        {filteredSessions.length === 0 ? (
+                            <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
+                                <p className="text-sm font-body-sm text-clinical-charcoal/70">
+                                    {allSessions.length === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
+                                </p>
+                            </div>
+                        ) : filteredSessions.map(session => (
+                            <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex items-center justify-between gap-4 hover:shadow-md transition-shadow interactive-card cursor-pointer" onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden">
+                                        {session.patient_id && patientPhotos[session.patient_id] ? (
+                                            <img src={patientPhotos[session.patient_id]} alt={session.patient_name || ''} className="w-full h-full object-cover" />
+                                        ) : (
+                                            session.patient_name ? session.patient_name.substring(0, 2) : 'UK'
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal truncate max-w-[200px]">{session.patient_name || 'Pasien Anonim'}</h4>
+                                        <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
+                                        <p className="text-[10px] text-clinical-charcoal/70 mt-1 font-headline-md">{new Date(session.started_at).toLocaleString('id-ID')}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">history</span>
+                                        Buka Detail
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )})() : (
+            <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex flex-col lg:flex-row gap-6 flex-1">
                 
                 {/* KOLOM KIRI: GRAFIK & TIMELINE */}
                 <section className="w-full lg:w-9/12 flex flex-col gap-4">
                     
                     {/* Control Bar (Speed & Info Segmen) */}
-                    <div className="bg-surface border border-outline-variant rounded-xl p-3 flex flex-wrap justify-between items-center shadow-sm gap-3">
+                    <div className="bg-white border border-clinical-blue/20 rounded-xl p-3 flex flex-wrap justify-between items-center shadow-sm gap-3">
                         <div className="flex items-center gap-4">
-                            <span className="material-symbols-outlined text-medical-teal hidden sm:block">history</span>
-                            <span className="text-sm font-bold text-charcoal flex items-center gap-2">
+                            <span className="material-symbols-outlined text-clinical-blue hidden sm:block">history</span>
+                            <span className="text-sm font-body-sm font-headline-md text-clinical-charcoal flex items-center gap-2">
                                 Waktu Rekaman: 
-                                <span className="px-2 py-1 bg-surface-container-high rounded text-medical-teal font-mono-data text-xs">
+                                <span className="px-2 py-1 bg-white-container-high rounded text-clinical-blue font-mono-data text-xs font-body-sm">
                                     {currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : '--'}
                                 </span>
                             </span>
@@ -201,7 +343,7 @@ export const AnalyticsPage: React.FC = () => {
 
                     {/* Pembungkus Kanvas 7-Lead */}
                     <div className="relative flex-1 min-h-[400px]">
-                        <div className="absolute inset-0 z-0 bg-surface-container-lowest border border-outline-variant rounded-xl overflow-y-auto overflow-x-hidden shadow-sm flex flex-col">
+                        <div className="absolute inset-0 z-0 bg-white-container-lowest border border-clinical-blue/20 rounded-xl overflow-y-auto overflow-x-hidden shadow-sm flex flex-col">
                             <ECGCanvas 
                                 paths={currentSegment?.paths || { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] }} 
                                 rPeaks={currentSegment?.rPeaks || []} 
@@ -212,8 +354,8 @@ export const AnalyticsPage: React.FC = () => {
                             />
                             {isLoading && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-50">
-                                    <span className="material-symbols-outlined text-medical-teal text-4xl animate-spin">sync</span>
-                                    <p className="mt-2 text-sm font-bold text-charcoal">Menarik Arsip Segmen...</p>
+                                    <span className="material-symbols-outlined text-clinical-blue text-4xl animate-spin">sync</span>
+                                    <p className="mt-2 text-sm font-body-sm font-headline-md text-clinical-charcoal">Menarik Arsip Segmen...</p>
                                 </div>
                             )}
                         </div>
@@ -240,13 +382,19 @@ export const AnalyticsPage: React.FC = () => {
                 <aside className="w-full lg:w-3/12 flex flex-col gap-6">
                     
                     <VitalCard heartRate={heartRate} clinicalStatus={clinicalStatus} stressTest={stressTest} createdAt={createdAt} />
-                    <AiCard sessionId={sessionId} rawClassification={currentEvent?.classResult || null} />
+                    <AiCard 
+                        sessionId={sessionId} 
+                        rawClassification={currentEvent?.classResult || null} 
+                        isDoctorReview={true}
+                        timeInterval={currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : undefined}
+                    />
                     <div className="mt-auto">
                         <DeviceCard deviceId={deviceId} aiMetrics={aiMetrics} isLive={false} />
                     </div>
 
                 </aside>
             </div>
+            )}
             </main>
         </div>
     );

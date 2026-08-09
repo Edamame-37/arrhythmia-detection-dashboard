@@ -14,6 +14,9 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose }) => 
     const handleConfirm = () => {
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_role');
+        localStorage.removeItem('connectedPatients');
+        localStorage.removeItem('connectedDoctor');
+        localStorage.removeItem('mock_patient_profile');
         navigate('/', { state: { logoutSuccess: true } });
     };
 
