@@ -4,8 +4,7 @@ import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { Html5Qrcode } from 'html5-qrcode';
-import { APP_CONFIG } from '../../../core/config';
-
+import { API_URL } from '../../../config/env';
 
 export const QrScannerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +35,7 @@ export const QrScannerPage: React.FC = () => {
           },
           (decodedText) => {
             if (isProcessing.current) return;
-            
+
             if (decodedText.includes('/sync/patient/')) {
               isProcessing.current = true;
               const parts = decodedText.split('/');
@@ -66,14 +65,14 @@ export const QrScannerPage: React.FC = () => {
 
     let isMounted = true;
     startScanner().then(() => {
-        if (!isMounted) {
-            // If it unmounted while starting, stop it immediately.
-            try {
-                html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => html5QrCode.clear());
-            } catch (e) {
-                html5QrCode.clear();
-            }
+      if (!isMounted) {
+        // If it unmounted while starting, stop it immediately.
+        try {
+          html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => html5QrCode.clear());
+        } catch (e) {
+          html5QrCode.clear();
         }
+      }
     });
 
     return () => {
@@ -83,7 +82,7 @@ export const QrScannerPage: React.FC = () => {
           .then(() => html5QrCode.clear())
           .catch(() => html5QrCode.clear());
       } catch (e) {
-        try { html5QrCode.clear(); } catch(err) {}
+        try { html5QrCode.clear(); } catch (err) { }
       }
     };
   }, []);
@@ -99,7 +98,7 @@ export const QrScannerPage: React.FC = () => {
 
       let patientData;
       try {
-        const response = await fetch(`${APP_CONFIG.API_URL}/api/patients/${id}`);
+        const response = await fetch(`${API_URL}/api/patients/${id}`);
         if (!response.ok) throw new Error('Patient not found');
 
         const data = await response.json();
@@ -118,7 +117,7 @@ export const QrScannerPage: React.FC = () => {
         id: `PAT-${patientData.id.toString().padStart(4, '0')}-XYZ`,
         name: `${patientData.first_name} ${patientData.last_name}`
       };
-      
+
       setFoundPatient(patientDisplay);
       setConnectedPatient({
         id: patientDisplay.id,
@@ -126,11 +125,11 @@ export const QrScannerPage: React.FC = () => {
         profile_photo: patientData.profile_photo || undefined,
         connectedAt: new Date().toISOString()
       });
-      
+
       // Also register the current doctor to the connection context
       const docId = localStorage.getItem('user_id') || '1';
       try {
-        const docRes = await fetch(`${APP_CONFIG.API_URL}/api/doctors/${docId}`);
+        const docRes = await fetch(`${API_URL}/api/doctors/${docId}`);
         if (docRes.ok) {
           const docData = await docRes.json();
           setConnectedDoctor({
@@ -143,12 +142,12 @@ export const QrScannerPage: React.FC = () => {
       } catch (e) {
         console.warn("Failed to fetch doctor profile during sync", e);
         setConnectedDoctor({
-            id: docId,
-            name: "Dokter (Sesi Aktif)",
-            hospital: ""
+          id: docId,
+          name: "Dokter (Sesi Aktif)",
+          hospital: ""
         });
       }
-      
+
       setShowSuccessModal(true);
     } catch (err) {
       setModalErrorMsg('Gagal terhubung! Pasien tidak ditemukan di dalam sistem atau ID tidak valid.');

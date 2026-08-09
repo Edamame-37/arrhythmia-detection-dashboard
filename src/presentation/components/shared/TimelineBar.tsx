@@ -32,23 +32,23 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
     }, [events.length]);
 
     return (
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-                <h3 className="text-base font-bold text-charcoal flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[20px]">history</span> Navigasi Segmen Perekaman (AI Timeline)
+        <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] p-8 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] w-full group">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
+                <h3 className="text-xl font-bold text-clinical-charcoal flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[24px] text-clinical-blue group-hover:scale-110 transition-transform duration-700">history</span> Navigasi Segmen Perekaman (AI Timeline)
                 </h3>
                 <div className="flex gap-4">
-                    <div className="flex items-center gap-1.5 text-xs text-on-surface-variant font-medium">
-                        <div className="w-3 h-3 rounded bg-signal-green shadow-sm"></div> Normal
+                    <div className="flex items-center gap-2 text-[11px] text-clinical-charcoal/60 font-bold uppercase tracking-wider">
+                        <div className="w-3 h-3 rounded-full bg-clinical-blue shadow-sm"></div> Normal
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-on-surface-variant font-medium">
-                        <div className="w-3 h-3 rounded bg-alert-red shadow-sm"></div> Anomali (AFIB/PVC/SVT)
+                    <div className="flex items-center gap-2 text-[11px] text-clinical-charcoal/60 font-bold uppercase tracking-wider">
+                        <div className="w-3 h-3 rounded-full bg-clinical-red shadow-sm"></div> Anomali
                     </div>
                 </div>
             </div>
 
             {/* WADAH TOMBOL TIMELINE DENGAN SCROLL HORIZONTAL */}
-            <div 
+            <div
                 ref={scrollContainerRef}
                 className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar snap-x scroll-smooth w-full"
             >
@@ -59,7 +59,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
                 ) : (
                     events.map((event) => {
                         const isSelected = currentIdx === event.index;
-                        
+
                         // Menentukan awalan teks berdasarkan klasifikasi multi-aritmia TFLite
                         let prefix = "";
                         if (event.isAnomaly) {
@@ -73,15 +73,13 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
                             <button
                                 key={event.index}
                                 onClick={() => onSegmentSelect && onSegmentSelect(event.index)}
-                                className={`flex-shrink-0 h-10 px-4 rounded-lg text-white font-mono-data font-bold text-xs shadow-sm hover:brightness-110 active:scale-95 transition-all snap-center outline-none border-2 ${
-                                    event.isAnomaly 
-                                        ? 'bg-alert-red hover:bg-red-700' 
-                                        : 'bg-signal-green hover:bg-green-600'
-                                } ${
-                                    isSelected 
-                                        ? 'border-charcoal ring-2 ring-offset-2 ring-medical-teal scale-105' 
+                                className={`flex-shrink-0 h-10 px-5 rounded-full text-white font-bold text-[11px] uppercase tracking-widest shadow-sm transition-all duration-300 snap-center outline-none border-2 ${event.isAnomaly
+                                        ? 'bg-clinical-red hover:shadow-[0px_10px_20px_rgba(220,38,38,0.2)] hover:brightness-110'
+                                        : 'bg-clinical-blue hover:shadow-[0px_10px_20px_rgba(23,107,206,0.2)] hover:brightness-110'
+                                    } ${isSelected
+                                        ? 'border-clinical-charcoal scale-105 ring-4 ring-clinical-charcoal/10'
                                         : 'border-transparent'
-                                }`}
+                                    }`}
                             >
                                 {prefix}{event.timeStr}
                             </button>

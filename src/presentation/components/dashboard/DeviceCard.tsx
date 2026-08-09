@@ -8,37 +8,23 @@ interface DeviceCardProps {
 
 export const DeviceCard: React.FC<DeviceCardProps> = ({ deviceId = "UNDIP-ECG-01", aiMetrics, isLive = true }) => {
     return (
-        <div className="bg-surface-container border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-surface border border-outline-variant/60 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-charcoal text-[20px]">developer_board</span>
+        <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] p-6 flex flex-col gap-4 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:-translate-y-1 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] group">
+            <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-full bg-white shadow-sm border border-clinical-charcoal/5 flex items-center justify-center text-clinical-blue group-hover:scale-110 transition-transform duration-700">
+                    <span className="material-symbols-outlined text-[26px]">developer_board</span>
                 </div>
                 <div>
-                    <p className="text-[10px] font-bold text-outline uppercase tracking-wider">Device ID</p>
-                    <p className="text-sm font-mono-data text-charcoal font-bold mt-0.5">{deviceId}</p>
+                    <p className="text-[11px] font-label-md text-clinical-charcoal/60 uppercase tracking-[0.2em]">Device ID</p>
+                    <p className="text-base font-mono-data text-clinical-charcoal font-bold mt-1 tracking-wide">{deviceId}</p>
                 </div>
                 {isLive && (
-                    <div className="ml-auto flex flex-col items-end">
-                        <span className="material-symbols-outlined text-signal-green text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>wifi_tethering</span>
-                        <span className="text-xs font-bold text-signal-green mt-0.5">Online</span>
+                    <div className="ml-auto flex flex-col items-end gap-1">
+                        <span className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-clinical-blue rounded-full text-[10px] font-label-md uppercase tracking-widest border border-blue-100 shadow-sm">
+                            <span className="w-2 h-2 rounded-full bg-clinical-blue animate-pulse"></span>
+                            Online
+                        </span>
                     </div>
                 )}
-            </div>
-            
-            {/* Edge AI Performance Metrics */}
-            <div className="bg-surface rounded-lg p-3 border border-outline-variant/50 flex justify-between items-center mt-1">
-                <div>
-                    <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Performa Edge AI</p>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono-data font-bold text-charcoal">
-                            {aiMetrics?.latency_ms ? `${aiMetrics.latency_ms.toFixed(2)} ms` : '-- ms'}
-                        </span>
-                        <span className="text-[10px] bg-medical-teal/10 text-medical-teal px-1.5 py-0.5 rounded font-bold uppercase">
-                            {aiMetrics?.runtime || 'Menunggu AI...'}
-                        </span>
-                    </div>
-                </div>
-                <span className="material-symbols-outlined text-medical-teal opacity-50 text-[24px]">memory</span>
             </div>
         </div>
     );

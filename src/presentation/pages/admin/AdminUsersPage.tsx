@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
-import { APP_CONFIG } from '../../../core/config';
-
+import { API_URL } from '../../../config/env';
 
 interface AdminUser {
     id: string;
@@ -19,7 +18,7 @@ export const AdminUsersPage: React.FC = () => {
 
     useEffect(() => {
         const token = localStorage.getItem('auth_token') || '';
-        fetch(`${APP_CONFIG.API_URL}/api/admin/users`, {
+        fetch(`${API_URL}/api/admin/users`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -36,7 +35,7 @@ export const AdminUsersPage: React.FC = () => {
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
             <AdminSidebar />
-            
+
             <main id="main-content" className={`pb-24 md:pb-12 transition-all duration-300 min-h-screen flex flex-col ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
                 <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 py-4 flex items-center gap-4 max-w-container-max mx-auto w-full">
                     <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">

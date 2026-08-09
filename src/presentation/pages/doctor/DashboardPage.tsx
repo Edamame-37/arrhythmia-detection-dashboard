@@ -3,15 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
-import { APP_CONFIG } from '../../../core/config';
-import { ListSkeleton } from '../../components/shared/Skeleton';
-
-
+import { API_URL } from '../../../config/env';
 
 export interface SessionRecord {
     id: string;
     device_id: string;
-    patient_id: number | null;
+    patient_id: string | null;
     patient_name: string | null;
     started_at: string;
     ended_at: string | null;
@@ -49,9 +46,9 @@ export const DashboardPage: React.FC = () => {
                 // Convert PAT-0001-XYZ to pat000000000001
                 const numStr = connectedPatient.id.replace(/[^0-9]/g, '');
                 const dbPatientId = `pat${numStr.padStart(12, '0')}`;
-                
+
                 if (dbPatientId) {
-                    fetch(`${APP_CONFIG.API_URL}/api/patients/${dbPatientId}`)
+                    fetch(`${API_URL}/api/patients/${dbPatientId}`)
                         .then(res => {
                             if (!res.ok) throw new Error('API offline');
                             return res.json();
@@ -89,36 +86,53 @@ export const DashboardPage: React.FC = () => {
 
         window.addEventListener('patient_profile_updated', fetchPatientProfile);
         return () => window.removeEventListener('patient_profile_updated', fetchPatientProfile);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [connectedPatient?.id]);
 
     useEffect(() => {
-        setIsLoading(true);
-        Promise.all([
-            fetch(`${APP_CONFIG.API_URL}/api/sessions`).then(res => res.json()),
-            fetch(`${APP_CONFIG.API_URL}/api/devices`).then(res => res.json())
-        ])
-        .then(([sessionsData, devicesData]) => {
-            const sessionsList = sessionsData.sessions ? sessionsData.sessions : (Array.isArray(sessionsData) ? sessionsData : []);
-            setSessions(sessionsList);
-            setDevices(Array.isArray(devicesData) ? devicesData : []);
-        })
-        .catch(err => console.error("Error fetching dashboard data:", err))
-        .finally(() => setIsLoading(false));
+        fetch(`${API_URL}/api/sessions`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && Array.isArray(data.sessions)) {
+                    setSessions(data.sessions);
+                } else if (Array.isArray(data)) {
+                    setSessions(data);
+                } else {
+                    setSessions([]);
+                }
+            })
+            .catch(err => console.error("Error fetching sessions:", err));
+
+        fetch(`${API_URL}/api/devices`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && Array.isArray(data.devices)) {
+                    setDevices(data.devices);
+                } else if (Array.isArray(data)) {
+                    setDevices(data);
+                } else {
+                    setDevices([]);
+                }
+            })
+            .catch(err => console.error("Error fetching devices:", err));
     }, []);
 
 
     const activeSessions = sessions.filter(session => !session.ended_at);
-    
+
     const displayPatient = standbyPatientProfile ? {
         name: `${standbyPatientProfile.first_name} ${standbyPatientProfile.last_name}`,
-        id: connectedPatient?.id || `PAT-000${standbyPatientProfile.id}-XYZ`,
-        photo: standbyPatientProfile.profile_photo
+        id: standbyPatientProfile.id,
+        photo: standbyPatientProfile.profile_photo || null
     } : connectedPatient ? {
         name: connectedPatient.name,
         id: connectedPatient.id,
         photo: connectedPatient.profile_photo || null
     } : null;
+
+    const filteredHistorySessions = displayPatient
+        ? sessions.filter(s => s.patient_id === displayPatient.id || (s.patient_name && s.patient_name.includes(displayPatient.name)))
+        : sessions;
 
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full">
@@ -284,26 +298,26 @@ export const DashboardPage: React.FC = () => {
                             )}
                         </div>
                     </section>
- 
+
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-base font-bold text-charcoal flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-outline-variant"></span>
-                                <span>Riwayat Sesi Hari Ini</span>
+                                <span className={`w-2 h-2 rounded-full ${displayPatient ? 'bg-medical-teal' : 'bg-outline-variant'}`}></span>
+                                <span>{displayPatient ? `Riwayat Rekaman: ${displayPatient.name}` : 'Riwayat Seluruh Pasien'}</span>
                             </h2>
                             <button onClick={() => navigate('/doctor/analytics')} className="text-medical-teal font-bold text-sm hover:underline flex items-center gap-1 transition-all hover:gap-2">
                                 <span>Lihat Semua Arsip</span>
                                 <span className="material-symbols-outlined text-xs">arrow_forward</span>
                             </button>
                         </div>
- 
+
                         <div className="space-y-3">
-                            {sessions.length === 0 ? (
-                                <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
+                            {filteredHistorySessions.length === 0 ? (
+                                <div className="bg-surface border border-outline-variant/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
                                     <p className="text-sm text-on-surface-variant">Belum ada riwayat sesi yang tersimpan.</p>
                                 </div>
-                            ) : sessions.map(session => (
-                                <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-2xl flex items-center justify-between gap-4 opacity-80 interactive-card">
+                            ) : filteredHistorySessions.map(session => (
+                                <div key={session.id} className="bg-surface border border-outline-variant/60 p-4 rounded-xl flex items-center justify-between gap-4 opacity-80 interactive-card">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center font-bold text-outline uppercase">
                                             {session.patient_name ? session.patient_name.substring(0, 2) : 'UK'}
@@ -335,34 +349,34 @@ export const DashboardPage: React.FC = () => {
             {/* Disconnect Modals */}
             {showDisconnectModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm border border-outline-variant shadow-xl animate-in zoom-in-50 fade-in duration-500 ease-spring">
-                    <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center mb-4 text-error">
-                    <span className="material-symbols-outlined text-2xl">warning</span>
+                    <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm border border-outline-variant shadow-xl animate-in zoom-in-50 fade-in duration-500 ease-spring">
+                        <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center mb-4 text-error">
+                            <span className="material-symbols-outlined text-2xl">warning</span>
+                        </div>
+                        <h3 className="font-headline-md text-headline-md text-charcoal mb-2">Putuskan Hubungan?</h3>
+                        <p className="font-body-md text-body-md text-on-surface-variant mb-6">Apakah Anda yakin ingin memutuskan hubungan dengan pasien ini? Pemantauan live akan terhenti dan Anda harus melakukan scan QR ulang untuk memantau lagi.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowDisconnectModal(false)} className="flex-1 py-2 rounded-lg font-label-bold text-label-bold border border-outline-variant hover:bg-surface-container text-on-surface-variant transition-colors">Batal</button>
+                            <button onClick={() => {
+                                disconnectAll();
+                                setShowDisconnectModal(false);
+                                setShowSuccessModal(true);
+                            }} className="flex-1 py-2 rounded-lg font-label-bold text-label-bold bg-error text-white hover:bg-red-600 transition-colors shadow-sm">Ya, Putuskan</button>
+                        </div>
                     </div>
-                    <h3 className="font-headline-md text-headline-md text-charcoal mb-2">Putuskan Hubungan?</h3>
-                    <p className="font-body-md text-body-md text-on-surface-variant mb-6">Apakah Anda yakin ingin memutuskan hubungan dengan pasien ini? Pemantauan live akan terhenti dan Anda harus melakukan scan QR ulang untuk memantau lagi.</p>
-                    <div className="flex gap-3">
-                    <button onClick={() => setShowDisconnectModal(false)} className="flex-1 py-2 rounded-lg font-label-bold text-label-bold border border-outline-variant hover:bg-surface-container text-on-surface-variant transition-colors">Batal</button>
-                    <button onClick={() => {
-                        disconnectAll();
-                        setShowDisconnectModal(false);
-                        setShowSuccessModal(true);
-                    }} className="flex-1 py-2 rounded-lg font-label-bold text-label-bold bg-error text-white hover:bg-red-600 transition-colors shadow-sm">Ya, Putuskan</button>
-                    </div>
-                </div>
                 </div>
             )}
 
             {showSuccessModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm border border-outline-variant shadow-xl text-center animate-in zoom-in-50 fade-in duration-500 ease-spring">
-                    <div className="w-16 h-16 rounded-full bg-status-green/10 flex items-center justify-center mb-4 text-status-green mx-auto">
-                    <span className="material-symbols-outlined text-3xl">check_circle</span>
+                    <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm border border-outline-variant shadow-xl text-center animate-in zoom-in-50 fade-in duration-500 ease-spring">
+                        <div className="w-16 h-16 rounded-full bg-status-green/10 flex items-center justify-center mb-4 text-status-green mx-auto">
+                            <span className="material-symbols-outlined text-3xl">check_circle</span>
+                        </div>
+                        <h3 className="font-headline-md text-headline-md text-charcoal mb-2">Berhasil Terputus</h3>
+                        <p className="font-body-md text-body-md text-on-surface-variant mb-6">Koneksi dengan pasien telah berhasil dibatalkan.</p>
+                        <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 rounded-lg font-label-bold text-label-bold bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm">Tutup</button>
                     </div>
-                    <h3 className="font-headline-md text-headline-md text-charcoal mb-2">Berhasil Terputus</h3>
-                    <p className="font-body-md text-body-md text-on-surface-variant mb-6">Koneksi dengan pasien telah berhasil dibatalkan.</p>
-                    <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 rounded-lg font-label-bold text-label-bold bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm">Tutup</button>
-                </div>
                 </div>
             )}
 
