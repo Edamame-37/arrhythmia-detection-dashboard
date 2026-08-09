@@ -8,10 +8,6 @@ import type { ServerMessage } from '../../core/types/ecgTypes';
 import { verifyChecksum } from '../security/checksum';
 import { WS_URL } from '../../config/env';
 
-export const getWebSocketHost = (): string => {
-    return window.location.hostname === '10.0.2.2' ? '10.0.2.2' : '127.0.0.1';
-};
-
 export class ECGWebSocketClient {
     private ws: WebSocket | null = null;
     private url: string;

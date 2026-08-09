@@ -360,7 +360,7 @@ Cargo.lock
 # End of https://www.toptal.com/developers/gitignore/api/react,python,node,rust
 
 # Project specific ignores
-/dataset/
+dataset
 /dist/
 /dist-ssr/
 .env.local

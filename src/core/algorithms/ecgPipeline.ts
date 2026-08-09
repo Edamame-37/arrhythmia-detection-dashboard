@@ -80,14 +80,14 @@ export const processECGSamples = (
 
     const currentX = Number((xIndex * X_STEP).toFixed(2));
 
-    // Standard medical scale mapping: 1mV = 80px, center line = 120px
-    const yI = 120 - finalI * 80;
-    const yII = 120 - finalII * 80;
-    const yIII = 120 - finalIII * 80;
-    const yaVR = 120 - calculated.aVR * 80;
-    const yaVL = 120 - calculated.aVL * 80;
-    const yaVF = 120 - calculated.aVF * 80;
-    const yV1 = 120.00;
+    // Standard medical scale mapping: 1mV = 80px, center line = 240px
+    const yI = 240 - finalI * 80;
+    const yII = 240 - finalII * 80;
+    const yIII = 240 - finalIII * 80;
+    const yaVR = 240 - calculated.aVR * 80;
+    const yaVL = 240 - calculated.aVL * 80;
+    const yaVF = 240 - calculated.aVF * 80;
+    const yV1 = 240.00;
 
     currentPaths.I.push(`${currentX},${yI.toFixed(2)}`);
     currentPaths.II.push(`${currentX},${yII.toFixed(2)}`);
