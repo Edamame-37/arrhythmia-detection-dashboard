@@ -4,6 +4,7 @@ import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { API_URL } from '../../../config/env';
+import { ListSkeleton } from '../../components/shared/Skeleton';
 
 export interface SessionRecord {
     id: string;

@@ -113,7 +113,8 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
     });
 
     const processDataChunk = useCallback((payload: ECGDataPayload, timestamp?: string) => {
-        const { raw, classification_result, anomaly_indices, prediction_details, system: sysData, network: netData, stress_test } = payload;
+        const { raw, classification_result, prediction_details, system: sysData, network: netData, stress_test } = payload;
+        const { ch1, ch2, ch3 } = raw;
 
         const isNormal = classification_result?.toUpperCase() === 'NORMAL' || classification_result?.toUpperCase() === 'NORM';
         const isAnomaly = !isNormal;
@@ -143,102 +144,18 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
         setPaths({ ...result.state.currentPaths });
         setRPeaks([...result.state.currentRPeaks]);
 
-        const rawI = ch1[i];
-        const rawII = ch2[i];
-        const rawIII = ch3[i];
-
-        let finalI = rawI, finalII = rawII, finalIII = rawIII;
-
-        if (filterStateRef.current) {
-            const cleaned = dcBlockerRef.current.process(rawI, rawII);
-            finalI = cleaned.cleanI;
-            finalII = cleaned.cleanII;
-            finalIII = cleaned.cleanIII;
-        }
-
-        const calculated = calculateEinthovenPoint(finalI, finalII);
-
-        const currentX = Number((xIndex * X_STEP).toFixed(2));
-
-        // Kalkulasi koordinat Y untuk seluruh 7 saluran (Skala Medis Standar: 1mV = 80px, Center = 240px)
-        const yI = 240 - finalI * 80;
-        const yII = 240 - finalII * 80;
-        const yIII = 240 - finalIII * 80;
-        const yaVR = 240 - calculated.aVR * 80;
-        const yaVL = 240 - calculated.aVL * 80;
-        const yaVF = 240 - calculated.aVF * 80;
-        const yV1 = 240.00;
-
-        currentPaths.I.push(`${currentX},${yI.toFixed(2)}`);
-        currentPaths.II.push(`${currentX},${yII.toFixed(2)}`);
-        currentPaths.III.push(`${currentX},${yIII.toFixed(2)}`);
-        currentPaths.aVR.push(`${currentX},${yaVR.toFixed(2)}`);
-        currentPaths.aVL.push(`${currentX},${yaVL.toFixed(2)}`);
-        currentPaths.aVF.push(`${currentX},${yaVF.toFixed(2)}`);
-        currentPaths.V1.push(`${currentX},${yV1.toFixed(2)}`);
-
-        // Memasukkan titik saat ini ke dalam memori Look-Back Buffer
-        recentSamples.push({ xIndex, x: currentX, yI, yII, yIII, yaVR, yaVL, yaVF, yV1 });
-        // Menjaga memori maksimal 50 sampel terakhir (setara 200ms)
-        if (recentSamples.length > 50) recentSamples.shift();
-
-        // Eksekusi Pendeteksi Puncak QRS
-        const isPeak = ptRef.current.detectRealTime(finalII, xIndex);
-
-        if (isPeak && recentSamples.length > 0) {
-            // Algoritma Pan-Tompkins memiliki keterlambatan (delay) secara natural.
-            // Kita mencari puncak absolut (Maxima) dari buffer sampel masa lalu.
-            let truePeak = recentSamples[0];
-            for (let j = 1; j < recentSamples.length; j++) {
-                // Minima di koordinat pixel Y berarti Maxima di tegangan mV (puncak teratas)
-                if (recentSamples[j].yII < truePeak.yII) {
-                    truePeak = recentSamples[j];
-                }
-            }
-
-            const marker: RPeakMarker = {
-                x: truePeak.x,
-                y: truePeak.yII, // Referensi default
-                yI: truePeak.yI,
-                yII: truePeak.yII,
-                yIII: truePeak.yIII,
-                yaVR: truePeak.yaVR,
-                yaVL: truePeak.yaVL,
-                yaVF: truePeak.yaVF,
-                yV1: truePeak.yV1
-            };
-
-            if (peakBuffer.length > 0) {
-                const prev = peakBuffer[peakBuffer.length - 1];
-                // Kalkulasi jarak menggunakan index historis yang sudah terkoreksi
-                const secDist = calculateSingleRRInterval(prev.index, truePeak.xIndex, 250);
-
-                const metrics = calculateRRMetrics(secDist);
-                marker.bpm = metrics.bpm;
-                marker.boxesText = metrics.boxesText;
-
-                rrIntervals.push(secDist);
-                marker.rrText = `${secDist}s`;
-                marker.prevX = prev.x;
-            }
-
-            currentRPeaks.push(marker);
-            peakBuffer.push({ x: truePeak.x, index: truePeak.xIndex });
-        }
-        xIndex++;
-
-        // MENCATAT TIMELINE TEPAT DI UJUNG FRAME (Penyelesaian Masalah 9 dari 10 Frame)
-        if (xIndex === TOTAL_POINTS) {
-            const evalResult = evaluateIrregularity(rrIntervals);
+        if (result.frameCompleted) {
+            const evalResult = evaluateIrregularity(result.state.rrIntervals);
             const explanation = generateClinicalExplanation(classification_result || "UNKNOWN", isAnomaly, evalResult);
             setClinicalStatus(explanation);
             setHeartRate(evalResult.hr > 0 ? evalResult.hr : '--');
             setTimeline(prev => [...prev, {
-                index: timelineSeconds / 10, timeStr: formatTime(timelineSeconds),
-                isAnomaly, classResult: classification_result || "UNKNOWN"
+                index: result.state.timelineSeconds / 10,
+                timeStr: formatTime(result.state.timelineSeconds),
+                isAnomaly,
+                classResult: classification_result || "UNKNOWN"
             }]);
         }
-    }
     }, []);
 
 const initWebSocket = useCallback(() => {
