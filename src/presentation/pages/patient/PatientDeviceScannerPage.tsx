@@ -87,10 +87,10 @@ export const PatientDeviceScannerPage: React.FC = () => {
     try {
       const patientId = localStorage.getItem('user_id');
       if (patientId) {
-        await fetch(`${API_URL}/api/devices/${deviceId}/assign`, {
+        await fetch(`${API_URL}/api/devices/${deviceId}/command`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patient_id: patientId })
+          body: JSON.stringify({ command: 'connect', patient_id: patientId })
         });
       }
 

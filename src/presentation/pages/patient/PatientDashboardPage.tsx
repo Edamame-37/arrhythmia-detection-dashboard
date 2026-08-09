@@ -493,10 +493,10 @@ export const PatientDashboardPage: React.FC = () => {
                   onClick={async () => {
                     if (syncedDeviceId) {
                       try {
-                        await fetch(`${API_URL}/api/devices/${syncedDeviceId}/assign`, {
+                        await fetch(`${API_URL}/api/devices/${syncedDeviceId}/command`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ patient_id: null })
+                          body: JSON.stringify({ command: 'disconnect', patient_id: null })
                         });
                       } catch (e) {
                         console.error("Gagal unassign device:", e);
