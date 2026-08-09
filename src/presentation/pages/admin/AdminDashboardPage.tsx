@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { useSecurity } from '../../../application/context/SecurityContext';
 import { API_URL } from '../../../config/env';
 
 interface AdminStats {
@@ -12,6 +13,7 @@ interface AdminStats {
 
 export const AdminDashboardPage: React.FC = () => {
     const { isOpen, toggleSidebar } = useSidebar();
+    const { isDevToolsBlocked, toggleDevToolsBlocker } = useSecurity();
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -100,6 +102,26 @@ export const AdminDashboardPage: React.FC = () => {
                                     <span className="text-sm font-mono-data font-bold text-charcoal">SYNCED</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Security Settings */}
+                    <div className="bg-surface border border-outline-variant/60 rounded-xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-charcoal">Global DevTools Protection</h2>
+                                <p className="text-sm text-on-surface-variant mt-1">Blocks right-click and DevTools shortcuts to enhance application security.</p>
+                            </div>
+                            <label className="flex items-center cursor-pointer">
+                                <div className="relative">
+                                    <input type="checkbox" className="sr-only" checked={isDevToolsBlocked} onChange={toggleDevToolsBlocker} />
+                                    <div className={`block w-14 h-8 rounded-full transition-colors ${isDevToolsBlocked ? 'bg-medical-teal' : 'bg-outline-variant/50'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full shadow transition-transform ${isDevToolsBlocked ? 'transform translate-x-6' : ''}`}></div>
+                                </div>
+                                <div className="ml-3 text-sm font-bold text-charcoal w-8">
+                                    {isDevToolsBlocked ? 'ON' : 'OFF'}
+                                </div>
+                            </label>
                         </div>
                     </div>
                 </div>

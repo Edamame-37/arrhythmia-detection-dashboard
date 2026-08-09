@@ -14,6 +14,8 @@ import { RegisterPage } from './presentation/pages/auth/RegisterPage';
 import { SidebarProvider } from './application/context/SidebarContext';
 import { ConnectionProvider } from './application/context/ConnectionContext';
 import { PreferencesProvider } from './application/context/PreferencesContext';
+import { SecurityProvider } from './application/context/SecurityContext';
+import { DevToolsBlocker } from './presentation/components/DevToolsBlocker';
 
 // Admin Pages
 import { AdminDashboardPage } from './presentation/pages/admin/AdminDashboardPage';
@@ -76,10 +78,12 @@ const TitleSetter: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
+      <SecurityProvider>
       <PreferencesProvider>
       <ConnectionProvider>
       <SidebarProvider>
       <TitleSetter />
+      <DevToolsBlocker />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
@@ -115,6 +119,7 @@ export const App: React.FC = () => {
       </SidebarProvider>
       </ConnectionProvider>
       </PreferencesProvider>
+      </SecurityProvider>
     </BrowserRouter>
   );
 };
