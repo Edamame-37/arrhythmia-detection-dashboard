@@ -7,6 +7,7 @@
 import type { ServerMessage } from '../../core/types/ecgTypes';
 import { verifyChecksum } from '../security/checksum';
 import { WS_URL } from '../../config/env';
+import { Logger } from '../../core/utils/logger';
 
 export class ECGWebSocketClient {
     private ws: WebSocket | null = null;
@@ -31,11 +32,11 @@ export class ECGWebSocketClient {
             return;
         }
 
-        console.log(`[Network] Mencoba terhubung ke: ${this.url}`);
+        Logger.info("Network", `Mencoba terhubung ke: ${this.url}`);
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
-            console.log("[Network] Terhubung ke Server Rust!");
+            Logger.info("Network", "Terhubung ke Server Rust!");
             if (this.onOpen) this.onOpen();
         };
 
@@ -47,7 +48,7 @@ export class ECGWebSocketClient {
                     if (data.data_payload && data.sha256_checksum) {
                         const isValid = await verifyChecksum(data.data_payload, data.sha256_checksum);
                         if (!isValid) {
-                            console.error("[Network] Integritas data terkompromi. Paket diabaikan.");
+                            Logger.error("Network", "Integritas data terkompromi. Paket diabaikan.");
                             return;
                         }
                     }
@@ -55,17 +56,17 @@ export class ECGWebSocketClient {
 
                 if (this.onMessage) this.onMessage(data);
             } catch (err) {
-                console.error("[Network] Gagal memparsing pesan:", err);
+                Logger.error("Network", "Gagal memparsing pesan:", err);
             }
         };
 
         this.ws.onerror = (event: Event) => {
-            console.error("[Network] Kesalahan WebSocket!");
+            Logger.error("Network", "Kesalahan WebSocket!");
             if (this.onError) this.onError(event);
         };
 
         this.ws.onclose = () => {
-            console.log("[Network] Koneksi ditutup.");
+            Logger.info("Network", "Koneksi ditutup.");
             if (this.onClose) this.onClose();
             this.ws = null;
         };
@@ -75,7 +76,7 @@ export class ECGWebSocketClient {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(command));
         } else {
-            console.warn("[Network] WebSocket belum siap dikirim perintah.");
+            Logger.warn("Network", "WebSocket belum siap dikirim perintah.");
         }
     }
 

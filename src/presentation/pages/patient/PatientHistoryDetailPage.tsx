@@ -13,6 +13,7 @@ import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { useECGScale } from '../../../application/hooks/useECGScale';
+import { ECGCalibrationModal } from '../../components/shared/ECGCalibrationModal';
 import { API_URL } from '../../../config/env';
 
 interface PatientProfile {

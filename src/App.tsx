@@ -25,7 +25,7 @@ import { AdminDevicesPage } from './presentation/pages/admin/AdminDevicesPage';
 
 // Doctor Pages
 import { DashboardPage } from './presentation/pages/doctor/DashboardPage';
-// import { MonitorPage } from './presentation/pages/doctor/MonitorPage';
+import { MonitorPage } from './presentation/pages/doctor/MonitorPage';
 import { AnalyticsPage } from './presentation/pages/doctor/AnalyticsPage';
 import { QrScannerPage } from './presentation/pages/doctor/QrScannerPage';
 import { ProfilePage } from './presentation/pages/doctor/ProfilePage';
@@ -103,6 +103,7 @@ export const App: React.FC = () => {
 
                 {/* Doctor Routes */}
                 <Route path="/doctor/dashboard" element={<DashboardPage />} />
+                <Route path="/doctor/monitor" element={<MonitorPage />} />
                 <Route path="/doctor/analytics" element={<AnalyticsPage />} />
                 <Route path="/doctor/qr-scanner" element={<QrScannerPage />} />
                 <Route path="/doctor/profile" element={<ProfilePage />} />

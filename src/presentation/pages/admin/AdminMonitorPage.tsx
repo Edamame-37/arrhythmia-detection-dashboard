@@ -189,6 +189,13 @@ export const AdminMonitorPage: React.FC = () => {
                                     <p className="text-sm font-bold font-mono-data text-charcoal">{network?.mqtt_publish_latency_ms ? `${network.mqtt_publish_latency_ms.toFixed(1)} ms` : '--'}</p>
                                 </div>
                             </div>
+                            <div className="flex items-center justify-between bg-surface-container-low p-3 rounded-lg border border-outline-variant/30 text-xs">
+                                <p className="text-[9px] text-on-surface-variant uppercase tracking-wider">MQTT Connection</p>
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`w-2 h-2 rounded-full ${network?.mqtt_connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                                    <p className="font-bold text-[11px] text-charcoal">{network?.mqtt_connected ? 'CONNECTED' : 'DISCONNECTED'}</p>
+                                </div>
+                            </div>
                             <div className="flex items-center gap-2 mt-2 bg-surface-container-low p-2 rounded border border-outline-variant/30 justify-center">
                                 <span className={`w-2.5 h-2.5 rounded-full ${isRecording ? 'bg-medical-teal animate-ping' : 'bg-alert-red'}`}></span>
                                 <p className={`text-xs font-bold tracking-wider ${isRecording ? 'text-medical-teal' : 'text-alert-red'}`}>

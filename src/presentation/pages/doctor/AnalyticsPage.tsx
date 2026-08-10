@@ -109,9 +109,13 @@ export const AnalyticsPage: React.FC = () => {
                     let xIndex = 0;
                     const TOTAL_POINTS = 2500;
                     const X_STEP = 2000 / TOTAL_POINTS;
-                    const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
+                    const ch1 = payload.raw?.ch1 || payload.ecg?.samples || [];
                     const ch2 = payload.raw?.ch2 || [];
                     const ch3 = payload.raw?.ch3 || [];
+
+                    const pt = new PanTompkins(250);
+                    let lastPeakIndex = -1;
+                    const rrIntervals: number[] = [];
 
                     const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
 
@@ -139,6 +143,10 @@ export const AnalyticsPage: React.FC = () => {
 
                         xIndex++;
                     }
+
+                    const evalResult = evaluateIrregularity(rrIntervals);
+                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : '--';
+
                     loadedSegments[i] = {
                         paths,
                         rPeaks: [],

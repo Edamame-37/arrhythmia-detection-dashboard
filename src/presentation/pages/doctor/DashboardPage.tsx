@@ -32,8 +32,16 @@ export const DashboardPage: React.FC = () => {
     const [patientToDisconnect, setPatientToDisconnect] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isLoading, setIsLoading] = useState(true);
+    const [connectedPatient, setConnectedPatient] = useState<any>(null);
+    const [standbyPatientProfile, setStandbyPatientProfile] = useState<any>(null);
 
-
+    useEffect(() => {
+        if (connectedPatients && connectedPatients.length > 0) {
+            setConnectedPatient(connectedPatients[0]);
+        } else {
+            setConnectedPatient(null);
+        }
+    }, [connectedPatients]);
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -275,23 +283,28 @@ export const DashboardPage: React.FC = () => {
                                                     displayPatient.name.substring(0, 2).toUpperCase()
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                                                <button onClick={() => {
-                                                    setPatientToDisconnect(patient.id);
-                                                    setShowDisconnectModal(true);
-                                                }} className="flex-1 sm:flex-none bg-error text-white hover:bg-red-600 px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
-                                                    <span className="material-symbols-outlined text-[16px]">person_remove</span>
-                                                    Putuskan Pasien
-                                                </button>
+                                            <div>
+                                                <h3 className="text-sm font-bold text-charcoal">{displayPatient.name}</h3>
+                                                <p className="text-xs text-on-surface-variant font-mono-data mt-0.5">ID: {displayPatient.id}</p>
                                             </div>
                                         </div>
-                                        ))
-                                        ) : (
-                                        <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
-                                            <p className="text-sm text-on-surface-variant">Tidak ada pasien yang menunggu saat ini.</p>
+                                        <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                                            <button onClick={() => {
+                                                setPatientToDisconnect(displayPatient.id);
+                                                setShowDisconnectModal(true);
+                                            }} className="flex-1 sm:flex-none bg-error text-white hover:bg-red-600 px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                                                <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                                                Putuskan Pasien
+                                            </button>
                                         </div>
-                            )}
                                     </div>
+                                ) : (
+                                    <div className="bg-surface border border-outline-variant/60 p-5 rounded-2xl flex items-center justify-center shadow-sm">
+                                        <p className="text-sm text-on-surface-variant">Tidak ada pasien yang menunggu saat ini.</p>
+                                    </div>
+                                )
+                            }
+                        </div>
                     </section>
 
                     <section>

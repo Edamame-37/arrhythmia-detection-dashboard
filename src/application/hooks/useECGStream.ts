@@ -15,6 +15,8 @@ import { PanTompkins } from '../../core/algorithms/panTompkins';
 import { DCBlocker } from '../../core/algorithms/dcBlocker';
 import { evaluateIrregularity, generateClinicalExplanation } from '../../core/clinical/ruleBasedEngine';
 import { processECGSamples } from '../../core/algorithms/ecgPipeline';
+import { calculateEinthovenPoint } from '../../core/algorithms/einthoven';
+import { calculateSingleRRInterval, calculateRRMetrics } from '../../core/algorithms/peakToPeak';
 
 
 import type { ClinicalExplanation } from '../../core/clinical/ruleBasedEngine';

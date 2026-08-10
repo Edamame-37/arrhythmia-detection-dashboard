@@ -28,7 +28,7 @@ export const PatientMonitorPage: React.FC = () => {
     const {
         isRecording, paths, rPeaks, heartRate, clinicalStatus, timeline,
         startStream, stopStream, fetchSegment, isFilterOn, toggleFilter,
-        prediction, deviceId, sessionId, stressTest, createdAt, rawClassification
+        prediction, deviceId, sessionId, stressTest, createdAt, rawClassification, network, system
     } = useECGStream(WS_URL);
 
     const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number | undefined>(undefined);
@@ -252,7 +252,7 @@ export const PatientMonitorPage: React.FC = () => {
                     <aside className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
                         <VitalCard heartRate={heartRate} clinicalStatus={clinicalStatus} stressTest={stressTest} createdAt={createdAt} />
                         <AiCard sessionId={sessionId} rawClassification={rawClassification} />
-                        <DeviceCard deviceId={displayDeviceId} aiMetrics={aiMetrics} />
+                        <DeviceCard deviceId={displayDeviceId} aiMetrics={aiMetrics} network={network} system={system} />
                     </aside>
                 </main>
             </div>
