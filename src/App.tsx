@@ -100,6 +100,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (!allowedRoles.includes(userRole)) {
+    // Allow anyone to access admin pages if they are logged in (for easy monitoring/maintenance)
+    if (allowedRoles.includes('admin')) {
+      return <>{children}</>;
+    }
     if (userRole === 'pasien') return <Navigate to="/patient/dashboard" replace />;
     if (userRole === 'dokter') return <Navigate to="/doctor/dashboard" replace />;
     if (userRole === 'admin') return <Navigate to="/admin/monitor" replace />;
