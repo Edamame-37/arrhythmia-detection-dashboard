@@ -144,7 +144,7 @@ export const PatientDashboardPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedDoctor?.id, activeSession?.doctor_id]);
 
-  const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
+  const patientName = profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
 
   const displayDoctor = profile?.doctor ? {
     name: `Dr. ${profile.doctor.first_name} ${profile.doctor.last_name}`,

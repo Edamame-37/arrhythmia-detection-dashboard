@@ -54,12 +54,20 @@ export const AdminUsersPage: React.FC = () => {
         setLoading(true);
         const token = localStorage.getItem('auth_token') || '';
         Promise.all([
-            fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-            fetch(`${API_URL}/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+            fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch users');
+                    return res.json();
+                }),
+            fetch(`${API_URL}/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch devices');
+                    return res.json();
+                })
         ])
         .then(([usersData, devicesData]) => {
-            setUsers(usersData);
-            setDevices(devicesData);
+            setUsers(Array.isArray(usersData) ? usersData : []);
+            setDevices(Array.isArray(devicesData) ? devicesData : []);
             setLoading(false);
         })
         .catch(err => {

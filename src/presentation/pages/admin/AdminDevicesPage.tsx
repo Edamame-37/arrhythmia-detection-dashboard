@@ -33,10 +33,14 @@ export const AdminDevicesPage: React.FC = () => {
 
     const fetchDevices = () => {
         setLoading(true);
-        fetch(`${API_URL}/api/admin/devices`)
-            .then(res => res.json())
+        const token = localStorage.getItem('auth_token') || '';
+        fetch(`${API_URL}/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch devices');
+                return res.json();
+            })
             .then(data => {
-                setDevices(data);
+                setDevices(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
             .catch(err => {

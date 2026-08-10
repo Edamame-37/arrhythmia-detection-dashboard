@@ -27,8 +27,8 @@ export const PatientQrSyncPage: React.FC = () => {
       .catch(err => console.error("Error fetching patient profile:", err));
   }, []);
 
-  const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
-  const patientIdFormatted = profile ? `PAT-${profile.patient.id.toString().padStart(4, '0')}-XYZ` : t('profile.loading');
+  const patientName = profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
+  const patientIdFormatted = profile?.patient ? `PAT-${profile.patient.id.toString().padStart(4, '0')}-XYZ` : t('profile.loading');
 
   const getInitials = (firstName: string, lastName: string) => {
     if (!firstName && !lastName) return '';

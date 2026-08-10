@@ -156,7 +156,7 @@ export const PatientHistoryDetailPage: React.FC = () => {
             });
     }, [sessionId]);
 
-    const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
+    const patientName = profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
 
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);

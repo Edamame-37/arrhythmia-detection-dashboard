@@ -44,7 +44,7 @@ export const PatientHistoryPage: React.FC = () => {
             .catch(console.error);
     }, []);
 
-    const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
+    const patientName = profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
 
     return (
         <div className="bg-clinical-surface/30 text-clinical-charcoal w-full min-h-screen flex flex-col transition-colors duration-700 relative">

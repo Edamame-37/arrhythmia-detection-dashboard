@@ -24,7 +24,10 @@ export const AdminDashboardPage: React.FC = () => {
             fetch(`${API_URL}/api/admin/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch stats');
+                    return res.json();
+                })
                 .then(data => {
                     setStats(data);
                     setLastSync(new Date());

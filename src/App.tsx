@@ -75,6 +75,29 @@ const TitleSetter: React.FC = () => {
   return null;
 };
 
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles: ('pasien' | 'dokter' | 'admin')[];
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
+  const userId = localStorage.getItem('user_id');
+  const userRole = localStorage.getItem('user_role') as 'pasien' | 'dokter' | 'admin' | null;
+
+  if (!userId || !userRole) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  if (!allowedRoles.includes(userRole)) {
+    if (userRole === 'pasien') return <Navigate to="/patient/dashboard" replace />;
+    if (userRole === 'dokter') return <Navigate to="/doctor/dashboard" replace />;
+    if (userRole === 'admin') return <Navigate to="/admin/monitor" replace />;
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -96,26 +119,27 @@ export const App: React.FC = () => {
                 <Route path="/auth/register" element={<RegisterPage />} />
 
                 {/* Admin Routes */}
-                <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-                <Route path="/admin/users" element={<AdminUsersPage />} />
-                <Route path="/admin/devices" element={<AdminDevicesPage />} />
-                <Route path="/admin/monitor" element={<AdminMonitorPage />} />
+                <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
+                <Route path="/admin/devices" element={<ProtectedRoute allowedRoles={['admin']}><AdminDevicesPage /></ProtectedRoute>} />
+                <Route path="/admin/monitor" element={<ProtectedRoute allowedRoles={['admin']}><AdminMonitorPage /></ProtectedRoute>} />
 
                 {/* Doctor Routes */}
-                <Route path="/doctor/dashboard" element={<DashboardPage />} />
-                <Route path="/doctor/monitor" element={<MonitorPage />} />
-                <Route path="/doctor/analytics" element={<AnalyticsPage />} />
-                <Route path="/doctor/qr-scanner" element={<QrScannerPage />} />
-                <Route path="/doctor/profile" element={<ProfilePage />} />
+                <Route path="/doctor/dashboard" element={<ProtectedRoute allowedRoles={['dokter']}><DashboardPage /></ProtectedRoute>} />
+                <Route path="/doctor/monitor" element={<ProtectedRoute allowedRoles={['dokter']}><MonitorPage /></ProtectedRoute>} />
+                <Route path="/doctor/analytics" element={<ProtectedRoute allowedRoles={['dokter']}><AnalyticsPage /></ProtectedRoute>} />
+                <Route path="/doctor/qr-scanner" element={<ProtectedRoute allowedRoles={['dokter']}><QrScannerPage /></ProtectedRoute>} />
+                <Route path="/doctor/profile" element={<ProtectedRoute allowedRoles={['dokter']}><ProfilePage /></ProtectedRoute>} />
 
-                <Route path="/patient/dashboard" element={<PatientDashboardPage />} />
-                <Route path="/patient/qr-sync" element={<PatientQrSyncPage />} />
-                <Route path="/patient/device-scanner" element={<PatientDeviceScannerPage />} />
-                <Route path="/patient/history" element={<PatientHistoryPage />} />
-                <Route path="/patient/history/:sessionId" element={<PatientHistoryDetailPage />} />
-                <Route path="/patient/profile" element={<PatientProfilePage />} />
-                <Route path="/patient/settings" element={<PatientSettingsPage />} />
-                <Route path="/patient/monitor" element={<PatientMonitorPage />} />
+                {/* Patient Routes */}
+                <Route path="/patient/dashboard" element={<ProtectedRoute allowedRoles={['pasien']}><PatientDashboardPage /></ProtectedRoute>} />
+                <Route path="/patient/qr-sync" element={<ProtectedRoute allowedRoles={['pasien']}><PatientQrSyncPage /></ProtectedRoute>} />
+                <Route path="/patient/device-scanner" element={<ProtectedRoute allowedRoles={['pasien']}><PatientDeviceScannerPage /></ProtectedRoute>} />
+                <Route path="/patient/history" element={<ProtectedRoute allowedRoles={['pasien']}><PatientHistoryPage /></ProtectedRoute>} />
+                <Route path="/patient/history/:sessionId" element={<ProtectedRoute allowedRoles={['pasien']}><PatientHistoryDetailPage /></ProtectedRoute>} />
+                <Route path="/patient/profile" element={<ProtectedRoute allowedRoles={['pasien']}><PatientProfilePage /></ProtectedRoute>} />
+                <Route path="/patient/settings" element={<ProtectedRoute allowedRoles={['pasien']}><PatientSettingsPage /></ProtectedRoute>} />
+                <Route path="/patient/monitor" element={<ProtectedRoute allowedRoles={['pasien']}><PatientMonitorPage /></ProtectedRoute>} />
               </Routes>
             </SidebarProvider>
           </ConnectionProvider>

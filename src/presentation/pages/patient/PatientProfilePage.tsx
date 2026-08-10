@@ -166,7 +166,7 @@ export const PatientProfilePage: React.FC = () => {
                                 )}
                             </div>
                             <h2 className="text-2xl font-extrabold text-clinical-charcoal tracking-tight mb-1">
-                                {isLoading ? t('profile.loading') : (profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.notFound'))}
+                                {isLoading ? t('profile.loading') : (profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.notFound'))}
                             </h2>
                             <p className="text-xs font-bold text-clinical-blue uppercase tracking-[0.2em] mb-6 flex items-center gap-1 justify-center">
                                 <span className="material-symbols-outlined text-[14px]">badge</span>
