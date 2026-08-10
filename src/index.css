@@ -1,18 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Nunito+Sans:wght@700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block');
 
 :root {
-  --color-primary: #176BCE; /* Clinical Blue */
+  --color-primary: #176BCE;
+  /* Clinical Blue */
   --color-primary-rgb: 23, 107, 206;
   --color-primary-hover: #1255A3;
   --color-brand-navy: #001F54;
   --color-charcoal: #2D3436;
-  
+
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Outfit', sans-serif;
-  
-  --radius-card: 2rem;       /* 32px */
-  --radius-widget: 1.5rem;   /* 24px */
-  --radius-button: 0.75rem;  /* 12px */
+
+  --radius-card: 2rem;
+  /* 32px */
+  --radius-widget: 1.5rem;
+  /* 24px */
+  --radius-button: 0.75rem;
+  /* 12px */
 }
 
 @tailwind base;
@@ -20,12 +24,41 @@
 @tailwind utilities;
 
 body {
-    background-color: #F4F7F9;
-    -webkit-font-smoothing: antialiased;
+  background-color: #F4F7F9;
+  -webkit-font-smoothing: antialiased;
 }
 
-.ecg-grid { background-image: linear-gradient(rgba(0,31,84,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,31,84,0.05) 1px, transparent 1px); background-size: 24px 24px; }
-.glass-card { background: rgba(255,255,255,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-.pulse-animation { stroke-dasharray: 900; stroke-dashoffset: 900; animation: draw-pulse 2.6s ease-in-out infinite; }
-@keyframes draw-pulse { 0% { stroke-dashoffset: 900; } 60% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -900; } }
-.active-scale:active { transform: scale(0.95); }
+.ecg-grid {
+  background-image: linear-gradient(rgba(0, 31, 84, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 31, 84, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.pulse-animation {
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: draw-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes draw-pulse {
+  0% {
+    stroke-dashoffset: 900;
+  }
+
+  60% {
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dashoffset: -900;
+  }
+}
+
+.active-scale:active {
+  transform: scale(0.95);
+}

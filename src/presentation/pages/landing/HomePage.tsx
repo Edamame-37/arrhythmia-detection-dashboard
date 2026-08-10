@@ -59,7 +59,7 @@ export const HomePage: React.FC = () => {
       <main>
         {/* Section 1: Hero Section */}
         <section className="relative h-[100svh] md:min-h-screen md:h-screen w-full flex items-center justify-center snap-start overflow-hidden bg-clinical-surface/50 dark:bg-luxury-navy transition-colors duration-700">
-          
+
           {/* MOBILE: Immersive Background Image */}
           <div className="absolute inset-0 z-0 md:hidden bg-luxury-navy">
             <img alt="Heart monitor device background" className="w-full h-full object-cover object-bottom opacity-100" src="/images/hero_mobile.webp" />

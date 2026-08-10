@@ -12,7 +12,6 @@ import { ECGCanvas } from '../../components/canvas/ECGCanvas';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import { AlertPanel } from '../../components/shared/AlertPanel';
 import { useECGScale } from '../../../application/hooks/useECGScale';
-import { ECGCalibrationModal } from '../../components/shared/ECGCalibrationModal';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
@@ -46,10 +45,7 @@ export const PatientMonitorPage: React.FC = () => {
     const [speed] = useState<25 | 50>(25);
     const [showAlert, setShowAlert] = useState<boolean>(false);
 
-    // Scale state
-    const { scale, saveScale, resetScale } = useECGScale();
-    const [isCalibrationModalOpen, setIsCalibrationModalOpen] = useState(false);
-
+    const { scale } = useECGScale();
     useEffect(() => {
         const isNormal = rawClassification?.toUpperCase() === 'NORMAL' || rawClassification?.toUpperCase() === 'NORM';
         setShowAlert(clinicalStatus?.isAnomaly && !isNormal ? true : false);
@@ -234,17 +230,6 @@ export const PatientMonitorPage: React.FC = () => {
                                     <span className="hidden sm:inline">Filter: {isFilterOn ? 'ON' : 'OFF'}</span>
                                 </button>
                                 
-                                {/* TOMBOL KALIBRASI */}
-                                <button 
-                                    onClick={() => setIsCalibrationModalOpen(true)} 
-                                    className={`border px-5 py-2.5 rounded-full font-bold uppercase tracking-wider text-[10px] transition-all duration-300 flex items-center gap-2 outline-none hover:-translate-y-0.5 hover:shadow-sm ${scale !== 1.0 ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-clinical-surface text-clinical-charcoal/60 border-clinical-charcoal/5'}`}
-                                    title="Mode Layar Fisik Khusus Asus TUF (1mm layar = 1mm nyata)"
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        laptop_mac
-                                    </span>
-                                    <span className="hidden sm:inline">{scale !== 1.0 ? 'Mode Fisik: ON' : 'Mode Fisik'}</span>
-                                </button>
                             </div>
                         </div>
 
@@ -271,13 +256,6 @@ export const PatientMonitorPage: React.FC = () => {
                     </aside>
                 </main>
             </div>
-            <ECGCalibrationModal 
-                isOpen={isCalibrationModalOpen}
-                onClose={() => setIsCalibrationModalOpen(false)}
-                currentScale={scale}
-                onSaveScale={saveScale}
-                onResetScale={resetScale}
-            />
         </div>
     );
 };

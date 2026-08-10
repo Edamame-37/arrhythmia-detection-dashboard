@@ -5,13 +5,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ECGCanvas } from '../../components/canvas/ECGCanvas';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
+import { PanTompkins } from '../../../core/algorithms/panTompkins';
+import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { useConnection } from '../../../application/context/ConnectionContext';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
@@ -23,16 +26,62 @@ const useQuery = () => new URLSearchParams(useLocation().search);
 export const AnalyticsPage: React.FC = () => {
     const query = useQuery();
     const sessionId = query.get('sessionId') || '';
+    const navigate = useNavigate();
+
+    const [allSessions, setAllSessions] = useState<any[]>([]);
+    const [patientPhotos, setPatientPhotos] = useState<Record<string, string>>({});
 
     const [speed, setSpeed] = useState<25 | 50>(25);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [showPatientSelector, setShowPatientSelector] = useState(!sessionId);
+    const [selectedPatientFilter, setSelectedPatientFilter] = useState<string>('ALL');
 
     const { isOpen, toggleSidebar } = useSidebar();
+    const { connectedPatients } = useConnection();
 
     const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [segments, setSegments] = useState<Record<number, any>>({});
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/sessions`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && Array.isArray(data.sessions)) {
+                    setAllSessions(data.sessions);
+                } else if (Array.isArray(data)) {
+                    setAllSessions(data);
+                }
+            })
+            .catch(err => console.error("Error fetching sessions:", err));
+    }, []);
+
+    useEffect(() => {
+        if (allSessions.length > 0) {
+            const uniquePatientIds = Array.from(new Set(allSessions.map(s => s.patient_id).filter(Boolean)));
+
+            uniquePatientIds.forEach(id => {
+                // Hindari fetch berulang jika sudah ada di state
+                setPatientPhotos(prev => {
+                    if (prev[id as string]) return prev;
+
+                    fetch(`${API_URL}/api/patients/${id}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data && data.patient && data.patient.profile_photo) {
+                                setPatientPhotos(p => ({
+                                    ...p,
+                                    [id as string]: data.patient.profile_photo
+                                }));
+                            }
+                        })
+                        .catch(e => console.error("Error fetching patient", id, e));
+
+                    return prev;
+                });
+            });
+        }
+    }, [allSessions]);
 
     useEffect(() => {
         if (!sessionId) {
@@ -48,18 +97,19 @@ export const AnalyticsPage: React.FC = () => {
                 const loadedSegments: Record<number, any> = {};
 
                 data.forEach((payload: any, i: number) => {
-                    const isAnomaly = payload.anomaly_indices && payload.anomaly_indices.length > 0;
+                    const isAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) ||
+                        (payload.prediction?.label && payload.prediction.label !== "Normal" && payload.prediction.label !== "NORM") || false;
                     loadedEvents.push({
                         index: i,
                         timeStr: `${Math.floor(i / 6).toString().padStart(2, '0')}:${((i % 6) * 10).toString().padStart(2, '0')}`,
                         isAnomaly,
-                        classResult: payload.classification_result || "NORM"
+                        classResult: payload.prediction?.label || payload.classification_result || "NORM"
                     });
 
                     let xIndex = 0;
                     const TOTAL_POINTS = 2500;
                     const X_STEP = 2000 / TOTAL_POINTS;
-                    const ch1 = payload.raw?.ch1 || [];
+                    const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
                     const ch2 = payload.raw?.ch2 || [];
                     const ch3 = payload.raw?.ch3 || [];
 
@@ -79,15 +129,22 @@ export const AnalyticsPage: React.FC = () => {
                         paths.aVL.push(`${currentX},${(240 - calculated.aVL * 80).toFixed(2)}`);
                         paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
                         paths.V1.push(`${currentX},240.00`);
+
+                        if (pt.detectRealTime(finalII, j)) {
+                            if (lastPeakIndex !== -1) {
+                                rrIntervals.push((j - lastPeakIndex) / 250);
+                            }
+                            lastPeakIndex = j;
+                        }
+
                         xIndex++;
                     }
-
                     loadedSegments[i] = {
                         paths,
-                        rPeaks: [], // Peak detection history will be added later
+                        rPeaks: [],
                         isAnomaly,
                         diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
-                        heartRate: payload.validation?.hr || payload.heart_rate || "--",
+                        heartRate: calculatedHR,
                         frameId: payload.message_id || payload.frame_id || "---",
                         deviceId: payload.device_id || "---",
                         createdAt: payload.created_at || "---",
@@ -115,6 +172,8 @@ export const AnalyticsPage: React.FC = () => {
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
 
+    const currentSessionMeta = allSessions.find(s => s.id === sessionId);
+
     // Data Pasien dan Sesi diambil dari Dashboard, AnalyticsPage difokuskan untuk viewer
 
     // Derive props for the cards from currentSegment
@@ -134,7 +193,7 @@ export const AnalyticsPage: React.FC = () => {
     const network = currentSegment?.network || null;
 
     return (
-        <div className="bg-background text-on-surface antialiased overflow-x-hidden min-h-screen">
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen">
             <DoctorSidebar />
 
 

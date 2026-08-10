@@ -35,6 +35,11 @@ export const LoginPage: React.FC = () => {
       const data = await response.json();
       
       if (data.success && data.user_id) {
+        // Hapus data koneksi lama sebelum login baru
+        localStorage.removeItem('connectedPatients');
+        localStorage.removeItem('connectedDoctor');
+        localStorage.removeItem('mock_patient_profile');
+
         // Save user ID to localStorage
         localStorage.setItem('user_id', data.user_id.toString());
         localStorage.setItem('user_role', data.role || role);
