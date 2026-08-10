@@ -71,11 +71,57 @@ Set up your local API endpoints in `.env.development` or `.env.local`.
 npm run dev
 ```
 
-### 4. Build for Production (Hosting)
+### 4. Build for Production (Manual)
 Compiles TypeScript, packages assets, obfuscates build files, and generates service worker precache lists:
 ```bash
 npm run build
 ```
+
+### 5. Automated Testing & Release Verification (Recommended)
+Before running production builds, it is highly recommended to run the automated script which validates all unit/integration tests and outputs results before compiling:
+```powershell
+./test_and_build.ps1
+```
+This script will:
+1. Run frontend tests using Vitest.
+2. Report final test statistics (Passed vs Failed count) in the terminal.
+3. Abort the build process if any test fails to prevent broken releases.
+4. Execute `npm run build` once all tests pass.
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+The project features a comprehensive test suite covering core mathematical and clinical logic.
+
+### Test Architecture & Directories
+All test suites are grouped inside a dedicated folder: [src/testing](file:///d:/Project/arrhythmia-detection-dashboard/src/testing)
+- [setup.ts](file:///d:/Project/arrhythmia-detection-dashboard/src/testing/setup.ts): Configures DOM assertion utilities (`@testing-library/jest-dom`).
+- [einthoven.test.ts](file:///d:/Project/arrhythmia-detection-dashboard/src/testing/einthoven.test.ts): Verifies Lead III, aVR, aVL, and aVF augmented leads mathematical calculations.
+- [dcBlocker.test.ts](file:///d:/Project/arrhythmia-detection-dashboard/src/testing/dcBlocker.test.ts): Unit tests for DC Offset removal and baseline wander filter.
+- [panTompkins.test.ts](file:///d:/Project/arrhythmia-detection-dashboard/src/testing/panTompkins.test.ts): Integration tests for real-time QRS peak detection under simulated noise conditions.
+- [ruleBasedEngine.test.ts](file:///d:/Project/arrhythmia-detection-dashboard/src/testing/ruleBasedEngine.test.ts): Validates Holter clinical rules (Tachycardia, Bradycardia, Irregular Rhythm diagnostics).
+
+### Executing Tests Manually
+Run all tests once:
+```bash
+npm run test
+```
+Run tests in active watch mode:
+```bash
+npm run test:watch
+```
+
+---
+
+## 🚀 Deployment
+
+The production build outputs fully standalone HTML, JS, CSS, and Service Worker assets in the `/dist` directory.
+
+### Deployment Instructions
+1. **Asset Check:** Ensure `/dist` contains `index.html`, `sw.js`, and the `assets/` subfolder.
+2. **Web Server hosting:** Deploy `/dist` to static hosting platforms such as Nginx, Netlify, Vercel, Firebase Hosting, or GitHub Pages.
+3. **HTTPS requirement:** PWAs require a secure context. **HTTPS must be enabled** in production for the Service Worker and the Camera QR Scanner to work correctly.
 
 ---
 
