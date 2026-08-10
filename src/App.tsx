@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 
 // Landing Pages
 import { HomePage } from './presentation/pages/landing/HomePage';
@@ -81,8 +81,19 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const userId = localStorage.getItem('user_id');
-  const userRole = localStorage.getItem('user_role') as 'pasien' | 'dokter' | 'admin' | null;
+  let userId = localStorage.getItem('user_id');
+  let userRole = localStorage.getItem('user_role') as 'pasien' | 'dokter' | 'admin' | null;
+
+  // Automatically restore admin session if accessing an admin route and an admin token backup exists
+  const adminToken = localStorage.getItem('admin_auth_token');
+  if (adminToken && allowedRoles.includes('admin') && userRole !== 'admin') {
+    localStorage.setItem('auth_token', adminToken);
+    localStorage.setItem('user_role', 'admin');
+    const adminId = localStorage.getItem('admin_user_id') || '';
+    localStorage.setItem('user_id', adminId);
+    userId = adminId;
+    userRole = 'admin';
+  }
 
   if (!userId || !userRole) {
     return <Navigate to="/auth/login" replace />;
@@ -98,7 +109,67 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   return <>{children}</>;
 };
 
+const ImpersonationBanner: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [targetUser, setTargetUser] = useState<string | null>(null);
+  const [targetRole, setTargetRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const adminToken = localStorage.getItem('admin_auth_token');
+    const userRole = localStorage.getItem('user_role');
+    const userId = localStorage.getItem('user_id');
+    if (adminToken && userRole !== 'admin') {
+      setIsAdminMode(true);
+      setTargetUser(userId);
+      setTargetRole(userRole);
+    } else {
+      setIsAdminMode(false);
+    }
+  }, [location]);
+
+  const handleReturnToAdmin = () => {
+    const adminToken = localStorage.getItem('admin_auth_token');
+    const adminId = localStorage.getItem('admin_user_id');
+    if (adminToken) {
+      localStorage.setItem('auth_token', adminToken);
+      localStorage.setItem('user_role', 'admin');
+      if (adminId) localStorage.setItem('user_id', adminId);
+      
+      localStorage.removeItem('admin_auth_token');
+      localStorage.removeItem('admin_user_id');
+      localStorage.removeItem('connectedPatients');
+      localStorage.removeItem('connectedDoctor');
+      localStorage.removeItem('mock_patient_profile');
+      
+      navigate('/admin/users');
+    }
+  };
+
+  if (!isAdminMode) return null;
+
+  return (
+    <div className="w-full bg-gradient-to-r from-medical-teal to-clinical-blue text-white py-3 px-6 shadow-md flex items-center justify-between z-[9999] relative border-b border-white/10 font-sans backdrop-blur-md">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-[20px] animate-pulse">admin_panel_settings</span>
+        <span className="text-sm font-semibold tracking-wide">
+          Impersonation Active: Currently viewing as <span className="underline font-bold capitalize">{targetRole}</span> ({targetUser})
+        </span>
+      </div>
+      <button 
+        onClick={handleReturnToAdmin}
+        className="bg-white/20 hover:bg-white text-white hover:text-medical-teal font-bold text-xs py-1.5 px-4 rounded-lg border border-white/20 hover:border-white transition-all duration-300 shadow-sm flex items-center gap-1.5"
+      >
+        <span className="material-symbols-outlined text-[16px]">exit_to_app</span>
+        Return to Admin Portal
+      </button>
+    </div>
+  );
+};
+
 export const App: React.FC = () => {
+  const [showBanner, setShowBanner] = React.useState(false); // keep react state hook standard
   return (
     <BrowserRouter>
       <SecurityProvider>
@@ -107,6 +178,7 @@ export const App: React.FC = () => {
             <SidebarProvider>
               <TitleSetter />
               <DevToolsBlocker />
+              <ImpersonationBanner />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />

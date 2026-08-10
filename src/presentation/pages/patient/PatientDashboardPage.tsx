@@ -65,6 +65,8 @@ export const PatientDashboardPage: React.FC = () => {
 
   useEffect(() => {
     const fetchDashboardProfile = () => {
+      const role = localStorage.getItem('user_role');
+      if (role !== 'pasien') return;
       const userId = localStorage.getItem('user_id') || '1';
       fetch(`${API_URL}/api/patients/${userId}`)
         .then(res => {

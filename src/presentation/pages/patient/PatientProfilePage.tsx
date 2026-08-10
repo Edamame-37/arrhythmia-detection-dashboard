@@ -32,6 +32,8 @@ export const PatientProfilePage: React.FC = () => {
     }, []);
 
     const fetchProfile = async (userId: string) => {
+        const role = localStorage.getItem('user_role');
+        if (role !== 'pasien') return;
         setIsLoading(true);
         setError('');
         try {
