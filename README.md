@@ -78,9 +78,9 @@ npm run build
 ```
 
 ### 5. Automated Testing & Release Verification (Recommended)
-Before running production builds, it is highly recommended to run the automated script which validates all unit/integration tests and outputs results before compiling:
-```powershell
-./test_and_build.ps1
+Before running production builds, it is highly recommended to run the automated script which validates all unit/integration tests and outputs results before compiling (fully cross-platform for Windows, macOS, and Linux servers):
+```bash
+npm run test-and-build
 ```
 This script will:
 1. Run frontend tests using Vitest.
