@@ -41,6 +41,15 @@ export const DashboardPage: React.FC = () => {
     // (Patient profile syncing removed for multi-patient support to simplify state)
 
     useEffect(() => {
+        // Jika kembali (Back) dari impersonasi, pulihkan sesi dokter
+        const docToken = localStorage.getItem('doctor_auth_token');
+        if (docToken && localStorage.getItem('user_role') !== 'dokter') {
+            localStorage.setItem('auth_token', docToken);
+            localStorage.setItem('user_role', 'dokter');
+            const docId = localStorage.getItem('doctor_user_id');
+            if (docId) localStorage.setItem('user_id', docId);
+        }
+
         fetch(`${API_URL}/api/sessions`)
             .then(res => res.json())
             .then(data => {
@@ -71,6 +80,51 @@ export const DashboardPage: React.FC = () => {
     const activeSessions = sessions.filter(session => !session.ended_at);
 
     const filteredHistorySessions = sessions; // Removed specific patient filter for now, or could filter if needed
+
+    const handleImpersonate = async (patientId: string) => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch(`${API_URL}/api/doctors/impersonate/${patientId}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await res.json();
+            
+            if (data.success && data.user_id) {
+                // Backup doctor credentials sebelum impersonate
+                const currentRole = localStorage.getItem('user_role');
+                if (currentRole === 'dokter') {
+                    localStorage.setItem('doctor_auth_token', token || '');
+                    localStorage.setItem('doctor_user_id', localStorage.getItem('user_id') || '');
+                }
+
+                // Clear old connected state
+                localStorage.removeItem('connectedPatients');
+                localStorage.removeItem('connectedDoctor');
+                localStorage.removeItem('mock_patient_profile');
+                
+                // Set new credentials
+                localStorage.setItem('user_id', data.user_id.toString());
+                localStorage.setItem('user_role', data.role);
+                if (data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                }
+                
+                // Navigate
+                if (data.role === 'pasien') {
+                    navigate('/patient/dashboard');
+                }
+            } else {
+                alert(data.message || 'Gagal melakukan impersonate.');
+            }
+        } catch (err) {
+            console.error("Gagal impersonate", err);
+            alert("Koneksi ke server gagal.");
+        }
+    };
 
     return (
         <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full">
@@ -182,13 +236,17 @@ export const DashboardPage: React.FC = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                                        <div className="flex items-center gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+                                            <button onClick={() => handleImpersonate(patient.id)} className="flex-1 sm:flex-none bg-medical-teal text-white hover:brightness-110 px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                                                <span className="material-symbols-outlined text-[16px]">login</span>
+                                                Login
+                                            </button>
                                             <button onClick={() => {
                                                 setPatientToDisconnect(patient.id);
                                                 setShowDisconnectModal(true);
                                             }} className="flex-1 sm:flex-none bg-error text-white hover:bg-red-600 px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
                                                 <span className="material-symbols-outlined text-[16px]">person_remove</span>
-                                                Putuskan Pasien
+                                                Putuskan
                                             </button>
                                         </div>
                                     </div>
