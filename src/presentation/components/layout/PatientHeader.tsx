@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface PatientProfile {
     patient: {
@@ -21,7 +22,7 @@ export const PatientHeader: React.FC = () => {
     useEffect(() => {
         const fetchHeaderProfile = () => {
             const userId = localStorage.getItem('user_id') || '1';
-            fetch(`${API_URL}/api/patients/${userId}`)
+            fetchWithAuth(`/api/patients/${userId}`)
                 .then(res => {
                     if (!res.ok) throw new Error('API offline');
                     return res.json();

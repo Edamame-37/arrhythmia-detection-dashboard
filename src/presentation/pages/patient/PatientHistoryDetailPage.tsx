@@ -14,6 +14,7 @@ import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { useECGScale } from '../../../application/hooks/useECGScale';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface PatientProfile {
     patient: {
@@ -44,13 +45,13 @@ export const PatientHistoryDetailPage: React.FC = () => {
 
     useEffect(() => {
         const userId = localStorage.getItem('user_id') || '1';
-        fetch(`${API_URL}/api/patients/${userId}`)
+        fetchWithAuth(`/api/patients/${userId}`)
             .then(res => res.json())
             .then(data => setProfile(data))
             .catch(console.error);
 
         setIsLoading(true);
-        fetch(`${API_URL}/api/records/${sessionId}`)
+        fetchWithAuth(`/api/records/${sessionId}`)
             .then(res => res.json())
             .then(rawData => {
                 let data = rawData;

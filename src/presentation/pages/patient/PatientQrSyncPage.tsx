@@ -4,6 +4,7 @@ import QRCode from 'react-qr-code';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface PatientProfile {
   patient: {
@@ -21,7 +22,7 @@ export const PatientQrSyncPage: React.FC = () => {
 
   useEffect(() => {
     const userId = localStorage.getItem('user_id') || '1';
-    fetch(`${API_URL}/api/patients/${userId}`)
+    fetchWithAuth(`/api/patients/${userId}`)
       .then(res => res.json())
       .then(data => setProfile(data))
       .catch(err => console.error("Error fetching patient profile:", err));

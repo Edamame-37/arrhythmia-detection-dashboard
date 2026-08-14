@@ -1,20 +1,15 @@
 {
-  "short_name": "UNDIP-ECG",
-  "name": "Wearable 3-Lead ECG Dashboard",
-  "description": "Progressive Web Application untuk monitoring real-time dan deteksi dini aritmia berbasis Edge AI.",
+  "short_name": "ECG-UNDIP",
+  "name": "Arrhythmia Detection Dashboard",
+  "description": "Dashboard untuk memantau detak jantung dan mendeteksi aritmia secara real-time",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "icon-192.png",
+      "src": "pwa-192x192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "icon-512.png",
+      "src": "pwa-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -22,8 +17,11 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#011627",
-  "background_color": "#FFF5F5",
-  "orientation": "landscape",
-  "categories": ["medical", "productivity"]
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "categories": [
+    "medical",
+    "productivity"
+  ]
 }

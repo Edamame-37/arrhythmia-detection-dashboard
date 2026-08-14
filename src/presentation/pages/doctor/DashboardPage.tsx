@@ -4,6 +4,7 @@ import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 export interface SessionRecord {
     id: string;
@@ -50,7 +51,7 @@ export const DashboardPage: React.FC = () => {
             if (docId) localStorage.setItem('user_id', docId);
         }
 
-        fetch(`${API_URL}/api/sessions`)
+        fetchWithAuth(`/api/sessions`)
             .then(res => res.json())
             .then(data => {
                 if (data && Array.isArray(data.sessions)) {
@@ -63,7 +64,7 @@ export const DashboardPage: React.FC = () => {
             })
             .catch(err => console.error("Error fetching sessions:", err));
 
-        fetch(`${API_URL}/api/devices`)
+        fetchWithAuth(`/api/devices`)
             .then(res => res.json())
             .then(data => {
                 if (data && Array.isArray(data.devices)) {
@@ -84,7 +85,7 @@ export const DashboardPage: React.FC = () => {
     const handleImpersonate = async (patientId: string) => {
         try {
             const token = localStorage.getItem('auth_token');
-            const res = await fetch(`${API_URL}/api/doctors/impersonate/${patientId}`, {
+            const res = await fetchWithAuth(`/api/doctors/impersonate/${patientId}`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

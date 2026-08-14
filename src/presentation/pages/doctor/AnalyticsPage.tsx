@@ -20,6 +20,7 @@ import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -44,7 +45,7 @@ export const AnalyticsPage: React.FC = () => {
     const [segments, setSegments] = useState<Record<number, any>>({});
 
     useEffect(() => {
-        fetch(`${API_URL}/api/sessions`)
+        fetchWithAuth(`/api/sessions`)
             .then(res => res.json())
             .then(data => {
                 if (data && Array.isArray(data.sessions)) {
@@ -65,7 +66,7 @@ export const AnalyticsPage: React.FC = () => {
                 setPatientPhotos(prev => {
                     if (prev[id as string]) return prev;
                     
-                    fetch(`${API_URL}/api/patients/${id}`)
+                    fetchWithAuth(`/api/patients/${id}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data && data.patient && data.patient.profile_photo) {
@@ -90,9 +91,11 @@ export const AnalyticsPage: React.FC = () => {
         }
 
         setIsLoading(true);
-        fetch(`${API_URL}/api/records/${sessionId}`)
-            .then(res => res.json())
-            .then(data => {
+        Promise.all([
+            fetchWithAuth(`/api/records/${sessionId}`).then(res => res.json()),
+            fetchWithAuth(`/api/sessions/${sessionId}/frames`).then(res => res.json()).catch(() => ({ frames: [] }))
+        ])
+            .then(([data, framesData]) => {
                 const loadedEvents: TimelineEvent[] = [];
                 const loadedSegments: Record<number, any> = {};
                 
@@ -151,6 +154,7 @@ export const AnalyticsPage: React.FC = () => {
                         xIndex++;
                     }
                     
+                    const dbFrame = framesData?.frames?.find((f: any) => f.time_interval === loadedEvents[loadedEvents.length - 1].timeStr) || {};
                     const evalResult = evaluateIrregularity(rrIntervals);
                     const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || "--");
                     
@@ -163,6 +167,13 @@ export const AnalyticsPage: React.FC = () => {
                         frameId: payload.message_id || payload.frame_id || "---",
                         deviceId: payload.device_id || "---",
                         createdAt: payload.created_at || "---",
+                        dbId: dbFrame.id || null,
+                        devNote: dbFrame.dev_note || null,
+                        docNote: dbFrame.doc_note || null,
+                        confirmation: dbFrame.confirmation !== undefined ? dbFrame.confirmation : null,
+                        docClassification: dbFrame.doc_classification || null,
+                        startTime: dbFrame.start_time || null,
+                        endTime: dbFrame.end_time || null,
                         aiProbabilities: payload.prediction?.probabilities || null,
                         aiMetrics: {
                             latency_ms: payload.prediction?.latency_ms || null,
@@ -387,6 +398,13 @@ export const AnalyticsPage: React.FC = () => {
                         rawClassification={currentEvent?.classResult || null} 
                         isDoctorReview={true}
                         timeInterval={currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : undefined}
+                        frameId={currentSegment?.dbId}
+                        initialDevNote={currentSegment?.devNote}
+                        initialDocNote={currentSegment?.docNote}
+                        initialConfirmation={currentSegment?.confirmation}
+                        initialDocClassification={currentSegment?.docClassification}
+                        startTime={currentSegment?.startTime}
+                        endTime={currentSegment?.endTime}
                     />
                     <div className="mt-auto">
                         <DeviceCard deviceId={deviceId} aiMetrics={aiMetrics} isLive={false} />

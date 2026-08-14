@@ -5,6 +5,7 @@ import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { Html5Qrcode } from 'html5-qrcode';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 export const QrScannerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ export const QrScannerPage: React.FC = () => {
       }
 
       const dbPatientId = `pat${numStr.padStart(12, '0')}`;
-      const response = await fetch(`${API_URL}/api/patients/${dbPatientId}`);
+      const response = await fetchWithAuth(`/api/patients/${dbPatientId}`);
       if (!response.ok) throw new Error('Patient not found');
 
       const data = await response.json();
@@ -120,7 +121,7 @@ export const QrScannerPage: React.FC = () => {
       // Also register the current doctor to the connection context
       const docId = localStorage.getItem('user_id') || '1';
       try {
-        const docRes = await fetch(`${API_URL}/api/doctors/${docId}`);
+        const docRes = await fetchWithAuth(`/api/doctors/${docId}`);
         if (docRes.ok) {
           const docData = await docRes.json();
           setConnectedDoctor({

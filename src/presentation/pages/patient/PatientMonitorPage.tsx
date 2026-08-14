@@ -17,6 +17,7 @@ import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import { API_URL, WS_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface DeviceRecord {
     id: string;
@@ -57,7 +58,7 @@ export const PatientMonitorPage: React.FC = () => {
 
     useEffect(() => {
         const fetchDevices = () => {
-            fetch(`${API_URL}/api/devices`)
+            fetchWithAuth(`/api/devices`)
                 .then(res => res.json())
                 .then(data => {
                     const devicesArray = Array.isArray(data.devices) ? data.devices : (Array.isArray(data) ? data : []);
@@ -73,7 +74,7 @@ export const PatientMonitorPage: React.FC = () => {
         fetchDevices();
 
         // Auto-resume if there is an active session
-        fetch(`${API_URL}/api/sessions`)
+        fetchWithAuth(`/api/sessions`)
             .then(res => res.json())
             .then(data => {
                 const activeSessions = data.sessions ? data.sessions.filter((s: any) => !s.ended_at) : [];
@@ -120,7 +121,7 @@ export const PatientMonitorPage: React.FC = () => {
             // Jika sedang stop (akhiri rekaman) tapi status perangkat "MENUNGGU PERANGKAT...",
             // kita harus mencari tahu device_id dari sesi aktif di DB agar bisa memberitahu backend untuk mengisi ended_at.
             if (command === "STOP" && targetDeviceId === "MENUNGGU PERANGKAT...") {
-                const sessRes = await fetch(`${API_URL}/api/sessions`);
+                const sessRes = await fetchWithAuth(`/api/sessions`);
                 if (sessRes.ok) {
                     const sessData = await sessRes.json();
                     const activeSession = sessData.sessions?.find((s: any) => !s.ended_at && s.patient_id === selectedPatientId);
@@ -131,7 +132,7 @@ export const PatientMonitorPage: React.FC = () => {
             }
 
             if (targetDeviceId && targetDeviceId !== "MENUNGGU PERANGKAT...") {
-                await fetch(`${API_URL}/api/devices/${targetDeviceId}/command`, {
+                await fetchWithAuth(`/api/devices/${targetDeviceId}/command`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ command, patient_id: selectedPatientId })

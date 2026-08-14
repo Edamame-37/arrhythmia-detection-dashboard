@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_URL } from '../../../config/env';
+import { supabase } from '../../../config/supabaseClient';
+
+import { fetchWithAuth } from '../../../config/api';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,13 +11,16 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userRole = localStorage.getItem('user_role');
-    if (userId) {
-      if (userRole === 'pasien') navigate('/patient/dashboard');
-      else if (userRole === 'dokter') navigate('/doctor/dashboard');
-      else navigate('/admin/dashboard');
-    }
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userRole = localStorage.getItem('user_role');
+      if (session && userRole) {
+        if (userRole === 'pasien') navigate('/patient/dashboard');
+        else if (userRole === 'dokter') navigate('/doctor/dashboard');
+        else navigate('/admin/dashboard');
+      }
+    };
+    checkSession();
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -23,39 +28,54 @@ export const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      const data = await response.json();
-      
-      if (data.success && data.user_id) {
+
+      if (authError) {
+        setError(authError.message || 'Gagal login. Periksa email atau password.');
+        return;
+      }
+
+      if (authData.user && authData.session) {
+        // Ambil role dari Backend Rust
+        let role = 'pasien'; // default
+
+        try {
+            const response = await fetchWithAuth('/api/auth/me');
+            const data = await response.json();
+            
+            if (response.ok && data.success && data.role) {
+                role = data.role;
+            } else {
+                console.warn("Gagal mengambil role dari backend:", data.message);
+            }
+        } catch (err) {
+            console.error("Kesalahan jaringan saat mengambil profil:", err);
+        }
+
         // Hapus data koneksi lama sebelum login baru
         localStorage.removeItem('connectedPatients');
         localStorage.removeItem('connectedDoctor');
         localStorage.removeItem('mock_patient_profile');
 
-        // Save user ID to localStorage
-        localStorage.setItem('user_id', data.user_id.toString());
-        localStorage.setItem('user_role', data.role);
-        if (data.token) {
-          localStorage.setItem('auth_token', data.token);
-        }
+        // Simpan data auth ke localStorage
+        localStorage.setItem('user_id', authData.user.id);
+        localStorage.setItem('user_role', role);
+        localStorage.setItem('auth_token', authData.session.access_token);
 
         // Navigasi jika berhasil
-        if (data.role === 'pasien') {
+        if (role === 'pasien') {
           navigate('/patient/dashboard');
-        } else if (data.role === 'dokter') {
+        } else if (role === 'dokter') {
           navigate('/doctor/dashboard');
         } else {
           navigate('/admin/dashboard');
         }
-      } else {
-        setError(data.message || 'Gagal login. Periksa email atau password.');
       }
     } catch (err) {
-      setError('Koneksi ke server gagal');
+      setError('Terjadi kesalahan saat login.');
     }
   };
 

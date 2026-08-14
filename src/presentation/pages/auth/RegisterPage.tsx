@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_URL } from '../../../config/env';
+import { supabase } from '../../../config/supabaseClient';
+
+import { fetchWithAuth } from '../../../config/api';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState<'pasien' | 'dokter'>('pasien');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [dob, setDob] = useState('');
+  const [age, setAge] = useState<number | ''>('');
   const [gender, setGender] = useState('L');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,20 +31,45 @@ export const RegisterPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, email, password, first_name: firstName, last_name: lastName, date_of_birth: dob, gender })
+      // 1. Sign up di Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
       });
-      const data = await response.json();
-      if (data.success) {
+
+      if (authError) {
+        setError(authError.message || 'Gagal mendaftar auth');
+        return;
+      }
+
+      if (authData.user) {
+        // 2. Simpan profil lewat Backend Rust
+        const payload = {
+            role,
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            age: role === 'pasien' ? (age || 0) : null,
+            gender: role === 'pasien' ? gender : null,
+        };
+
+        const response = await fetchWithAuth('/api/auth/register_profile', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            setError(data.message || 'Gagal menyimpan profil ke sistem medis');
+            return;
+        }
+
         alert('Registrasi berhasil! Silakan login.');
         navigate('/auth/login');
-      } else {
-        setError(data.message || 'Gagal mendaftar');
       }
     } catch (err) {
-      setError('Koneksi ke server gagal');
+      setError('Terjadi kesalahan saat pendaftaran');
     }
   };
 
@@ -103,7 +130,7 @@ export const RegisterPage: React.FC = () => {
                             <div className="space-y-2 flex-1">
                                 <label className="font-medium text-label-bold text-on-surface-variant" htmlFor="dob">Tanggal Lahir (Umur)</label>
                                 <input className="w-full bg-white border border-outline-variant rounded-lg p-3 font-body-sm text-body-sm focus:ring-2 focus:ring-medical-teal focus:border-medical-teal transition-all outline-none border-outline" id="dob"
-                                    type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
+                                    type="date" value={age} onChange={(e) => setAge(parseInt(e.target.value))} required />
                             </div>
                             <div className="space-y-2 flex-1">
                                 <label className="font-medium text-label-bold text-on-surface-variant" htmlFor="gender">Jenis Kelamin</label>

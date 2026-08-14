@@ -3,6 +3,7 @@ import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useSecurity } from '../../../application/context/SecurityContext';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface AdminStats {
     total_patients: number;
@@ -21,7 +22,7 @@ export const AdminDashboardPage: React.FC = () => {
     useEffect(() => {
         const fetchStats = () => {
             const token = localStorage.getItem('auth_token') || '';
-            fetch(`${API_URL}/api/admin/stats`, {
+            fetchWithAuth(`/api/admin/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
                 .then(res => res.json())

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { API_URL } from '../../config/env';
+import { fetchWithAuth } from '../../config/api';
 
 export interface ConnectedPatient {
   id: string;
@@ -52,7 +53,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
 
       try {
         if (role === 'dokter') {
-          const res = await fetch(`${API_URL}/api/doctors/${userId}/patients`);
+          const res = await fetchWithAuth(`/api/doctors/${userId}/patients`);
           if (res.ok) {
             const data = await res.json();
             const mapped = data.map((p: any) => {
@@ -69,7 +70,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
             if (isMounted) setConnectedPatientsState(mapped);
           }
         } else if (role === 'pasien') {
-          const res = await fetch(`${API_URL}/api/patients/${userId}`);
+          const res = await fetchWithAuth(`/api/patients/${userId}`);
           if (res.ok) {
             const data = await res.json();
             if (data.doctor) {
@@ -107,7 +108,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     
     try {
       if (doctorId) {
-        await fetch(`${API_URL}/api/patients/${dbPatientId}/connect`, {
+        await fetchWithAuth(`/api/patients/${dbPatientId}/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ doctor_id: doctorId })
@@ -127,7 +128,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     const dbPatientId = `pat${numStr.padStart(12, '0')}`;
     
     try {
-      await fetch(`${API_URL}/api/patients/${dbPatientId}/disconnect`, {
+      await fetchWithAuth(`/api/patients/${dbPatientId}/disconnect`, {
         method: 'POST'
       });
       setConnectedPatientsState(prev => prev.filter(p => p.id !== patientId));

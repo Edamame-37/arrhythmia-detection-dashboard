@@ -30,3 +30,6 @@ database:
 all:
 1. deploy frontend
 2. deploy backend
+
+post migration:
+1. buat akun pasien asli

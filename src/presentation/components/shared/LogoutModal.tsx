@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../../config/supabaseClient';
 
 interface LogoutModalProps {
     isOpen: boolean;
@@ -11,12 +12,14 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose }) => 
 
     if (!isOpen) return null;
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
+        await supabase.auth.signOut();
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_role');
         localStorage.removeItem('connectedPatients');
         localStorage.removeItem('connectedDoctor');
         localStorage.removeItem('mock_patient_profile');
+        localStorage.removeItem('auth_token');
         navigate('/', { state: { logoutSuccess: true } });
     };
 

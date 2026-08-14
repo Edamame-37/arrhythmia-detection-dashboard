@@ -3,6 +3,7 @@ import QRCode from 'react-qr-code';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface DeviceRecord {
     id: string;
@@ -33,7 +34,7 @@ export const AdminDevicesPage: React.FC = () => {
 
     const fetchDevices = () => {
         setLoading(true);
-        fetch(`${API_URL}/api/admin/devices`)
+        fetchWithAuth(`/api/admin/devices`)
             .then(res => res.json())
             .then(data => {
                 setDevices(data);
@@ -53,10 +54,10 @@ export const AdminDevicesPage: React.FC = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('auth_token');
-            const url = editingDeviceId ? `${API_URL}/api/admin/devices/${editingDeviceId}` : `${API_URL}/api/admin/devices`;
+            const url = editingDeviceId ? `/api/admin/devices/${editingDeviceId}` : `/api/admin/devices`;
             const method = editingDeviceId ? 'PUT' : 'POST';
             
-            const res = await fetch(url, {
+            const res = await fetchWithAuth(url, {
                 method: method,
                 headers: {
                     'Content-Type': 'application/json',

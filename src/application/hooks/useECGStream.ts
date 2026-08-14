@@ -11,14 +11,17 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { API_URL } from '../../config/env';
 import { ECGWebSocketClient } from '../../data/network/websocketClient';
-import { calculateEinthovenPoint } from '../../core/algorithms/einthoven';
 import { PanTompkins } from '../../core/algorithms/panTompkins';
 import { DCBlocker } from '../../core/algorithms/dcBlocker';
-import { calculateSingleRRInterval, calculateRRMetrics } from '../../core/algorithms/peakToPeak';
 import { evaluateIrregularity, generateClinicalExplanation } from '../../core/clinical/ruleBasedEngine';
+import { processECGSamples } from '../../core/algorithms/ecgPipeline';
+import { calculateEinthovenPoint } from '../../core/algorithms/einthoven';
+import { calculateSingleRRInterval, calculateRRMetrics } from '../../core/algorithms/peakToPeak';
+
 
 import type { ClinicalExplanation } from '../../core/clinical/ruleBasedEngine';
 import type { ECGPaths, RPeakMarker, TimelineEvent, ServerMessage, ECGDataPayload, DeviceSystem, DeviceNetwork, DevicePrediction, DeviceStressTest } from '../../core/types/ecgTypes';
+import { fetchWithAuth } from '../../config/api';
 
 const TOTAL_POINTS = 2500;
 const X_STEP = 2000 / TOTAL_POINTS;
@@ -119,10 +122,10 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
 
     const processDataChunk = useCallback((payload: ECGDataPayload, timestamp?: string, currentSessionId?: string | null) => {
         const { raw, classification_result, anomaly_indices, prediction_details, system: sysData, network: netData, stress_test } = payload;
-        
+
         const isNormal = classification_result?.toUpperCase() === 'NORMAL' || classification_result?.toUpperCase() === 'NORM';
         const isAnomaly = !isNormal;
-        
+
         if (classification_result) setRawClassification(classification_result);
 
         if (prediction_details) setPrediction(prediction_details);
@@ -150,8 +153,8 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
                 if (!preRegisteredFramesRef.current.has(currentIntervalStr)) {
                     preRegisteredFramesRef.current.add(currentIntervalStr);
                     const frameId = `fra${Date.now()}${Math.floor(Math.random() * 1000)}`;
-                    
-                    fetch(`${API_URL}/api/frames`, {
+
+                    fetchWithAuth(`/api/frames`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -288,11 +291,11 @@ export const useECGStream = (endpoint: string): UseECGStreamReturn => {
                     if (msg.session_id) {
                         setSessionId(msg.session_id);
                         lastSessionIdRef.current = msg.session_id;
-                        
+
                         // Link frames that were created before session_id was available
                         if (unlinkedFramesRef.current.length > 0) {
                             unlinkedFramesRef.current.forEach(frameId => {
-                                fetch(`${API_URL}/api/frames/${frameId}/session`, {
+                                fetchWithAuth(`/api/frames/${frameId}/session`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ session_id: msg.session_id })

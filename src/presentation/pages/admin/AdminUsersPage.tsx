@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface AdminUser {
     id: string;
@@ -36,7 +37,7 @@ export const AdminUsersPage: React.FC = () => {
     const [addRole, setAddRole] = useState<'dokter' | 'pasien'>('dokter');
     const [addFirstName, setAddFirstName] = useState('');
     const [addLastName, setAddLastName] = useState('');
-    const [addDob, setAddDob] = useState('');
+    const [addAge, setAddAge] = useState<number | ''>('');
     const [addGender, setAddGender] = useState('L');
     const [addLoading, setAddLoading] = useState(false);
     const [addError, setAddError] = useState<string | null>(null);
@@ -54,8 +55,8 @@ export const AdminUsersPage: React.FC = () => {
         setLoading(true);
         const token = localStorage.getItem('auth_token') || '';
         Promise.all([
-            fetch(`${API_URL}/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-            fetch(`${API_URL}/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+            fetchWithAuth(`/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+            fetchWithAuth(`/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
         ])
         .then(([usersData, devicesData]) => {
             setUsers(usersData);
@@ -85,7 +86,7 @@ export const AdminUsersPage: React.FC = () => {
         setAddLoading(true);
         setAddError(null);
         try {
-            const res = await fetch(`${API_URL}/api/auth/register`, {
+            const res = await fetchWithAuth(`/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -94,7 +95,7 @@ export const AdminUsersPage: React.FC = () => {
                     role: addRole,
                     first_name: addFirstName,
                     last_name: addLastName,
-                    date_of_birth: addDob,
+                    age: addAge || 0,
                     gender: addGender
                 })
             });
@@ -105,7 +106,7 @@ export const AdminUsersPage: React.FC = () => {
                 setAddPassword('');
                 setAddFirstName('');
                 setAddLastName('');
-                setAddDob('');
+                setAddAge('');
                 setAddGender('L');
                 fetchUsersAndDevices();
             } else {
@@ -123,7 +124,7 @@ export const AdminUsersPage: React.FC = () => {
         setLoadingDetail(true);
         try {
             const endpoint = user.role === 'dokter' ? `/api/doctors/${user.id}` : `/api/patients/${user.id}`;
-            const res = await fetch(`${API_URL}${endpoint}`);
+            const res = await fetchWithAuth(`${endpoint}`);
             if (res.ok) {
                 const data = await res.json();
                 setUserDetail(data);
@@ -149,13 +150,13 @@ export const AdminUsersPage: React.FC = () => {
         if (!selectedUser) return;
         try {
             if (selectedDoctorId) {
-                await fetch(`${API_URL}/api/patients/${selectedUser.id}/connect`, {
+                await fetchWithAuth(`/api/patients/${selectedUser.id}/connect`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ doctor_id: selectedDoctorId })
                 });
             } else {
-                await fetch(`${API_URL}/api/patients/${selectedUser.id}/disconnect`, { method: 'POST' });
+                await fetchWithAuth(`/api/patients/${selectedUser.id}/disconnect`, { method: 'POST' });
             }
             handleViewDetail(selectedUser);
             fetchUsersAndDevices();
@@ -168,7 +169,7 @@ export const AdminUsersPage: React.FC = () => {
         if (!selectedUser) return;
         try {
             if (selectedDeviceId) {
-                await fetch(`${API_URL}/api/devices/${selectedDeviceId}/assign`, {
+                await fetchWithAuth(`/api/devices/${selectedDeviceId}/assign`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ patient_id: selectedUser.id })
@@ -176,7 +177,7 @@ export const AdminUsersPage: React.FC = () => {
             } else {
                 const assignedDevice = devices.find(d => d.assigned_to === selectedUser.id);
                 if (assignedDevice) {
-                    await fetch(`${API_URL}/api/devices/${assignedDevice.id}/assign`, {
+                    await fetchWithAuth(`/api/devices/${assignedDevice.id}/assign`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ patient_id: null })
@@ -193,7 +194,7 @@ export const AdminUsersPage: React.FC = () => {
     const handleImpersonate = async (user: AdminUser) => {
         try {
             const token = localStorage.getItem('auth_token');
-            const res = await fetch(`${API_URL}/api/admin/impersonate/${user.id}`, {
+            const res = await fetchWithAuth(`/api/admin/impersonate/${user.id}`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -384,7 +385,7 @@ export const AdminUsersPage: React.FC = () => {
                                 <div className="flex gap-4 animate-in fade-in duration-200">
                                     <div className="flex-1">
                                         <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Tanggal Lahir</label>
-                                        <input type="date" required value={addDob} onChange={e => setAddDob(e.target.value)} className="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors" />
+                                        <input type="number" required value={addAge} onChange={e => setAddAge(parseInt(e.target.value) || '')} className="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors" />
                                     </div>
                                     <div className="flex-1">
                                         <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Gender</label>
@@ -450,7 +451,7 @@ export const AdminUsersPage: React.FC = () => {
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold mb-1">Tanggal Lahir</p>
-                                            <p className="font-bold text-charcoal text-sm">{userDetail.date_of_birth || userDetail.doctor?.date_of_birth || userDetail.patient?.date_of_birth || 'Belum diatur'}</p>
+                                            <p className="font-bold text-charcoal text-sm">{userDetail.age || userDetail.doctor?.age || userDetail.patient?.age || 'Belum diatur'}</p>
                                         </div>
                                     </div>
 

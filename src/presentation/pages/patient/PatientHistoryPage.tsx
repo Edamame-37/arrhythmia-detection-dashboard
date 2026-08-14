@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface SessionRecord {
     id: string;
     device_id: string;
     started_at: string;
+    ecg_paper?: string | null;
 }
 
 interface PatientProfile {
@@ -22,6 +24,40 @@ export const PatientHistoryPage: React.FC = () => {
     const navigate = useNavigate();
     const [profile, setProfile] = useState<PatientProfile | null>(null);
     const [sessions, setSessions] = useState<SessionRecord[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0 || !uploadingSessionId) return;
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append('paper', file);
+
+        try {
+            const res = await fetchWithAuth(`/api/sessions/${uploadingSessionId}/ecg_paper`, {
+                method: 'POST',
+                body: formData
+            }); // Multipart is handled automatically by not setting Content-Type
+            const data = await res.json();
+            if (data.success) {
+                setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: data.path } : s));
+            } else {
+                alert("Gagal mengunggah foto: " + data.message);
+            }
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Terjadi kesalahan saat mengunggah foto.");
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            setUploadingSessionId(null);
+        }
+    };
+
+    const triggerUpload = (sessionId: string) => {
+        setUploadingSessionId(sessionId);
+        if (fileInputRef.current) fileInputRef.current.click();
+    };
     const { t } = useTranslation();
 
     const getInitials = (firstName: string, lastName: string) => {
@@ -51,6 +87,7 @@ export const PatientHistoryPage: React.FC = () => {
             <div className="absolute inset-0 ecg-grid opacity-[0.15] z-0 pointer-events-none"></div>
             {/* Top Navigation Bar */}
             <PatientHeader />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
 
             <main className="max-w-container-max w-full mx-auto px-margin-mobile md:px-margin-desktop py-8 md:py-12 flex flex-col flex-grow relative z-10">
 
@@ -80,6 +117,17 @@ export const PatientHistoryPage: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 w-full md:w-auto">
+                                    {session.ecg_paper ? (
+                                        <button onClick={() => setPreviewImage(API_URL + session.ecg_paper)} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all outline-none">
+                                            Lihat Foto EKG
+                                            <span className="material-symbols-outlined text-[18px]">image</span>
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => triggerUpload(session.id)} disabled={uploadingSessionId === session.id} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                            {uploadingSessionId === session.id ? "Mengunggah..." : "Unggah Foto EKG"}
+                                            <span className="material-symbols-outlined text-[18px]">upload</span>
+                                        </button>
+                                    )}
                                     <Link
                                         to={`/patient/history/${session.id}`}
                                         className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none"
@@ -93,6 +141,17 @@ export const PatientHistoryPage: React.FC = () => {
                     </div>
                 </div>
             </main>
+            {/* Image Preview Modal */}
+            {previewImage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
+                            <span className="material-symbols-outlined text-4xl">close</span>
+                        </button>
+                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                    </div>
+                </div>
+            )}
 
 
         </div>

@@ -4,13 +4,14 @@ import { useConnection } from '../../../application/context/ConnectionContext';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 interface PatientProfile {
   patient: {
     id: number;
     first_name: string;
     last_name: string;
-    date_of_birth: string;
+    age: number;
     gender: string;
     primary_doctor_id: number | null;
     profile_photo: string | null;
@@ -66,7 +67,7 @@ export const PatientDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchDashboardProfile = () => {
       const userId = localStorage.getItem('user_id') || '1';
-      fetch(`${API_URL}/api/patients/${userId}`)
+      fetchWithAuth(`/api/patients/${userId}`)
         .then(res => {
           if (!res.ok) throw new Error('API offline');
           return res.json();
@@ -80,7 +81,7 @@ export const PatientDashboardPage: React.FC = () => {
           }
         });
 
-      fetch(`${API_URL}/api/patients/${userId}/sessions`)
+      fetchWithAuth(`/api/patients/${userId}/sessions`)
         .then(res => res.json())
         .then(data => setSessions(data))
         .catch(err => console.error("Error fetching sessions:", err));
@@ -103,7 +104,7 @@ export const PatientDashboardPage: React.FC = () => {
     const fetchDoctorProfile = () => {
       const docIdToFetch = (connectedDoctor && connectedDoctor.id) || (activeSession && activeSession.doctor_id);
       if (docIdToFetch) {
-        fetch(`${API_URL}/api/doctors/${docIdToFetch}`)
+        fetchWithAuth(`/api/doctors/${docIdToFetch}`)
           .then(res => {
             if (!res.ok) throw new Error('Doctor API offline');
             return res.json();
@@ -493,7 +494,7 @@ export const PatientDashboardPage: React.FC = () => {
                 onClick={async () => {
                   if (syncedDeviceId) {
                     try {
-                      await fetch(`${API_URL}/api/devices/${syncedDeviceId}/assign`, {
+                      await fetchWithAuth(`/api/devices/${syncedDeviceId}/assign`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ patient_id: null })

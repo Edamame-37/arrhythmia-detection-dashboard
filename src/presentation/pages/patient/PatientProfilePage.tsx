@@ -4,6 +4,7 @@ import { LogoutModal } from '../../components/shared/LogoutModal';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 export const PatientProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -20,7 +21,7 @@ export const PatientProfilePage: React.FC = () => {
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
-        date_of_birth: '',
+        age: 0,
         profile_photo: ''
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -35,7 +36,7 @@ export const PatientProfilePage: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            const response = await fetch(`${API_URL}/api/patients/${userId}`);
+            const response = await fetchWithAuth(`/api/patients/${userId}`);
             if (!response.ok) throw new Error(t('profile.fetchError'));
             const data = await response.json();
             setProfile(data);
@@ -45,7 +46,7 @@ export const PatientProfilePage: React.FC = () => {
                 setFormData({
                     first_name: data.patient.first_name || '',
                     last_name: data.patient.last_name || '',
-                    date_of_birth: data.patient.date_of_birth || '',
+                    age: data.patient.age || 0,
                     profile_photo: data.patient.profile_photo || ''
                 });
             }
@@ -64,7 +65,7 @@ export const PatientProfilePage: React.FC = () => {
                         id: parseInt(userId),
                         first_name: 'Budi',
                         last_name: 'Santoso',
-                        date_of_birth: '1968-05-12',
+                        age: 56,
                         profile_photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCQ0uEsAKEJ35lYFco-uP_vXQ6H-pXYfl4gMz5Tu4x5cIRXy_OUpMD68BU_iIYd2zfCcdMordvK3mPI_DkqchZifxr3BV9omv2qzSipTCs8WkY-x0uudqBJ54VzaA9W6_NyVAUJ_Rb8rYSodpiC7L-91vz0MrYpI3F6yZ32er1x6AlM-P02VbBkAatansWqbncKJzLpfQJIcOUvsJwkzQ_3nDbpYi1yC8uox5YF6IV5AgVX3uwbngpSkxuR4-InIetFQiCUP9yI5yBf'
                     },
                     doctor: {
@@ -80,7 +81,7 @@ export const PatientProfilePage: React.FC = () => {
             setFormData({
                 first_name: mockData.patient.first_name,
                 last_name: mockData.patient.last_name,
-                date_of_birth: mockData.patient.date_of_birth,
+                age: mockData.patient.age,
                 profile_photo: mockData.patient.profile_photo
             });
         } finally {
@@ -95,13 +96,13 @@ export const PatientProfilePage: React.FC = () => {
         const userId = localStorage.getItem('user_id') || '1';
 
         try {
-            const response = await fetch(`${API_URL}/api/patients/${userId}`, {
+            const response = await fetchWithAuth(`/api/patients/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     first_name: formData.first_name,
                     last_name: formData.last_name,
-                    date_of_birth: formData.date_of_birth,
+                    age: Number(formData.age),
                     profile_photo: formData.profile_photo || null
                 })
             });
@@ -209,12 +210,7 @@ export const PatientProfilePage: React.FC = () => {
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.dob')}</p>
-                                            <p className="text-base font-bold text-clinical-charcoal flex items-center gap-2">
-                                                {isLoading ? '---' : (profile?.patient?.date_of_birth ? new Date(profile.patient.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-')}
-                                            </p>
-                                        </div>
+                                        
                                         <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
                                             <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.age')}</p>
                                             <p className="text-base font-bold text-clinical-charcoal">
@@ -249,11 +245,12 @@ export const PatientProfilePage: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.dob')}</label>
+                                        <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.age')}</label>
                                         <input
-                                            type="date"
-                                            value={formData.date_of_birth}
-                                            onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })}
+                                            type="number"
+                                            min="0" max="150"
+                                            value={formData.age || ''}
+                                            onChange={e => setFormData({ ...formData, age: Number(e.target.value) })}
                                             className="w-full px-4 py-3 bg-white border border-clinical-charcoal/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-clinical-blue focus:border-transparent text-clinical-charcoal font-medium transition-all"
                                         />
                                     </div>
@@ -286,7 +283,7 @@ export const PatientProfilePage: React.FC = () => {
                                                     setFormData({
                                                         first_name: profile.patient.first_name,
                                                         last_name: profile.patient.last_name,
-                                                        date_of_birth: profile.patient.date_of_birth,
+                                                        age: profile.patient.age,
                                                         profile_photo: profile.patient.profile_photo || ''
                                                     });
                                                 }

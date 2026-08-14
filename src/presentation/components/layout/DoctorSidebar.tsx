@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { LogoutModal } from '../shared/LogoutModal';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
 
 export const DoctorSidebar: React.FC = () => {
     const navigate = useNavigate();
@@ -20,7 +21,7 @@ export const DoctorSidebar: React.FC = () => {
     useEffect(() => {
         const userId = localStorage.getItem('user_id');
         if (userId) {
-            fetch(`${API_URL}/api/doctors/${userId}`)
+            fetchWithAuth(`/api/doctors/${userId}`)
                 .then(res => res.json())
                 .then(data => setProfile(data))
                 .catch(err => console.error("Failed to load profile for sidebar", err));
