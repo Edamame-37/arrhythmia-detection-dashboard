@@ -107,6 +107,11 @@ export const PatientProfilePage: React.FC = () => {
                 })
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || t('profile.saveError'));
+            }
+
             const data = await response.json();
             if (data.success) {
                 setIsEditing(false);
@@ -117,8 +122,8 @@ export const PatientProfilePage: React.FC = () => {
             } else {
                 setError(data.message || t('profile.saveFailed'));
             }
-        } catch (err) {
-            setError(t('profile.serverError'));
+        } catch (err: any) {
+            setError(err.message || t('profile.serverError'));
         } finally {
             setIsSaving(false);
         }

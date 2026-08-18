@@ -97,6 +97,10 @@ export const ProfilePage: React.FC = () => {
                   profile_photo: editForm.profile_photo || null
               })
           });
+          if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(errorText || 'Gagal menyimpan profil');
+          }
           
           const data = await response.json();
           if (data.success) {
@@ -105,8 +109,8 @@ export const ProfilePage: React.FC = () => {
           } else {
               setError(data.message || 'Gagal menyimpan profil');
           }
-      } catch (err) {
-          setError('Koneksi ke server gagal saat menyimpan profil');
+      } catch (err: any) {
+          setError(err.message || 'Koneksi ke server gagal saat menyimpan profil');
       } finally {
           setIsSaving(false);
       }
