@@ -167,7 +167,7 @@ export const AdminUsersPage: React.FC = () => {
             } else {
                 await fetchWithAuth(`/api/patients/${selectedUser.id}/disconnect`, { method: 'POST' });
             }
-            handleViewDetail(selectedUser);
+            setSelectedUser({ ...selectedUser, connected_doctor_id: selectedDoctorId || null });
             fetchUsersAndDevices();
         } catch (err) {
             console.error("Failed to sync doctor", err);
@@ -178,25 +178,28 @@ export const AdminUsersPage: React.FC = () => {
         if (!selectedUser) return;
         try {
             if (selectedDeviceId) {
-                await fetchWithAuth(`/api/devices/${selectedDeviceId}/assign`, {
+                const response = await fetchWithAuth(`/api/devices/${selectedDeviceId}/assign`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ patient_id: selectedUser.id })
                 });
+                if (!response.ok) throw new Error(await response.text());
             } else {
                 const assignedDevice = devices.find(d => d.assigned_to === selectedUser.id);
                 if (assignedDevice) {
-                    await fetchWithAuth(`/api/devices/${assignedDevice.id}/assign`, {
+                    const response = await fetchWithAuth(`/api/devices/${assignedDevice.id}/assign`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ patient_id: null })
                     });
+                    if (!response.ok) throw new Error(await response.text());
                 }
             }
-            handleViewDetail(selectedUser);
+            setSelectedUser({ ...selectedUser, connected_device_id: selectedDeviceId || null });
             fetchUsersAndDevices();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to sync device", err);
+            alert("Error: " + err.message);
         }
     };
 
