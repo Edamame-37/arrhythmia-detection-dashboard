@@ -331,7 +331,7 @@ export const AdminUsersPage: React.FC = () => {
                                             </td>
                                             {activeTab === 'pasien' && (
                                                 <td className="p-4 text-xs font-mono-data font-bold text-medical-teal">
-                                                    {u.connected_doctor_id ? u.connected_doctor_id : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
+                                                    {u.connected_doctor_id ? (users.find(d => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
                                                 </td>
                                             )}
                                             {activeTab === 'pasien' && (
