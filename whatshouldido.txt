@@ -33,3 +33,8 @@ all:
 
 post migration:
 1. buat akun pasien asli
+2. buat data rekaman (data grafiknya) benar benar muncul, bukan hanya hasil penarikan dari database tanpa data asli
+3. buat data bpm di history muncul semua tak terkecuali
+4. buat data bpm di monitor pasti muncul, walaupun datanya agak berantakan
+5. buat admin dapat login ke akun user via page manajemen pengguna (seluruh jenis akun)
+

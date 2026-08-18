@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PatientHeader } from '../../components/layout/PatientHeader';
+import { Pagination } from '../../components/shared/Pagination';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
@@ -27,6 +28,10 @@ export const PatientHistoryPage: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0 || !uploadingSessionId) return;
@@ -101,7 +106,9 @@ export const PatientHistoryPage: React.FC = () => {
                     <div className="space-y-4 z-10">
                         {sessions.length === 0 ? (
                             <div className="text-center text-clinical-charcoal/60 p-8 bg-white rounded-2xl border border-clinical-charcoal/5 shadow-sm">{t('history.noHistory')}</div>
-                        ) : sessions.map(session => (
+                        ) : (() => {
+                            const paginatedSessions = sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                            return paginatedSessions.map(session => (
                             <article key={session.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-clinical-charcoal/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-clinical-blue/20 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700">
                                 <div>
                                     <h2 className="font-bold text-clinical-charcoal mb-1 uppercase tracking-widest text-xs">{t('history.recordingSession')}</h2>
@@ -137,8 +144,19 @@ export const PatientHistoryPage: React.FC = () => {
                                     </Link>
                                 </div>
                             </article>
-                        ))}
+                        ));
+                        })()}
                     </div>
+                    {sessions.length > 0 && (
+                        <div className="mt-8 z-10">
+                            <Pagination 
+                                currentPage={currentPage}
+                                totalItems={sessions.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             </main>
             {/* Image Preview Modal */}

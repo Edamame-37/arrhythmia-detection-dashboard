@@ -13,6 +13,32 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose }) => 
     if (!isOpen) return null;
 
     const handleConfirm = async () => {
+        const adminToken = localStorage.getItem('admin_auth_token');
+        const docToken = localStorage.getItem('doctor_auth_token');
+        const originalRole = localStorage.getItem('original_role');
+
+        if (adminToken && originalRole === 'admin') {
+            localStorage.setItem('auth_token', adminToken);
+            localStorage.setItem('user_id', localStorage.getItem('admin_user_id') || '');
+            localStorage.setItem('user_role', 'admin');
+            localStorage.removeItem('admin_auth_token');
+            localStorage.removeItem('admin_user_id');
+            localStorage.removeItem('original_role');
+            sessionStorage.removeItem('is_impersonating');
+            navigate('/admin/dashboard');
+            return;
+        } else if (docToken && originalRole === 'dokter') {
+            localStorage.setItem('auth_token', docToken);
+            localStorage.setItem('user_id', localStorage.getItem('doctor_user_id') || '');
+            localStorage.setItem('user_role', 'dokter');
+            localStorage.removeItem('doctor_auth_token');
+            localStorage.removeItem('doctor_user_id');
+            localStorage.removeItem('original_role');
+            sessionStorage.removeItem('is_impersonating');
+            navigate('/doctor/dashboard');
+            return;
+        }
+
         await supabase.auth.signOut();
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_role');

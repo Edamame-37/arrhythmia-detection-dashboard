@@ -4,9 +4,11 @@ import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { Pagination } from '../../components/shared/Pagination';
 
 interface AdminUser {
     id: string;
+    account_id: string;
     name: string;
     role: string;
     status: string;
@@ -28,7 +30,10 @@ export const AdminUsersPage: React.FC = () => {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'dokter' | 'pasien'>('dokter');
+    const [activeTab, setActiveTab] = useState<'dokter' | 'pasien'>('pasien');
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Add Modal State
     const [showAddModal, setShowAddModal] = useState(false);
@@ -46,7 +51,7 @@ export const AdminUsersPage: React.FC = () => {
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
     const [userDetail, setUserDetail] = useState<any>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
-    
+
     // Sync states
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -58,15 +63,15 @@ export const AdminUsersPage: React.FC = () => {
             fetchWithAuth(`/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
             fetchWithAuth(`/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
         ])
-        .then(([usersData, devicesData]) => {
-            setUsers(usersData);
-            setDevices(devicesData);
-            setLoading(false);
-        })
-        .catch(err => {
-            console.error("Failed to fetch data", err);
-            setLoading(false);
-        });
+            .then(([usersData, devicesData]) => {
+                setUsers(usersData);
+                setDevices(devicesData);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch data", err);
+                setLoading(false);
+            });
     };
 
     useEffect(() => {
@@ -89,9 +94,9 @@ export const AdminUsersPage: React.FC = () => {
             const res = await fetchWithAuth(`/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    email: addEmail, 
-                    password: addPassword, 
+                body: JSON.stringify({
+                    email: addEmail,
+                    password: addPassword,
                     role: addRole,
                     first_name: addFirstName,
                     last_name: addLastName,
@@ -194,35 +199,37 @@ export const AdminUsersPage: React.FC = () => {
     const handleImpersonate = async (user: AdminUser) => {
         try {
             const token = localStorage.getItem('auth_token');
-            const res = await fetchWithAuth(`/api/admin/impersonate/${user.id}`, {
+            const res = await fetchWithAuth(`/api/admin/impersonate/${user.account_id}`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 }
             });
             const data = await res.json();
-            
+
             if (data.success && data.user_id) {
                 // Backup admin credentials sebelum impersonate
                 const currentRole = localStorage.getItem('user_role');
                 if (currentRole === 'admin') {
                     localStorage.setItem('admin_auth_token', token || '');
                     localStorage.setItem('admin_user_id', localStorage.getItem('user_id') || '');
+                    localStorage.setItem('original_role', 'admin');
                 }
+                sessionStorage.setItem('is_impersonating', 'true');
 
                 // Clear old connected state
                 localStorage.removeItem('connectedPatients');
                 localStorage.removeItem('connectedDoctor');
                 localStorage.removeItem('mock_patient_profile');
-                
+
                 // Set new credentials
                 localStorage.setItem('user_id', data.user_id.toString());
                 localStorage.setItem('user_role', data.role);
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }
-                
+
                 // Navigate
                 if (data.role === 'pasien') {
                     navigate('/patient/dashboard');
@@ -239,12 +246,13 @@ export const AdminUsersPage: React.FC = () => {
     };
 
     const filteredUsers = users.filter(u => u.role === activeTab);
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const doctorsList = users.filter(u => u.role === 'dokter');
 
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
             <AdminSidebar />
-            
+
             <main id="main-content" className={`pb-24 md:pb-12 transition-all duration-300 min-h-screen flex flex-col ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
                 <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 py-4 flex items-center gap-4 max-w-container-max mx-auto w-full">
                     <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
@@ -260,13 +268,13 @@ export const AdminUsersPage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
                         <div className="flex bg-surface-container-low rounded-lg p-1">
                             <button 
-                                onClick={() => setActiveTab('dokter')} 
-                                className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'dokter' ? 'bg-white shadow-sm text-charcoal' : 'text-on-surface-variant hover:text-charcoal'}`}
+                                onClick={() => { setActiveTab('pasien'); setCurrentPage(1); }}
+                                className={`px-4 py-2 font-bold text-sm transition-all relative ${activeTab === 'pasien' ? 'text-primary bg-white shadow-sm rounded-md' : 'text-on-surface-variant hover:text-charcoal'}`}
+                            >Data Pasien</button>
+                            <button
+                                onClick={() => { setActiveTab('dokter'); setCurrentPage(1); }}
+                                className={`px-4 py-2 font-bold text-sm transition-all relative ${activeTab === 'dokter' ? 'text-medical-teal bg-white shadow-sm rounded-md' : 'text-on-surface-variant hover:text-charcoal'}`}
                             >Dokter</button>
-                            <button 
-                                onClick={() => setActiveTab('pasien')} 
-                                className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'pasien' ? 'bg-white shadow-sm text-charcoal' : 'text-on-surface-variant hover:text-charcoal'}`}
-                            >Pasien</button>
                         </div>
                         <div className="flex-1"></div>
                         <button onClick={() => setShowAddModal(true)} className="bg-medical-teal text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2 hover:brightness-110 transition-all">
@@ -293,7 +301,7 @@ export const AdminUsersPage: React.FC = () => {
                                         <tr><td colSpan={activeTab === 'pasien' ? 7 : 5} className="p-4 text-center text-sm">Memuat data...</td></tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr><td colSpan={activeTab === 'pasien' ? 7 : 5} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
-                                    ) : filteredUsers.map(u => (
+                                    ) : paginatedUsers.map(u => (
                                         <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
                                             <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id}</td>
                                             <td className="p-4 text-sm font-bold text-charcoal">
@@ -342,6 +350,14 @@ export const AdminUsersPage: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
+                        {filteredUsers.length > 0 && (
+                            <Pagination 
+                                currentPage={currentPage}
+                                totalItems={filteredUsers.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                            />
+                        )}
                     </div>
                 </div>
             </main>
@@ -384,7 +400,7 @@ export const AdminUsersPage: React.FC = () => {
                             {addRole === 'pasien' && (
                                 <div className="flex gap-4 animate-in fade-in duration-200">
                                     <div className="flex-1">
-                                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Tanggal Lahir</label>
+                                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Umur</label>
                                         <input type="number" required value={addAge} onChange={e => setAddAge(parseInt(e.target.value) || '')} className="w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors" />
                                     </div>
                                     <div className="flex-1">
@@ -416,7 +432,7 @@ export const AdminUsersPage: React.FC = () => {
                             <h3 className="font-bold text-charcoal">Detail & Sinkronisasi Pengguna</h3>
                             <button onClick={closeDetailModal} className="text-on-surface-variant hover:text-charcoal"><span className="material-symbols-outlined">close</span></button>
                         </div>
-                        
+
                         <div className="p-6 overflow-y-auto">
                             {loadingDetail ? (
                                 <div className="text-center py-12 flex flex-col items-center gap-3">
@@ -442,7 +458,7 @@ export const AdminUsersPage: React.FC = () => {
                                             <p className="text-xs text-on-surface-variant mt-2 font-medium">Terdaftar sejak: {selectedUser.registered_at.split('T')[0]}</p>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Detailed Data */}
                                     <div className="grid grid-cols-2 gap-4 bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/30">
                                         <div>
@@ -450,7 +466,7 @@ export const AdminUsersPage: React.FC = () => {
                                             <p className="font-bold text-charcoal text-sm">{userDetail.gender || userDetail.doctor?.gender || userDetail.patient?.gender || 'Belum diatur'}</p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold mb-1">Tanggal Lahir</p>
+                                            <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold mb-1">Umur</p>
                                             <p className="font-bold text-charcoal text-sm">{userDetail.age || userDetail.doctor?.age || userDetail.patient?.age || 'Belum diatur'}</p>
                                         </div>
                                     </div>
@@ -462,7 +478,7 @@ export const AdminUsersPage: React.FC = () => {
                                                 <span className="material-symbols-outlined text-primary text-[18px]">sync_alt</span>
                                                 Manajemen Sinkronisasi
                                             </h4>
-                                            
+
                                             {/* Sync Doctor */}
                                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col sm:flex-row sm:items-end gap-3">
                                                 <div className="flex-1">

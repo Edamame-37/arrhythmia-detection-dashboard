@@ -40,12 +40,10 @@ export const QrScannerPage: React.FC = () => {
             if (decodedText.includes('/sync/patient/')) {
               isProcessing.current = true;
               const parts = decodedText.split('/');
-              const idToFetch = parts[parts.length - 1];
-              const numStr = idToFetch.replace(/[^0-9]/g, '');
-              const validNumStr = numStr || '1';
-              setInputValue(`PAT-${validNumStr.padStart(4, '0')}-XYZ`);
+              const idToFetch = parts[parts.length - 1]; // Exact UUID from QR
+              setInputValue(idToFetch);
 
-              fetchPatientData(validNumStr);
+              fetchPatientData(idToFetch);
             } else {
               // Invalid QR Code format
               isProcessing.current = true;
@@ -89,30 +87,34 @@ export const QrScannerPage: React.FC = () => {
     };
   }, []);
 
-  const fetchPatientData = async (numStr: string) => {
+  const fetchPatientData = async (patientId: string) => {
     setIsLoading(true);
 
     try {
       // Simulate an error if ID is 0 or 9999 (allow manual failure for testing)
-      if (numStr === '0' || numStr === '9999') {
+      if (patientId === '0' || patientId === '9999') {
         throw new Error('Simulated Not Found');
       }
 
-      const dbPatientId = `pat${numStr.padStart(12, '0')}`;
-      const response = await fetchWithAuth(`/api/patients/${dbPatientId}`);
+      const response = await fetchWithAuth(`/api/patients/${patientId}`);
       if (!response.ok) throw new Error('Patient not found');
 
       const data = await response.json();
       const patientData = data.patient;
 
+      // Extract some numbers from ID for display or use generic text if no numbers exist
+      const extractedNums = patientData.id.replace(/[^0-9]/g, '');
+      const shortCode = extractedNums.slice(0, 4) || patientData.id.slice(0, 4);
+
       const patientDisplay = {
-        id: `PAT-${numStr.padStart(4, '0')}-XYZ`,
+        id: `PAT-${shortCode}-XYZ`,
         name: `${patientData.first_name} ${patientData.last_name}`
       };
       
       setFoundPatient(patientDisplay);
       await addConnectedPatient({
         id: patientDisplay.id,
+        raw_id: patientData.id,
         name: patientDisplay.name,
         profile_photo: patientData.profile_photo || undefined,
         connectedAt: new Date().toISOString()

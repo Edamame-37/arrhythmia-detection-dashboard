@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { Pagination } from '../../components/shared/Pagination';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 
@@ -31,6 +32,9 @@ export const AdminDevicesPage: React.FC = () => {
         mqtt_username: '',
         mqtt_password: ''
     });
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const fetchDevices = () => {
         setLoading(true);
@@ -124,7 +128,9 @@ export const AdminDevicesPage: React.FC = () => {
                                 <tbody>
                                     {loading ? (
                                         <tr><td colSpan={6} className="p-4 text-center">Loading...</td></tr>
-                                    ) : devices.map(d => (
+                                    ) : (() => {
+                                        const paginatedDevices = devices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                                        return paginatedDevices.map(d => (
                                         <tr key={d.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
                                             <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{d.id}</td>
                                             <td className="p-4 font-bold text-sm text-charcoal">{d.name}</td>
@@ -152,10 +158,19 @@ export const AdminDevicesPage: React.FC = () => {
                                                 }} className="text-medical-teal hover:underline text-xs font-bold flex items-center gap-1">Edit</button>
                                             </td>
                                         </tr>
-                                    ))}
+                                        ));
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
+                        {devices.length > 0 && (
+                            <Pagination 
+                                currentPage={currentPage}
+                                totalItems={devices.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                            />
+                        )}
                     </div>
                 </div>
             </main>

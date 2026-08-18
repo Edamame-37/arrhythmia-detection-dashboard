@@ -102,8 +102,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
   const addConnectedPatient = async (patient: ConnectedPatient) => {
-    const numStr = patient.id.replace(/[^0-9]/g, '');
-    const dbPatientId = `pat${numStr.padStart(12, '0')}`;
+    const dbPatientId = patient.raw_id || patient.id;
     const doctorId = localStorage.getItem('user_id');
     
     try {
@@ -124,8 +123,9 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const removeConnectedPatient = async (patientId: string) => {
-    const numStr = patientId.replace(/[^0-9]/g, '');
-    const dbPatientId = `pat${numStr.padStart(12, '0')}`;
+    // Find patient from current state to get their raw_id
+    const patientObj = connectedPatients.find(p => p.id === patientId);
+    const dbPatientId = patientObj?.raw_id || patientId;
     
     try {
       await fetchWithAuth(`/api/patients/${dbPatientId}/disconnect`, {

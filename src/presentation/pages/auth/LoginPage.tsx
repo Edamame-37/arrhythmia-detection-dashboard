@@ -40,39 +40,44 @@ export const LoginPage: React.FC = () => {
 
       if (authData.user && authData.session) {
         // Ambil role dari Backend Rust
-        let role = 'pasien'; // default
-
         try {
+            // Kita HARUS mendaftarkan sesi access token agar fetchWithAuth berfungsi
+            localStorage.setItem('auth_token', authData.session.access_token);
+            
             const response = await fetchWithAuth('/api/auth/me');
             const data = await response.json();
             
             if (response.ok && data.success && data.role) {
-                role = data.role;
+                // Hapus data koneksi lama sebelum login baru berhasil
+                localStorage.removeItem('connectedPatients');
+                localStorage.removeItem('connectedDoctor');
+                localStorage.removeItem('mock_patient_profile');
+
+                // Simpan data auth ke localStorage
+                localStorage.setItem('user_id', authData.user.id);
+                localStorage.setItem('user_role', data.role);
+                
+                // Navigasi jika berhasil
+                if (data.role === 'pasien') {
+                  navigate('/patient/dashboard');
+                } else if (data.role === 'dokter') {
+                  navigate('/doctor/dashboard');
+                } else {
+                  navigate('/admin/dashboard');
+                }
             } else {
                 console.warn("Gagal mengambil role dari backend:", data.message);
+                setError("Gagal memverifikasi akun Anda dengan server. Pastikan API menyala.");
+                await supabase.auth.signOut();
+                localStorage.clear();
             }
         } catch (err) {
             console.error("Kesalahan jaringan saat mengambil profil:", err);
+            setError("Koneksi ke server terputus. Pastikan backend Rust berjalan.");
+            await supabase.auth.signOut();
+            localStorage.clear();
         }
 
-        // Hapus data koneksi lama sebelum login baru
-        localStorage.removeItem('connectedPatients');
-        localStorage.removeItem('connectedDoctor');
-        localStorage.removeItem('mock_patient_profile');
-
-        // Simpan data auth ke localStorage
-        localStorage.setItem('user_id', authData.user.id);
-        localStorage.setItem('user_role', role);
-        localStorage.setItem('auth_token', authData.session.access_token);
-
-        // Navigasi jika berhasil
-        if (role === 'pasien') {
-          navigate('/patient/dashboard');
-        } else if (role === 'dokter') {
-          navigate('/doctor/dashboard');
-        } else {
-          navigate('/admin/dashboard');
-        }
       }
     } catch (err) {
       setError('Terjadi kesalahan saat login.');

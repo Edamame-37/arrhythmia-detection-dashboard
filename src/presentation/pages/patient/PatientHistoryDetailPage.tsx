@@ -9,12 +9,14 @@ import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import type { ECGPaths, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
 import { PanTompkins } from '../../../core/algorithms/panTompkins';
+import { DCBlocker } from '../../../core/algorithms/dcBlocker';
 import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { useECGScale } from '../../../application/hooks/useECGScale';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { supabase } from '../../../config/supabaseClient';
 
 interface PatientProfile {
     patient: {
@@ -51,9 +53,12 @@ export const PatientHistoryDetailPage: React.FC = () => {
             .catch(console.error);
 
         setIsLoading(true);
-        fetchWithAuth(`/api/records/${sessionId}`)
-            .then(res => res.json())
-            .then(rawData => {
+        setIsLoading(true);
+        Promise.all([
+            fetchWithAuth(`/api/records/${sessionId}`).then(res => res.json()),
+            supabase.from('frame_records').select('start_time, label, hidden').eq('session_id', sessionId)
+        ])
+            .then(([rawData, { data: frameRecords }]) => {
                 let data = rawData;
                 if (data && data.length > 0) {
                     // Filter payloads to only show one recording session (handles merged mockup files)
@@ -66,14 +71,43 @@ export const PatientHistoryDetailPage: React.FC = () => {
                 const loadedEvents: TimelineEvent[] = [];
                 const loadedSegments: Record<number, any> = {};
 
-                data.forEach((payload: any, i: number) => {
-                    const isAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) ||
+                const pt = new PanTompkins(250);
+                const globalDcBlocker = new DCBlocker(); // Jalur Matematis: Kontinu
+                let lastPeakIndex = -1;
+                let absoluteIndexOffset = 0;
+
+                const labelMap = new Map();
+                const hiddenMap = new Map();
+                if (frameRecords) {
+                    frameRecords.forEach(fr => {
+                        labelMap.set(fr.start_time, fr.label);
+                        hiddenMap.set(fr.start_time, fr.hidden);
+                    });
+                }
+
+                // Filter data to exclude hidden frames
+                const validData = data.filter((payload: any, originalIndex: number) => {
+                    const startTime = originalIndex * 10;
+                    return !hiddenMap.get(startTime);
+                });
+
+                validData.forEach((payload: any, i: number) => {
+                    const originalIndex = data.indexOf(payload);
+                    const startTime = originalIndex * 10;
+                    const dbLabel = labelMap.get(startTime);
+                    
+                    const isDbLabelAnomaly = dbLabel && dbLabel !== "Normal" && dbLabel !== "NORM" && dbLabel !== "NSR";
+                    const isPayloadAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) ||
                         (payload.prediction?.label && payload.prediction.label !== "Normal" && payload.prediction.label !== "NORM") || false;
+                    
+                    const isAnomaly = dbLabel ? isDbLabelAnomaly : isPayloadAnomaly;
+                    const classResult = dbLabel || payload.prediction?.label || payload.classification_result || "NORM";
+
                     loadedEvents.push({
                         index: i,
                         timeStr: `${Math.floor(i / 6).toString().padStart(2, '0')}:${((i % 6) * 10).toString().padStart(2, '0')}`,
                         isAnomaly,
-                        classResult: payload.prediction?.label || payload.classification_result || "NORM"
+                        classResult
                     });
 
                     let xIndex = 0;
@@ -85,9 +119,8 @@ export const PatientHistoryDetailPage: React.FC = () => {
 
                     const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
 
-                    const pt = new PanTompkins(250);
                     const rrIntervals: number[] = [];
-                    let lastPeakIndex = -1;
+                    const visualDcBlocker = new DCBlocker(); // Jalur Visual: Reset per-frame
 
                     for (let j = 0; j < samples.length; j++) {
                         let finalI, finalII, finalIII;
@@ -100,6 +133,23 @@ export const PatientHistoryDetailPage: React.FC = () => {
                             finalII = ch2[j] || 0;
                             finalIII = ch3[j] || 0;
                         }
+
+                        // JALUR MATEMATIS
+                        const mathCleaned = globalDcBlocker.process(finalI, finalII);
+                        let absoluteJ = absoluteIndexOffset + j;
+                        if (pt.detectRealTime(mathCleaned.cleanII, absoluteJ)) {
+                            if (lastPeakIndex !== -1) {
+                                rrIntervals.push((absoluteJ - lastPeakIndex) / 250);
+                            }
+                            lastPeakIndex = absoluteJ;
+                        }
+
+                        // JALUR VISUAL
+                        const visualCleaned = visualDcBlocker.process(finalI, finalII);
+                        finalI = visualCleaned.cleanI;
+                        finalII = visualCleaned.cleanII;
+                        finalIII = visualCleaned.cleanIII;
+
                         const calculated = calculateEinthovenPoint(finalI, finalII);
                         const currentX = Number((xIndex * X_STEP).toFixed(2));
 
@@ -111,18 +161,12 @@ export const PatientHistoryDetailPage: React.FC = () => {
                         paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
                         paths.V1.push(`${currentX},240.00`);
 
-                        if (pt.detectRealTime(finalII, j)) {
-                            if (lastPeakIndex !== -1) {
-                                rrIntervals.push((j - lastPeakIndex) / 250);
-                            }
-                            lastPeakIndex = j;
-                        }
-
                         xIndex++;
                     }
+                    absoluteIndexOffset += samples.length;
 
                     const evalResult = evaluateIrregularity(rrIntervals);
-                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || "--");
+                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--"));
                     loadedSegments[i] = {
                         paths,
                         rPeaks: [],
@@ -182,10 +226,10 @@ export const PatientHistoryDetailPage: React.FC = () => {
 
                 {/* Main Canvas Content */}
                 <main className="flex-1 w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-                    <div className="flex flex-col lg:flex-row gap-8 lg:min-h-[calc(100vh-180px)]">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
                         {/* KOLOM KIRI: GRAFIK & TIMELINE */}
-                        <section className="w-full lg:w-9/12 flex flex-col gap-6">
+                        <section className="lg:col-span-3 flex flex-col gap-6">
 
                             {/* Control Bar */}
                             <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] px-6 py-3 flex flex-wrap justify-between items-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] gap-4 transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1">
@@ -204,8 +248,8 @@ export const PatientHistoryDetailPage: React.FC = () => {
                             </div>
 
                             {/* Pembungkus Kanvas 7-Lead */}
-                            <div className="relative flex-1 bg-white border border-clinical-charcoal/5 rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group">
-                                <div className="flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar">
+                            <div className="relative flex-1 min-h-[300px] lg:min-h-0 bg-white border border-clinical-charcoal/5 rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group">
+                                <div className="absolute inset-0 overflow-hidden rounded-[2rem] flex flex-col">
                                     <ECGCanvas
                                         paths={currentSegment?.paths || { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] }}
                                         rPeaks={currentSegment?.rPeaks || []}
@@ -244,7 +288,7 @@ export const PatientHistoryDetailPage: React.FC = () => {
                         </section>
 
                         {/* KOLOM KANAN: DETAIL ANALISIS HISTORIS */}
-                        <aside className="w-full lg:w-3/12 flex flex-col gap-5">
+                        <aside className="lg:col-span-1 flex flex-col gap-5 h-fit">
                             <VitalCard heartRate={heartRate} clinicalStatus={clinicalStatus} stressTest={stressTest} createdAt={createdAt} hideTechnicalDetails={true} />
 
                             {/* Kesimpulan Analisis (Patient Friendly) */}

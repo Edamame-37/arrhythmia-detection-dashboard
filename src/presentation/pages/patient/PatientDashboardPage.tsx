@@ -5,6 +5,7 @@ import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { supabase } from '../../../config/supabaseClient';
 
 interface PatientProfile {
   patient: {
@@ -34,6 +35,7 @@ export const PatientDashboardPage: React.FC = () => {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUnsyncModal, setShowUnsyncModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [syncedDeviceId, setSyncedDeviceId] = useState<string | null>(localStorage.getItem('synced_device_id'));
   const [localRecordingStopped, setLocalRecordingStopped] = useState(localStorage.getItem('web_recording_stopped') === 'true');
@@ -72,9 +74,13 @@ export const PatientDashboardPage: React.FC = () => {
           if (!res.ok) throw new Error('API offline');
           return res.json();
         })
-        .then(data => setProfile(data))
+        .then(data => {
+            setProfile(data);
+            setError(null);
+        })
         .catch(err => {
           console.error("Error fetching patient profile:", err);
+          setError("Gagal mengambil data profil.");
           const savedMock = localStorage.getItem('mock_patient_profile');
           if (savedMock) {
             setProfile(JSON.parse(savedMock));
@@ -146,6 +152,33 @@ export const PatientDashboardPage: React.FC = () => {
   }, [connectedDoctor?.id, activeSession?.doctor_id]);
 
   const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-clinical-surface/30 flex items-center justify-center p-8">
+        <div className="bg-white p-8 rounded-2xl border border-red-100 shadow-xl max-w-md text-center text-clinical-charcoal">
+            <span className="material-symbols-outlined text-5xl text-clinical-red mb-4">error</span>
+            <h2 className="text-xl font-bold mb-2">Gagal Memuat Dasbor</h2>
+            <p className="text-clinical-charcoal/60 mb-6">{error}</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => window.location.reload()} className="bg-clinical-blue hover:brightness-110 active:scale-95 text-white px-6 py-2.5 rounded-lg font-bold transition-all w-full">
+                Coba Lagi
+              </button>
+              <button 
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  localStorage.clear();
+                  window.location.href = '/auth/login';
+                }} 
+                className="bg-red-50 text-alert-red hover:bg-red-100 active:scale-95 px-6 py-2.5 rounded-lg font-bold transition-all w-full border border-red-100"
+              >
+                Keluar (Log Out)
+              </button>
+            </div>
+        </div>
+      </div>
+    );
+  }
 
   const displayDoctor = profile?.doctor ? {
     name: `Dr. ${profile.doctor.first_name} ${profile.doctor.last_name}`,

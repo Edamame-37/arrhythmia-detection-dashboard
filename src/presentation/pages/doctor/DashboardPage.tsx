@@ -51,7 +51,11 @@ export const DashboardPage: React.FC = () => {
             if (docId) localStorage.setItem('user_id', docId);
         }
 
-        fetchWithAuth(`/api/sessions`)
+        const role = localStorage.getItem('user_role');
+        const userId = localStorage.getItem('user_id');
+        const url = role === 'dokter' ? `/api/sessions?doctor_id=${userId}` : `/api/sessions`;
+
+        fetchWithAuth(url)
             .then(res => res.json())
             .then(data => {
                 if (data && Array.isArray(data.sessions)) {
@@ -100,7 +104,9 @@ export const DashboardPage: React.FC = () => {
                 if (currentRole === 'dokter') {
                     localStorage.setItem('doctor_auth_token', token || '');
                     localStorage.setItem('doctor_user_id', localStorage.getItem('user_id') || '');
+                    localStorage.setItem('original_role', 'dokter');
                 }
+                sessionStorage.setItem('is_impersonating', 'true');
 
                 // Clear old connected state
                 localStorage.removeItem('connectedPatients');

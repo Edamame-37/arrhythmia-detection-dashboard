@@ -18,10 +18,13 @@ import { SecurityProvider } from './application/context/SecurityContext';
 import { DevToolsBlocker } from './presentation/components/DevToolsBlocker';
 
 // Admin Pages
+import { ErrorBoundary } from './presentation/components/ErrorBoundary';
 import { AdminDashboardPage } from './presentation/pages/admin/AdminDashboardPage';
 import { AdminMonitorPage } from './presentation/pages/admin/AdminMonitorPage';
 import { AdminUsersPage } from './presentation/pages/admin/AdminUsersPage';
 import { AdminDevicesPage } from './presentation/pages/admin/AdminDevicesPage';
+import { AdminSessionsPage } from './presentation/pages/admin/AdminSessionsPage';
+import { AdminAnalyticsPage } from './presentation/pages/admin/AdminAnalyticsPage';
 
 // Doctor Pages
 import { DashboardPage } from './presentation/pages/doctor/DashboardPage';
@@ -55,6 +58,8 @@ const TitleSetter: React.FC = () => {
       '/admin/monitor': 'Live Stream Monitor',
       '/admin/users': 'User Management',
       '/admin/devices': 'Device Fleet',
+      '/admin/sessions': 'Session Management',
+      '/admin/analytics': 'Admin Analytics',
       '/doctor/dashboard': 'Doctor Dashboard',
       '/doctor/analytics': 'Analytics',
       '/doctor/qr-scanner': 'QR Scanner',
@@ -75,6 +80,36 @@ const TitleSetter: React.FC = () => {
   return null;
 };
 
+const SessionRestorer: React.FC = () => {
+  useEffect(() => {
+    const isImpersonating = sessionStorage.getItem('is_impersonating');
+    if (!isImpersonating) {
+      const adminToken = localStorage.getItem('admin_auth_token');
+      const adminId = localStorage.getItem('admin_user_id');
+      const docToken = localStorage.getItem('doctor_auth_token');
+      const docId = localStorage.getItem('doctor_user_id');
+      const originalRole = localStorage.getItem('original_role');
+
+      if (adminToken && adminId && originalRole === 'admin') {
+        localStorage.setItem('auth_token', adminToken);
+        localStorage.setItem('user_id', adminId);
+        localStorage.setItem('user_role', 'admin');
+        localStorage.removeItem('admin_auth_token');
+        localStorage.removeItem('admin_user_id');
+        localStorage.removeItem('original_role');
+      } else if (docToken && docId && originalRole === 'dokter') {
+        localStorage.setItem('auth_token', docToken);
+        localStorage.setItem('user_id', docId);
+        localStorage.setItem('user_role', 'dokter');
+        localStorage.removeItem('doctor_auth_token');
+        localStorage.removeItem('doctor_user_id');
+        localStorage.removeItem('original_role');
+      }
+    }
+  }, []);
+  return null;
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -83,7 +118,9 @@ export const App: React.FC = () => {
       <ConnectionProvider>
       <SidebarProvider>
       <TitleSetter />
+      <SessionRestorer />
       <DevToolsBlocker />
+      <ErrorBoundary>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
@@ -100,6 +137,8 @@ export const App: React.FC = () => {
         <Route path="/admin/monitor" element={<AdminMonitorPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/devices" element={<AdminDevicesPage />} />
+        <Route path="/admin/sessions" element={<AdminSessionsPage />} />
+        <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
 
         {/* Doctor Routes */}
         <Route path="/doctor/dashboard" element={<DashboardPage />} />
@@ -116,6 +155,7 @@ export const App: React.FC = () => {
         <Route path="/patient/settings" element={<PatientSettingsPage />} />
         <Route path="/patient/monitor" element={<PatientMonitorPage />} />
       </Routes>
+      </ErrorBoundary>
       </SidebarProvider>
       </ConnectionProvider>
       </PreferencesProvider>

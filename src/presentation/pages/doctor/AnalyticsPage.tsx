@@ -16,6 +16,7 @@ import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
+import { Pagination } from '../../components/shared/Pagination';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
@@ -44,6 +45,12 @@ export const AnalyticsPage: React.FC = () => {
     const { connectedPatients } = useConnection();
 
     const [events, setEvents] = useState<TimelineEvent[]>([]);
+    const [loadingAI, setLoadingAI] = useState<Record<string, boolean>>({});
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    
     const [segments, setSegments] = useState<Record<number, any>>({});
     
     const [sessionValidations, setSessionValidations] = useState<Record<string, { total: number, validated: number }>>({});
@@ -367,6 +374,8 @@ export const AnalyticsPage: React.FC = () => {
                     ? allSessions 
                     : allSessions.filter(s => s.patient_id === selectedPatientFilter);
                 
+                const paginatedSessions = filteredSessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
                 return (
                 <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
                     <div className="space-y-3">
@@ -376,7 +385,7 @@ export const AnalyticsPage: React.FC = () => {
                                     {allSessions.length === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
                                 </p>
                             </div>
-                        ) : filteredSessions.map(session => {
+                        ) : paginatedSessions.map(session => {
                             const validation = sessionValidations[session.id] || { total: 0, validated: 0 };
                             let validationStatus = "Belum Divalidasi";
                             let validationClass = "bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant";
@@ -421,6 +430,16 @@ export const AnalyticsPage: React.FC = () => {
                             );
                         })}
                     </div>
+                    {filteredSessions.length > 0 && (
+                        <div className="mt-4">
+                            <Pagination 
+                                currentPage={currentPage}
+                                totalItems={filteredSessions.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             )})() : (
             <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex flex-col lg:flex-row gap-6 flex-1">

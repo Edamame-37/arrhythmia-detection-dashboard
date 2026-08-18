@@ -4,6 +4,7 @@ import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { fetchWithAuth } from '../../../config/api';
 import { supabase } from '../../../config/supabaseClient';
+import { Pagination } from '../../components/shared/Pagination';
 
 export const AdminSessionsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -17,6 +18,10 @@ export const AdminSessionsPage: React.FC = () => {
     // View States
     const [viewMode, setViewMode] = useState<'all' | 'users'>('all');
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+    // Pagination States
+    const [currentPageSessions, setCurrentPageSessions] = useState(1);
+    const [currentPagePatients, setCurrentPagePatients] = useState(1);
 
     // Note Editing States
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -158,21 +163,27 @@ export const AdminSessionsPage: React.FC = () => {
         ? sessions.filter(s => s.patient_id === selectedUserId)
         : sessions;
 
-    const renderSessionsTable = (sessionList: any[]) => (
-        <div className="overflow-x-auto w-full">
-            <table className="w-full text-sm text-left">
-                <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
-                    <tr>
-                        <th className="px-6 py-4 font-bold tracking-wider">Pasien</th>
+    const renderSessionsTable = (sessionList: any[]) => {
+        const itemsPerPage = 10;
+        const totalItems = sessionList.length;
+        const paginatedSessions = sessionList.slice((currentPageSessions - 1) * itemsPerPage, currentPageSessions * itemsPerPage);
 
-                        <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Catatan</th>
-                        <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
-                        <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/50">
-                    {sessionList.map((session) => {
+        return (
+        <div className="flex flex-col w-full">
+            <div className="overflow-x-auto w-full">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
+                        <tr>
+                            <th className="px-6 py-4 font-bold tracking-wider">Pasien</th>
+
+                            <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
+                            <th className="px-6 py-4 font-bold tracking-wider">Catatan</th>
+                            <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
+                            <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/50">
+                        {paginatedSessions.map((session) => {
                         const patientName = patientNames[session.patient_id] || session.patient_id || 'Unknown';
                         const doctorName = doctorNames[session.doctor_id] || session.doctor_id || 'Unknown';
 
@@ -277,23 +288,37 @@ export const AdminSessionsPage: React.FC = () => {
                     })}
                 </tbody>
             </table>
+            </div>
+            <Pagination 
+                currentPage={currentPageSessions}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPageSessions}
+            />
         </div>
     );
+};
 
-    const renderPatientsTable = () => (
-        <div className="overflow-x-auto w-full">
-            <table className="w-full text-sm text-left">
-                <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
-                    <tr>
-                        <th className="px-6 py-4 font-bold tracking-wider">Nama Pasien</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Patient ID</th>
-                        <th className="px-6 py-4 font-bold tracking-wider text-center">Total Sesi</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Sesi Terakhir</th>
-                        <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/50">
-                    {patientsList.map((patient) => (
+    const renderPatientsTable = () => {
+        const itemsPerPage = 10;
+        const totalItems = patientsList.length;
+        const paginatedPatients = patientsList.slice((currentPagePatients - 1) * itemsPerPage, currentPagePatients * itemsPerPage);
+
+        return (
+        <div className="flex flex-col w-full">
+            <div className="overflow-x-auto w-full">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
+                        <tr>
+                            <th className="px-6 py-4 font-bold tracking-wider">Nama Pasien</th>
+                            <th className="px-6 py-4 font-bold tracking-wider">Patient ID</th>
+                            <th className="px-6 py-4 font-bold tracking-wider text-center">Total Sesi</th>
+                            <th className="px-6 py-4 font-bold tracking-wider">Sesi Terakhir</th>
+                            <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/50">
+                        {paginatedPatients.map((patient) => (
                         <tr key={patient.id} className="hover:bg-surface-container-lowest/50 transition-colors">
                             <td className="px-6 py-4 font-bold text-charcoal">
                                 {patient.name}
@@ -319,11 +344,19 @@ export const AdminSessionsPage: React.FC = () => {
                                 </button>
                             </td>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <Pagination 
+                currentPage={currentPagePatients}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPagePatients}
+            />
         </div>
     );
+};
 
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
@@ -354,13 +387,24 @@ export const AdminSessionsPage: React.FC = () => {
                                 {!selectedUserId && (
                                     <div className="flex bg-surface-variant/40 rounded-lg p-1">
                                         <button 
-                                            onClick={() => setViewMode('all')}
-                                            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${viewMode === 'all' ? 'bg-white shadow-sm text-brand-navy' : 'text-on-surface-variant hover:text-charcoal'}`}
-                                        >
-                                            Semua Rekaman
-                                        </button>
+                                            onClick={() => {
+                                            setViewMode('all');
+                                            setSelectedUserId(null);
+                                            setCurrentPageSessions(1);
+                                        }}
+                                        className={`px-4 py-2 font-bold text-sm transition-all relative ${viewMode === 'all' && !selectedUserId ? 'text-clinical-blue' : 'text-on-surface-variant hover:text-charcoal'}`}
+                                    >
+                                        Semua Rekaman
+                                        {viewMode === 'all' && !selectedUserId && (
+                                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-clinical-blue rounded-t-full"></span>
+                                        )}
+                                    </button>
                                         <button 
-                                            onClick={() => setViewMode('users')}
+                                            onClick={() => {
+                                            setViewMode('users');
+                                            setSelectedUserId(null);
+                                            setCurrentPagePatients(1);
+                                        }}
                                             className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${viewMode === 'users' ? 'bg-white shadow-sm text-brand-navy' : 'text-on-surface-variant hover:text-charcoal'}`}
                                         >
                                             Berdasarkan Pasien

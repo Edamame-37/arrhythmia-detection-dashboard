@@ -5,6 +5,22 @@ import { LogoutModal } from '../shared/LogoutModal';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 
+const handleReturnToOriginalProfile = (navigate: any) => {
+    const adminToken = localStorage.getItem('admin_auth_token');
+    const originalRole = localStorage.getItem('original_role');
+
+    if (adminToken && originalRole === 'admin') {
+        localStorage.setItem('auth_token', adminToken);
+        localStorage.setItem('user_id', localStorage.getItem('admin_user_id') || '');
+        localStorage.setItem('user_role', 'admin');
+        localStorage.removeItem('admin_auth_token');
+        localStorage.removeItem('admin_user_id');
+        localStorage.removeItem('original_role');
+        sessionStorage.removeItem('is_impersonating');
+        navigate('/admin/dashboard');
+    }
+};
+
 export const DoctorSidebar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -53,6 +69,7 @@ export const DoctorSidebar: React.FC = () => {
                     </div>
                 </div>
 
+
                 <nav className="flex-1 px-4 mt-6 space-y-1">
                     <Link onClick={handleNavClick} className={`flex items-center gap-3 px-4 py-3 rounded-lg font-label-md shadow-sm transition-all ${isActive('/doctor/dashboard') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-white-container-low group'}`} to="/doctor/dashboard">
                         <span className={`material-symbols-outlined ${isActive('/doctor/dashboard') ? '' : 'text-outline group-hover:text-clinical-blue'}`}>dashboard</span>
@@ -68,6 +85,18 @@ export const DoctorSidebar: React.FC = () => {
                         <span className="text-sm font-body-sm">Riwayat Klinis</span>
                     </Link>
                 </nav>
+
+                {localStorage.getItem('admin_auth_token') && (
+                    <div className="mx-4 mb-2 px-3 py-2 bg-red-100 border border-red-200 rounded-lg flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-red-600 text-[18px]">admin_panel_settings</span>
+                            <span className="text-xs font-bold text-red-700">Admin Login</span>
+                        </div>
+                        <button onClick={() => handleReturnToOriginalProfile(navigate)} className="text-[10px] bg-red-600 text-white px-2 py-1.5 rounded hover:bg-red-700 transition-colors w-full uppercase font-bold tracking-wider">
+                            Kembali ke Admin
+                        </button>
+                    </div>
+                )}
 
                 <div className="p-4 mt-4 md:mt-0 border-t border-clinical-blue/20/40 md:bg-white-container-low/50">
                     <div className="flex bg-white border border-clinical-blue/20/50 p-3 rounded-lg items-center gap-3 transition-all group hover:border-clinical-blue cursor-pointer" onClick={() => { navigate('/doctor/profile'); handleNavClick(); }}>
