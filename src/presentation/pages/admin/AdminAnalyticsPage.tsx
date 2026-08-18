@@ -93,24 +93,40 @@ export const AdminAnalyticsPage: React.FC = () => {
             // Hitung persentase validasi dari frame_records
             const sessionIds = allSessions.map(s => s.id);
             if (sessionIds.length > 0) {
-                supabase.from('frame_records')
-                    .select('session_id, confirmation')
-                    .in('session_id', sessionIds)
-                    .then(({ data, error }) => {
-                        if (!error && data) {
-                            const counts: Record<string, { total: number, validated: number }> = {};
-                            sessionIds.forEach(id => counts[id] = { total: 0, validated: 0 });
-                            data.forEach(r => {
-                                if (counts[r.session_id]) {
-                                    counts[r.session_id].total++;
-                                    if (r.confirmation !== null) {
-                                        counts[r.session_id].validated++;
-                                    }
-                                }
-                            });
-                            setSessionValidations(counts);
+                const fetchAllFrames = async () => {
+                    let allFrames: any[] = [];
+                    let hasMore = true;
+                    let page = 0;
+                    const pageSize = 1000;
+                    
+                    while (hasMore) {
+                        const { data, error } = await supabase.from('frame_records')
+                            .select('session_id, confirmation')
+                            .in('session_id', sessionIds)
+                            .range(page * pageSize, (page + 1) * pageSize - 1);
+                            
+                        if (error || !data || data.length === 0) {
+                            hasMore = false;
+                        } else {
+                            allFrames = [...allFrames, ...data];
+                            if (data.length < pageSize) hasMore = false;
+                            page++;
+                        }
+                    }
+                    
+                    const counts: Record<string, { total: number, validated: number }> = {};
+                    sessionIds.forEach(id => counts[id] = { total: 0, validated: 0 });
+                    allFrames.forEach(r => {
+                        if (counts[r.session_id]) {
+                            counts[r.session_id].total++;
+                            if (r.confirmation !== null) {
+                                counts[r.session_id].validated++;
+                            }
                         }
                     });
+                    setSessionValidations(counts);
+                };
+                fetchAllFrames();
             }
         }
     }, [allSessions]);
@@ -559,6 +575,41 @@ export const AdminAnalyticsPage: React.FC = () => {
                         )}
                         <div className="text-[9px] text-white/40 text-center uppercase tracking-widest mt-1">
                             Runtime: {aiMetrics?.runtime || 'UNKNOWN'}
+                        </div>
+                    </div>
+
+                    {/* Status Validasi Medis (Read-Only) */}
+                    <div className="bg-clinical-surface border border-clinical-blue/20 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+                        <h3 className="text-sm font-bold text-clinical-charcoal flex items-center gap-2 border-b border-clinical-blue/10 pb-2">
+                            <span className="material-symbols-outlined text-[18px] text-clinical-blue">stethoscope</span>
+                            Status Validasi Medis
+                        </h3>
+                        
+                        <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-outline-variant/30 shadow-sm">
+                            <div>
+                                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Status Konfirmasi</p>
+                                <p className="text-sm font-bold mt-0.5">
+                                    {currentSegment?.confirmation === true ? <span className="text-signal-green">Benar</span> : 
+                                     currentSegment?.confirmation === false ? <span className="text-alert-red">Salah</span> : 
+                                     <span className="text-on-surface-variant">Belum Divalidasi</span>}
+                                </p>
+                            </div>
+                        </div>
+
+                        {currentSegment?.confirmation !== undefined && currentSegment?.confirmation !== null && (
+                            <div className="bg-white p-3 rounded-lg border border-outline-variant/30 shadow-sm">
+                                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Klasifikasi Akhir</p>
+                                <p className="text-lg font-extrabold text-clinical-blue mt-0.5">
+                                    {currentSegment?.docClassification || '--'}
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="bg-white p-3 rounded-lg border border-outline-variant/30 shadow-sm">
+                            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1.5">Catatan Dokter</p>
+                            <p className={`text-sm ${currentSegment?.docNote ? 'text-charcoal italic' : 'text-on-surface-variant/50'}`}>
+                                {currentSegment?.docNote ? `"${currentSegment.docNote}"` : 'Tidak ada catatan.'}
+                            </p>
                         </div>
                     </div>
 

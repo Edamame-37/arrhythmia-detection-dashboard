@@ -26,7 +26,7 @@ export const AdminSessionsPage: React.FC = () => {
                 const fetchedSessions = Array.isArray(data.sessions) ? data.sessions : (Array.isArray(data) ? data : []);
                 
                 // Sort descending (terbaru paling atas)
-                fetchedSessions.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+                fetchedSessions.sort((a: any, b: any) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
                 
                 setSessions(fetchedSessions);
 
@@ -117,6 +117,7 @@ export const AdminSessionsPage: React.FC = () => {
                         <th className="px-6 py-4 font-bold tracking-wider">Dokter Pengawas</th>
                         <th className="px-6 py-4 font-bold tracking-wider">Device ID</th>
                         <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
+                        <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
                         <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -124,6 +125,21 @@ export const AdminSessionsPage: React.FC = () => {
                     {sessionList.map((session) => {
                         const patientName = patientNames[session.patient_id] || session.patient_id || 'Unknown';
                         const doctorName = doctorNames[session.doctor_id] || session.doctor_id || 'Unknown';
+
+                        const validation = sessionValidations[session.id] || { total: 0, validated: 0 };
+                        let validationStatus = "Belum Divalidasi";
+                        let validationClass = "bg-surface-variant/50 text-on-surface-variant";
+                        
+                        if (validation.total > 0) {
+                            if (validation.validated === validation.total) {
+                                validationStatus = "Sudah Divalidasi";
+                                validationClass = "bg-signal-green/20 text-signal-green";
+                            } else if (validation.validated > 0) {
+                                const percentage = Math.round((validation.validated / validation.total) * 100);
+                                validationStatus = `Tervalidasi ${percentage}%`;
+                                validationClass = "bg-brand-navy/10 text-brand-navy";
+                            }
+                        }
 
                         return (
                             <tr key={session.id} className="hover:bg-surface-container-lowest/50 transition-colors">
@@ -142,9 +158,14 @@ export const AdminSessionsPage: React.FC = () => {
                                 <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">
                                     {formatDate(session.start_time)}
                                 </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${validationClass}`}>
+                                        {validationStatus}
+                                    </span>
+                                </td>
                                 <td className="px-6 py-4 text-right">
                                     <button 
-                                        onClick={() => window.open(`/admin/analytics?sessionId=${session.id}`, '_blank')}
+                                        onClick={() => navigate(`/admin/analytics?sessionId=${session.id}`)}
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-navy text-white hover:bg-brand-navy/90 rounded-lg text-xs font-bold transition-colors shadow-sm"
                                     >
                                         <span className="material-symbols-outlined text-[16px]">visibility</span>
