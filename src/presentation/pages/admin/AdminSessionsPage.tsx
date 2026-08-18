@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { fetchWithAuth } from '../../../config/api';
 import { supabase } from '../../../config/supabaseClient';
 import { Pagination } from '../../components/shared/Pagination';
 import { useUrlState } from '../../../application/hooks/useUrlState';
@@ -64,9 +65,10 @@ export const AdminSessionsPage: React.FC = () => {
 
     useEffect(() => {
         setLoading(true);
+        // Fetch sessions
         fetchWithAuth(`/api/sessions`)
-            .then(res => res.json())
-            .then(data => {
+            .then((res: Response) => res.json())
+            .then((data: any) => {
                 const fetchedSessions = Array.isArray(data.sessions) ? data.sessions : (Array.isArray(data) ? data : []);
                 
                 // Sort descending (terbaru paling atas)
@@ -74,10 +76,10 @@ export const AdminSessionsPage: React.FC = () => {
                 
                 setSessions(fetchedSessions);
 
-                // Ambil info akun untuk map nama pasien dan dokter
+                  if (!Object.keys(doctorNames).length) {
                 fetchWithAuth('/api/admin/users')
-                    .then(r => r.json())
-                    .then(users => {
+                    .then((r: Response) => r.json())
+                    .then((users: any[]) => {
                         const pNames: Record<string, string> = {};
                         const dNames: Record<string, string> = {};
                         if (Array.isArray(users)) {
@@ -89,6 +91,7 @@ export const AdminSessionsPage: React.FC = () => {
                         setPatientNames(pNames);
                         setDoctorNames(dNames);
                     });
+                }
 
                 // Kalkulasi validasi dari Supabase
                 const sessionIds = fetchedSessions.map((s: any) => s.id);
@@ -127,8 +130,8 @@ export const AdminSessionsPage: React.FC = () => {
                 }
                 setLoading(false);
             })
-            .catch(err => {
-                console.error("Failed to fetch sessions", err);
+            .catch((err: any) => {
+                console.error("Failed to load sessions data", err);
                 setLoading(false);
             });
     }, []);
