@@ -299,7 +299,6 @@ export const AdminUsersPage: React.FC = () => {
                                     <tr className="bg-surface-container-low text-on-surface-variant text-xs uppercase tracking-wider">
                                         <th className="p-4 font-bold border-b border-outline-variant/60">User ID</th>
                                         <th className="p-4 font-bold border-b border-outline-variant/60">Nama Lengkap</th>
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">Status</th>
                                         {activeTab === 'pasien' && <th className="p-4 font-bold border-b border-outline-variant/60">Dokter Terhubung</th>}
                                         {activeTab === 'pasien' && <th className="p-4 font-bold border-b border-outline-variant/60">Device Terhubung</th>}
                                         <th className="p-4 font-bold border-b border-outline-variant/60">Tgl Daftar</th>
@@ -308,9 +307,9 @@ export const AdminUsersPage: React.FC = () => {
                                 </thead>
                                 <tbody>
                                     {loading ? (
-                                        <tr><td colSpan={activeTab === 'pasien' ? 7 : 5} className="p-4 text-center text-sm">Memuat data...</td></tr>
+                                        <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm">Memuat data...</td></tr>
                                     ) : filteredUsers.length === 0 ? (
-                                        <tr><td colSpan={activeTab === 'pasien' ? 7 : 5} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
+                                        <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
                                     ) : paginatedUsers.map(u => (
                                         <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
                                             <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id}</td>
@@ -325,12 +324,6 @@ export const AdminUsersPage: React.FC = () => {
                                                     </div>
                                                     {u.name}
                                                 </div>
-                                            </td>
-                                            <td className="p-4 text-sm font-bold">
-                                                <span className={`flex items-center gap-1.5 ${u.status === 'Online' ? 'text-status-green' : 'text-on-surface-variant'}`}>
-                                                    <span className={`w-2.5 h-2.5 rounded-full ${u.status === 'Online' ? 'bg-status-green' : 'bg-on-surface-variant'}`}></span>
-                                                    {u.status}
-                                                </span>
                                             </td>
                                             {activeTab === 'pasien' && (
                                                 <td className="p-4 text-xs font-mono-data font-bold text-medical-teal">
