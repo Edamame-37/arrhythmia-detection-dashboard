@@ -18,6 +18,45 @@ export const AdminSessionsPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'all' | 'users'>('all');
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
+    // Note Editing States
+    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+    const [editNoteValue, setEditNoteValue] = useState<string>('');
+    const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
+    const saveNote = async (sessionId: string) => {
+        setIsSubmittingNote(true);
+        try {
+            const { error } = await supabase.from('sessions').update({ dev_note: editNoteValue }).eq('id', sessionId);
+            if (!error) {
+                setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, dev_note: editNoteValue } : s));
+                setEditingNoteId(null);
+            } else {
+                console.error("Gagal menyimpan note:", error);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSubmittingNote(false);
+        }
+    };
+
+    const deleteNote = async (sessionId: string) => {
+        setIsSubmittingNote(true);
+        try {
+            const { error } = await supabase.from('sessions').update({ dev_note: null }).eq('id', sessionId);
+            if (!error) {
+                setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, dev_note: null } : s));
+                setEditingNoteId(null);
+            } else {
+                console.error("Gagal menghapus note:", error);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSubmittingNote(false);
+        }
+    };
+
     useEffect(() => {
         setLoading(true);
         fetchWithAuth(`/api/sessions`)
@@ -69,6 +108,17 @@ export const AdminSessionsPage: React.FC = () => {
                                 setSessionValidations(counts);
                             }
                         });
+                        
+                    // Fetch dev_note dari Supabase agar terjamin update-nya
+                    supabase.from('sessions').select('id, dev_note').in('id', sessionIds)
+                        .then(({ data: notesData, error: notesError }) => {
+                            if (!notesError && notesData) {
+                                setSessions(prev => prev.map(s => {
+                                    const noteObj = notesData.find(n => n.id === s.id);
+                                    return { ...s, dev_note: noteObj?.dev_note || s.dev_note || null };
+                                }));
+                            }
+                        });
                 }
                 setLoading(false);
             })
@@ -117,6 +167,7 @@ export const AdminSessionsPage: React.FC = () => {
                         <th className="px-6 py-4 font-bold tracking-wider">Dokter Pengawas</th>
                         <th className="px-6 py-4 font-bold tracking-wider">Device ID</th>
                         <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
+                        <th className="px-6 py-4 font-bold tracking-wider">Catatan</th>
                         <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
                         <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
                     </tr>
@@ -157,6 +208,63 @@ export const AdminSessionsPage: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">
                                     {formatDate(session.start_time)}
+                                </td>
+                                <td className="px-6 py-4">
+                                    {editingNoteId === session.id ? (
+                                        <div className="flex flex-col gap-2 w-full min-w-[200px]">
+                                            <textarea 
+                                                value={editNoteValue}
+                                                onChange={(e) => setEditNoteValue(e.target.value)}
+                                                className="w-full text-xs p-2 border border-outline-variant rounded-md focus:outline-none focus:ring-1 focus:ring-clinical-blue"
+                                                placeholder="Tulis catatan di sini..."
+                                                rows={2}
+                                            />
+                                            <div className="flex gap-1.5 justify-end">
+                                                <button 
+                                                    onClick={() => setEditingNoteId(null)}
+                                                    className="px-2 py-1 text-[10px] font-bold text-on-surface-variant hover:bg-surface-variant/30 rounded"
+                                                    disabled={isSubmittingNote}
+                                                >
+                                                    Batal
+                                                </button>
+                                                {session.dev_note && (
+                                                    <button 
+                                                        onClick={() => deleteNote(session.id)}
+                                                        className="px-2 py-1 text-[10px] font-bold text-white bg-alert-red hover:bg-alert-red/90 rounded"
+                                                        disabled={isSubmittingNote}
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => saveNote(session.id)}
+                                                    className="px-2 py-1 text-[10px] font-bold text-white bg-clinical-blue hover:bg-clinical-blue/90 rounded"
+                                                    disabled={isSubmittingNote}
+                                                >
+                                                    {isSubmittingNote ? "Menyimpan..." : "Simpan"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : session.dev_note ? (
+                                        <div className="flex items-start justify-between gap-2 max-w-[200px]">
+                                            <p className="text-xs text-charcoal italic line-clamp-2">"{session.dev_note}"</p>
+                                            <button 
+                                                onClick={() => { setEditNoteValue(session.dev_note); setEditingNoteId(session.id); }}
+                                                className="text-clinical-blue hover:text-clinical-blue/80 p-1"
+                                                title="Edit Catatan"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">edit</span>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={() => { setEditNoteValue(''); setEditingNoteId(session.id); }}
+                                            className="text-[10px] font-bold text-clinical-blue border border-clinical-blue/30 px-2 py-1 rounded-md hover:bg-clinical-blue/5 transition-colors flex items-center gap-1"
+                                        >
+                                            <span className="material-symbols-outlined text-[12px]">add</span>
+                                            Tambahkan Note
+                                        </button>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${validationClass}`}>
