@@ -47,6 +47,12 @@ export const AdminAnalyticsPage: React.FC = () => {
     const [segments, setSegments] = useState<Record<number, any>>({});
     
     const [sessionValidations, setSessionValidations] = useState<Record<string, { total: number, validated: number }>>({});
+    
+    // Session Note States
+    const [sessionDevNote, setSessionDevNote] = useState<string | null>(null);
+    const [isEditingSessionNote, setIsEditingSessionNote] = useState(false);
+    const [editSessionNoteValue, setEditSessionNoteValue] = useState('');
+    const [isSubmittingSessionNote, setIsSubmittingSessionNote] = useState(false);
 
     useEffect(() => {
         const role = localStorage.getItem('user_role');
@@ -140,9 +146,14 @@ export const AdminAnalyticsPage: React.FC = () => {
         setIsLoading(true);
         Promise.all([
             fetchWithAuth(`/api/records/${sessionId}`).then(res => res.json()),
-            supabase.from('frame_records').select('*').eq('session_id', sessionId)
+            supabase.from('frame_records').select('*').eq('session_id', sessionId),
+            supabase.from('sessions').select('dev_note').eq('id', sessionId).single()
         ])
-            .then(([data, { data: frameRecords }]) => {
+            .then(([data, { data: frameRecords }, { data: sessionData }]) => {
+                if (sessionData) {
+                    setSessionDevNote(sessionData.dev_note);
+                }
+                
                 const loadedEvents: TimelineEvent[] = [];
                 const loadedSegments: Record<number, any> = {};
                 
@@ -279,6 +290,40 @@ export const AdminAnalyticsPage: React.FC = () => {
                 setIsLoading(false);
             });
     }, [sessionId]);
+
+    const saveSessionNote = async () => {
+        setIsSubmittingSessionNote(true);
+        try {
+            const { error } = await supabase.from('sessions').update({ dev_note: editSessionNoteValue }).eq('id', sessionId);
+            if (!error) {
+                setSessionDevNote(editSessionNoteValue);
+                setIsEditingSessionNote(false);
+            } else {
+                console.error("Gagal menyimpan note sesi:", error);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSubmittingSessionNote(false);
+        }
+    };
+
+    const deleteSessionNote = async () => {
+        setIsSubmittingSessionNote(true);
+        try {
+            const { error } = await supabase.from('sessions').update({ dev_note: null }).eq('id', sessionId);
+            if (!error) {
+                setSessionDevNote(null);
+                setIsEditingSessionNote(false);
+            } else {
+                console.error("Gagal menghapus note sesi:", error);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSubmittingSessionNote(false);
+        }
+    };
 
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
@@ -452,6 +497,80 @@ export const AdminAnalyticsPage: React.FC = () => {
                 
                 {/* KOLOM KIRI: GRAFIK & TIMELINE */}
                 <section className="w-full lg:w-9/12 flex flex-col gap-4">
+                    
+                    {/* Session Note Form / Display */}
+                    <div className="bg-white border border-outline-variant/60 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xs font-bold text-charcoal uppercase tracking-wider flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[16px] text-clinical-blue">note_alt</span>
+                                Catatan Sesi
+                            </h3>
+                        </div>
+                        {isEditingSessionNote ? (
+                            <div className="flex flex-col gap-3">
+                                <textarea 
+                                    value={editSessionNoteValue}
+                                    onChange={(e) => setEditSessionNoteValue(e.target.value)}
+                                    className="w-full text-sm font-body-sm p-3 border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-clinical-blue/20 focus:border-clinical-blue transition-all"
+                                    placeholder="Tulis catatan sesi di sini..."
+                                    rows={3}
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button 
+                                        onClick={() => setIsEditingSessionNote(false)}
+                                        className="px-4 py-2 text-xs font-bold text-on-surface-variant hover:bg-surface-variant/30 rounded-lg transition-colors"
+                                        disabled={isSubmittingSessionNote}
+                                    >
+                                        Batal
+                                    </button>
+                                    {sessionDevNote && (
+                                        <button 
+                                            onClick={deleteSessionNote}
+                                            className="px-4 py-2 text-xs font-bold text-white bg-alert-red hover:bg-alert-red/90 rounded-lg transition-colors flex items-center gap-1"
+                                            disabled={isSubmittingSessionNote}
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">delete</span>
+                                            Hapus
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={saveSessionNote}
+                                        className="px-4 py-2 text-xs font-bold text-white bg-clinical-blue hover:bg-clinical-blue/90 rounded-lg transition-colors flex items-center gap-1 shadow-sm"
+                                        disabled={isSubmittingSessionNote}
+                                    >
+                                        {isSubmittingSessionNote ? (
+                                            <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                        ) : (
+                                            <span className="material-symbols-outlined text-[14px]">save</span>
+                                        )}
+                                        {isSubmittingSessionNote ? "Menyimpan..." : "Simpan"}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : sessionDevNote ? (
+                            <div className="flex items-start justify-between gap-4 p-3 bg-slate-50 border border-outline-variant/30 rounded-lg">
+                                <p className="text-sm font-body-sm text-charcoal italic leading-relaxed">"{sessionDevNote}"</p>
+                                <button 
+                                    onClick={() => { setEditSessionNoteValue(sessionDevNote); setIsEditingSessionNote(true); }}
+                                    className="text-clinical-blue hover:bg-clinical-blue/10 p-2 rounded-lg transition-colors flex-shrink-0"
+                                    title="Edit Catatan"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between gap-4 p-3 border border-dashed border-outline-variant/60 rounded-lg bg-surface-container-lowest">
+                                <p className="text-xs text-on-surface-variant italic">Belum ada catatan yang diinput pada sesi ini.</p>
+                                <button 
+                                    onClick={() => { setEditSessionNoteValue(''); setIsEditingSessionNote(true); }}
+                                    className="text-xs font-bold text-clinical-blue border border-clinical-blue/30 px-3 py-1.5 rounded-lg hover:bg-clinical-blue/5 transition-colors flex items-center gap-1.5"
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">add</span>
+                                    Tambahkan Catatan
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     
                     {/* Control Bar (Speed & Info Segmen) */}
                     <div className="bg-white border border-clinical-blue/20 rounded-xl p-3 flex flex-wrap justify-between items-center shadow-sm gap-3">
