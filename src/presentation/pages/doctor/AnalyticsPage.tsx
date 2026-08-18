@@ -467,7 +467,7 @@ export const AnalyticsPage: React.FC = () => {
                                         <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${validationClass}`}>
                                             {validationStatus}
                                         </div>
-                                        {session.ecg_paper && (
+                                        {session.ecg_paper ? (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); setPreviewImage(API_URL + session.ecg_paper); }} 
                                                 className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-white hover:bg-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1"
@@ -475,6 +475,11 @@ export const AnalyticsPage: React.FC = () => {
                                                 <span className="material-symbols-outlined text-[14px]">image</span>
                                                 Lihat Foto
                                             </button>
+                                        ) : (
+                                            <div className="px-3 py-1.5 text-[10px] text-clinical-charcoal/40 italic font-body-sm flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px]">image_not_supported</span>
+                                                Foto ECG belum diupload
+                                            </div>
                                         )}
                                         <button className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
                                             <span className="material-symbols-outlined text-[14px]">history</span>
