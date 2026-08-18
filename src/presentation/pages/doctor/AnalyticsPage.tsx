@@ -587,6 +587,7 @@ export const AnalyticsPage: React.FC = () => {
                         initialDocClassification={currentSegment?.docClassification}
                         startTime={currentSegment?.startTime}
                         endTime={currentSegment?.endTime}
+                        onViewEcgPaper={selectedSession?.ecg_paper ? () => setPreviewImage(API_URL + selectedSession?.ecg_paper) : undefined}
                         onGoToNext={() => {
                             if (selectedIdx < events.length - 1) {
                                 setIsLoading(true);

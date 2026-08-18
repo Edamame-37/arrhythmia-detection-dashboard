@@ -17,6 +17,7 @@ interface AiCardProps {
     isLastFrame?: boolean;
     onGoToList?: () => void;
     onValidationSuccess?: (updatedFrame: any) => void;
+    onViewEcgPaper?: () => void;
 }
 
 export const AiCard: React.FC<AiCardProps> = ({ 
@@ -33,7 +34,8 @@ export const AiCard: React.FC<AiCardProps> = ({
     onGoToNext,
     isLastFrame,
     onGoToList,
-    onValidationSuccess
+    onValidationSuccess,
+    onViewEcgPaper
 }) => {
     // Apabila sudah divalidasi sebelumnya, initialConfirmation bernilai true/false.
     const hasInitialValidation = initialConfirmation !== null && initialConfirmation !== undefined;
@@ -230,11 +232,22 @@ export const AiCard: React.FC<AiCardProps> = ({
             )}
 
             <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
-                <div className="flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-[16px] text-clinical-blue">auto_awesome</span>
-                    <h4 className="text-[12px] font-bold text-clinical-charcoal/60 uppercase tracking-[0.2em]">
-                        Klasifikasi AI
-                    </h4>
+                <div className="flex flex-col items-center gap-2 mb-4 relative w-full">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px] text-clinical-blue">auto_awesome</span>
+                        <h4 className="text-[12px] font-bold text-clinical-charcoal/60 uppercase tracking-[0.2em]">
+                            Klasifikasi AI
+                        </h4>
+                    </div>
+                    {onViewEcgPaper && (
+                        <button 
+                            onClick={onViewEcgPaper}
+                            className="absolute right-0 top-0 border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-white hover:bg-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1 shadow-sm"
+                        >
+                            <span className="material-symbols-outlined text-[14px]">image</span>
+                            Lihat Foto EKG
+                        </button>
+                    )}
                 </div>
 
                 <div className="text-center w-full px-2">
