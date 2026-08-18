@@ -147,7 +147,7 @@ export const AdminSessionsPage: React.FC = () => {
                 const fetchedSessions = Array.isArray(data.sessions) ? data.sessions : (Array.isArray(data) ? data : []);
                 
                 // Sort descending (terbaru paling atas)
-                fetchedSessions.sort((a: any, b: any) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+                fetchedSessions.sort((a: any, b: any) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
                 
                 setSessions(fetchedSessions);
 
@@ -213,10 +213,10 @@ export const AdminSessionsPage: React.FC = () => {
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleString('id-ID', {
-            day: '2-digit', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
+        const d = new Date(dateString);
+        const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        const wkt = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+        return `${tgl} - ${wkt} WIB`;
     };
 
     // Grouping by Patient
@@ -228,7 +228,7 @@ export const AdminSessionsPage: React.FC = () => {
                 id: pId,
                 name: patientNames[pId] || pId || 'Unknown',
                 totalSessions: 0,
-                lastSessionDate: session.start_time
+                lastSessionDate: session.started_at
             });
         }
         const pData = patientsMap.get(pId)!;
@@ -252,7 +252,7 @@ export const AdminSessionsPage: React.FC = () => {
                     <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
                         <tr>
                             <th className="px-6 py-4 font-bold tracking-wider">Pasien</th>
-
+                            <th className="px-6 py-4 font-bold tracking-wider">Session ID</th>
                             <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
                             <th className="px-6 py-4 font-bold tracking-wider">Catatan</th>
                             <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
@@ -285,9 +285,11 @@ export const AdminSessionsPage: React.FC = () => {
                                     <div className="font-bold text-charcoal">{patientName}</div>
                                     <div className="text-xs text-on-surface-variant font-mono mt-1 truncate max-w-[120px]">{session.patient_id}</div>
                                 </td>
-
+                                <td className="px-6 py-4 font-mono text-xs text-on-surface-variant whitespace-nowrap">
+                                    {session.id}
+                                </td>
                                 <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">
-                                    {formatDate(session.start_time)}
+                                    {formatDate(session.started_at)}
                                 </td>
                                 <td className="px-6 py-4">
                                     {editingNoteId === session.id ? (
