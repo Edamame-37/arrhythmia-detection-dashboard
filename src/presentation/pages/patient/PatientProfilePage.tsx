@@ -219,7 +219,7 @@ export const PatientProfilePage: React.FC = () => {
                                         <div className="bg-clinical-surface p-5 rounded-2xl border border-clinical-charcoal/5 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
                                             <p className="text-[10px] text-clinical-charcoal/60 uppercase font-bold tracking-widest mb-1">{t('profile.age')}</p>
                                             <p className="text-base font-bold text-clinical-charcoal">
-                                                {isLoading ? '---' : (calculateAge(profile?.patient?.date_of_birth) ? `${calculateAge(profile.patient.date_of_birth)} ${t('profile.yearsOld')}` : '-')}
+                                                {isLoading ? '---' : (profile?.patient?.age ? `${profile.patient.age} ${t('profile.yearsOld')}` : '-')}
                                             </p>
                                         </div>
                                     </div>
