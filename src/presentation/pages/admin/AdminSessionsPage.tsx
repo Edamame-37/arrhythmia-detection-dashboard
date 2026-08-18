@@ -395,12 +395,37 @@ export const AdminSessionsPage: React.FC = () => {
             )}
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
             {previewImage && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
-                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
-                            <span className="material-symbols-outlined text-4xl">close</span>
-                        </button>
-                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            Lihat Foto EKG
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewImage} alt="ECG Paper" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={() => window.open(previewImage, '_blank')} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Buka di Tab Lain
+                            </button>
+                            <button onClick={() => {
+                                fetch(previewImage)
+                                    .then(r => r.blob())
+                                    .then(blob => {
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `ecg_paper.jpg`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    })
+                                    .catch(() => window.open(previewImage, '_blank'));
+                            }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Download
+                            </button>
+                            <button onClick={() => setPreviewImage(null)} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -510,12 +535,37 @@ export const AdminSessionsPage: React.FC = () => {
             />
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
             {previewImage && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
-                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
-                            <span className="material-symbols-outlined text-4xl">close</span>
-                        </button>
-                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            Lihat Foto EKG
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewImage} alt="ECG Paper" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={() => window.open(previewImage, '_blank')} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Buka di Tab Lain
+                            </button>
+                            <button onClick={() => {
+                                fetch(previewImage)
+                                    .then(r => r.blob())
+                                    .then(blob => {
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `ecg_paper.jpg`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    })
+                                    .catch(() => window.open(previewImage, '_blank'));
+                            }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Download
+                            </button>
+                            <button onClick={() => setPreviewImage(null)} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -620,12 +670,37 @@ export const AdminSessionsPage: React.FC = () => {
             </main>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
             {previewImage && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
-                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
-                            <span className="material-symbols-outlined text-4xl">close</span>
-                        </button>
-                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            Lihat Foto EKG
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewImage} alt="ECG Paper" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={() => window.open(previewImage, '_blank')} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Buka di Tab Lain
+                            </button>
+                            <button onClick={() => {
+                                fetch(previewImage)
+                                    .then(r => r.blob())
+                                    .then(blob => {
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `ecg_paper.jpg`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    })
+                                    .catch(() => window.open(previewImage, '_blank'));
+                            }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Download
+                            </button>
+                            <button onClick={() => setPreviewImage(null)} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
