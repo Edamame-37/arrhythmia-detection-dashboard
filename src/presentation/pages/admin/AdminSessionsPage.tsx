@@ -18,7 +18,7 @@ export const AdminSessionsPage: React.FC = () => {
     
     // View States
     const [viewMode, setViewMode] = useUrlState<'all' | 'users'>('view', 'all');
-    const [selectedUserId, setSelectedUserId] = useUrlState<string | null>('userId', null);
+    const [expandedPatientId, setExpandedPatientId] = useUrlState<string | null>('expanded', null);
 
     // Pagination States
     const [currentPageSessions, setCurrentPageSessions] = useUrlState<number>('p_sessions', 1, parseInt);
@@ -162,19 +162,18 @@ export const AdminSessionsPage: React.FC = () => {
     });
     const patientsList = Array.from(patientsMap.values());
 
-    const displayedSessions = selectedUserId 
-        ? sessions.filter(s => s.patient_id === selectedUserId)
-        : sessions;
+    const displayedSessions = sessions;
 
-    const renderSessionsTable = (sessionList: any[]) => {
+    const renderSessionsTable = (sessionList: any[], isMiniTable: boolean = false) => {
         const itemsPerPage = 10;
         const totalItems = sessionList.length;
-        const paginatedSessions = sessionList.slice((currentPageSessions - 1) * itemsPerPage, currentPageSessions * itemsPerPage);
+        // If it's a mini table, we just show all of them (or limit to a small number without pagination)
+        const paginatedSessions = isMiniTable ? sessionList : sessionList.slice((currentPageSessions - 1) * itemsPerPage, currentPageSessions * itemsPerPage);
 
         return (
-        <div className="flex flex-col w-full">
+        <div className={`flex flex-col w-full ${isMiniTable ? 'border border-outline-variant/50 rounded-xl overflow-hidden' : ''}`}>
             <div className="overflow-x-auto w-full">
-                <table className="w-full text-sm text-left">
+                <table className={`w-full text-sm text-left ${isMiniTable ? 'bg-surface' : ''}`}>
                     <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
                         <tr>
                             <th className="px-6 py-4 font-bold tracking-wider">Pasien</th>
@@ -292,12 +291,14 @@ export const AdminSessionsPage: React.FC = () => {
                 </tbody>
             </table>
             </div>
-            <Pagination 
-                currentPage={currentPageSessions}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPageSessions}
-            />
+            {!isMiniTable && (
+                <Pagination 
+                    currentPage={currentPageSessions}
+                    totalItems={totalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCurrentPageSessions}
+                />
+            )}
         </div>
     );
 };
@@ -322,31 +323,46 @@ export const AdminSessionsPage: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-outline-variant/50">
                         {paginatedPatients.map((patient) => (
-                        <tr key={patient.id} className="hover:bg-surface-container-lowest/50 transition-colors">
-                            <td className="px-6 py-4 font-bold text-charcoal">
-                                {patient.name}
-                            </td>
-                            <td className="px-6 py-4">
-                                <span className="text-xs text-on-surface-variant font-mono truncate max-w-[150px] inline-block">{patient.id}</span>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                                <span className="font-bold text-medical-teal bg-medical-teal/10 px-3 py-1 rounded-full">
-                                    {patient.totalSessions}
-                                </span>
-                            </td>
-                            <td className="px-6 py-4 text-on-surface-variant">
-                                {formatDate(patient.lastSessionDate)}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                                <button 
-                                    onClick={() => setSelectedUserId(patient.id)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-variant text-charcoal hover:bg-outline-variant/30 rounded-lg text-xs font-bold transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">folder_open</span>
-                                    Lihat Riwayat
-                                </button>
-                            </td>
-                        </tr>
+                            <React.Fragment key={patient.id}>
+                                <tr className="hover:bg-surface-container-lowest/50 transition-colors">
+                                    <td className="px-6 py-4 font-bold text-charcoal">
+                                        {patient.name}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-xs text-on-surface-variant font-mono truncate max-w-[150px] inline-block">{patient.id}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className="font-bold text-medical-teal bg-medical-teal/10 px-3 py-1 rounded-full">
+                                            {patient.totalSessions}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-on-surface-variant">
+                                        {formatDate(patient.lastSessionDate)}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button 
+                                            onClick={() => setExpandedPatientId(expandedPatientId === patient.id ? null : patient.id)}
+                                            className="inline-flex items-center gap-1 bg-surface-variant/50 hover:bg-surface-variant text-charcoal px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                                        >
+                                            <span>{expandedPatientId === patient.id ? 'Tutup' : 'Lihat Sesi'}</span>
+                                            <span className={`material-symbols-outlined text-[16px] transition-transform ${expandedPatientId === patient.id ? 'rotate-180' : ''}`}>expand_more</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {expandedPatientId === patient.id && (
+                                    <tr className="bg-surface-container-lowest">
+                                        <td colSpan={5} className="p-0 border-b border-outline-variant/50">
+                                            <div className="p-4 md:p-6 border-l-4 border-clinical-blue bg-white">
+                                                <h4 className="text-sm font-bold mb-4 text-brand-navy flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-[18px]">history</span>
+                                                    Daftar Rekaman Sesi: {patient.name}
+                                                </h4>
+                                                {renderSessionsTable(sessions.filter(s => s.patient_id === patient.id), true)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
                         ))}
                     </tbody>
                 </table>
@@ -383,51 +399,33 @@ export const AdminSessionsPage: React.FC = () => {
                     
                     <div className="bg-surface rounded-3xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
                         <div className="px-4 py-4 md:px-6 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-start sm:items-center bg-surface-container-lowest gap-4">
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                 <h2 className="text-lg font-bold text-charcoal">
-                                    {selectedUserId ? `Riwayat Pasien: ${patientNames[selectedUserId] || selectedUserId}` : 'Daftar Rekaman'}
+                                    Daftar Rekaman
                                 </h2>
-                                {!selectedUserId && (
-                                    <div className="flex bg-surface-variant/40 rounded-lg p-1">
-                                        <button 
-                                            onClick={() => {
-                                            setViewMode('all');
-                                            setSelectedUserId(null);
-                                            setCurrentPageSessions(1);
+                                <div className="relative">
+                                    <select
+                                        value={viewMode}
+                                        onChange={(e) => {
+                                            setViewMode(e.target.value as 'all' | 'users');
+                                            setExpandedPatientId(null);
+                                            if (e.target.value === 'all') setCurrentPageSessions(1);
+                                            else setCurrentPagePatients(1);
                                         }}
-                                        className={`px-4 py-2 font-bold text-sm transition-all relative ${viewMode === 'all' && !selectedUserId ? 'text-clinical-blue' : 'text-on-surface-variant hover:text-charcoal'}`}
+                                        className="bg-white border border-outline-variant text-charcoal text-sm font-bold rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-clinical-blue/50 cursor-pointer appearance-none shadow-sm hover:border-clinical-blue/50 transition-colors"
                                     >
-                                        Semua Rekaman
-                                        {viewMode === 'all' && !selectedUserId && (
-                                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-clinical-blue rounded-t-full"></span>
-                                        )}
-                                    </button>
-                                        <button 
-                                            onClick={() => {
-                                            setViewMode('users');
-                                            setSelectedUserId(null);
-                                            setCurrentPagePatients(1);
-                                        }}
-                                            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${viewMode === 'users' ? 'bg-white shadow-sm text-brand-navy' : 'text-on-surface-variant hover:text-charcoal'}`}
-                                        >
-                                            Berdasarkan Pasien
-                                        </button>
-                                    </div>
-                                )}
+                                        <option value="all">Semua Rekaman</option>
+                                        <option value="users">Kelompokkan Berdasarkan Pasien</option>
+                                    </select>
+                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">
+                                        expand_more
+                                    </span>
+                                </div>
                             </div>
                             
                             <div className="flex items-center gap-3">
-                                {selectedUserId && (
-                                    <button 
-                                        onClick={() => setSelectedUserId(null)}
-                                        className="text-xs font-bold bg-surface-variant/50 hover:bg-surface-variant text-charcoal px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                                        Kembali ke List Pasien
-                                    </button>
-                                )}
                                 <div className="text-sm font-semibold text-on-surface-variant bg-surface-variant/30 px-3 py-1.5 rounded-lg">
-                                    Total: {viewMode === 'users' && !selectedUserId ? patientsList.length : displayedSessions.length} {viewMode === 'users' && !selectedUserId ? 'Pasien' : 'Sesi'}
+                                    Total: {viewMode === 'users' ? patientsList.length : sessions.length} {viewMode === 'users' ? 'Pasien' : 'Sesi'}
                                 </div>
                             </div>
                         </div>
@@ -437,9 +435,9 @@ export const AdminSessionsPage: React.FC = () => {
                         ) : sessions.length === 0 ? (
                             <div className="p-12 text-center text-on-surface-variant font-medium">Belum ada sesi rekaman EKG.</div>
                         ) : (
-                            viewMode === 'users' && !selectedUserId 
+                            viewMode === 'users' 
                                 ? renderPatientsTable() 
-                                : renderSessionsTable(displayedSessions)
+                                : renderSessionsTable(sessions)
                         )}
                     </div>
                 </div>
