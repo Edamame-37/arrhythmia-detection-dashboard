@@ -258,7 +258,7 @@ export const PatientProfilePage: React.FC = () => {
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-bold text-clinical-charcoal uppercase tracking-wider">{t('profile.uploadPhoto')}</label>
                                         <div className="flex items-center gap-4">
-                                            {formData.profile_photo && formData.profile_photo.startsWith('data:') && (
+                                            {formData.profile_photo && (
                                                 <div className="w-12 h-12 rounded-full overflow-hidden border border-clinical-charcoal/10 shrink-0">
                                                     <img src={formData.profile_photo} alt="Preview" className="w-full h-full object-cover" />
                                                 </div>

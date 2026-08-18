@@ -239,7 +239,7 @@ export const ProfilePage: React.FC = () => {
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-body-sm font-headline-md text-clinical-charcoal uppercase tracking-wider">Unggah Foto Profil</label>
                                         <div className="flex items-center gap-4">
-                                            {editForm.profile_photo && editForm.profile_photo.startsWith('data:') && (
+                                            {editForm.profile_photo && (
                                                 <div className="w-12 h-12 rounded-full overflow-hidden border border-clinical-blue/20 shrink-0">
                                                     <img src={editForm.profile_photo} alt="Preview" className="w-full h-full object-cover" />
                                                 </div>
