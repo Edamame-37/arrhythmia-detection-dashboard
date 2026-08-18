@@ -214,9 +214,12 @@ export const AdminSessionsPage: React.FC = () => {
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
         const d = new Date(dateString);
-        const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-        const wkt = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-        return `${tgl} - ${wkt} WIB`;
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${dd}-${mm}-${yy} ${hh}:${min}`;
     };
 
     // Grouping by Patient
@@ -254,7 +257,7 @@ export const AdminSessionsPage: React.FC = () => {
                             <th className="px-6 py-4 font-bold tracking-wider">Pasien</th>
                             <th className="px-6 py-4 font-bold tracking-wider">Session ID</th>
                             <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
-                            <th className="px-6 py-4 font-bold tracking-wider">Catatan</th>
+                            <th className="px-6 py-4 font-bold tracking-wider min-w-[250px]">Catatan</th>
                             <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
                             <th className="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
                         </tr>
@@ -286,7 +289,7 @@ export const AdminSessionsPage: React.FC = () => {
                                     <div className="text-xs text-on-surface-variant font-mono mt-1 truncate max-w-[120px]">{session.patient_id}</div>
                                 </td>
                                 <td className="px-6 py-4 font-mono text-xs text-on-surface-variant whitespace-nowrap">
-                                    {session.id}
+                                    {session.id.substring(0, 15)}
                                 </td>
                                 <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">
                                     {formatDate(session.started_at)}
