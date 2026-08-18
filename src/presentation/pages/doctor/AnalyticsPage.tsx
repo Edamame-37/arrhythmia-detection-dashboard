@@ -55,6 +55,9 @@ export const AnalyticsPage: React.FC = () => {
     const [segments, setSegments] = useState<Record<number, any>>({});
     
     const [sessionValidations, setSessionValidations] = useState<Record<string, { total: number, validated: number }>>({});
+    
+    // ECG Paper state
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     useEffect(() => {
         const role = localStorage.getItem('user_role');
@@ -298,6 +301,30 @@ export const AnalyticsPage: React.FC = () => {
     return (
         <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen">
             <DoctorSidebar />
+
+            {/* ECG Photo Preview Modal */}
+            {previewImage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4 flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-end gap-3 mb-4">
+                            <button onClick={() => window.open(previewImage, '_blank')} className="flex items-center gap-2 px-4 py-2 bg-clinical-charcoal/50 hover:bg-clinical-charcoal/80 text-white rounded-full font-bold text-xs transition-colors backdrop-blur-md">
+                                <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                                Buka di Tab Lain
+                            </button>
+                            <button onClick={() => handleDownload(previewImage)} className="flex items-center gap-2 px-4 py-2 bg-clinical-blue/80 hover:bg-clinical-blue text-white rounded-full font-bold text-xs transition-colors backdrop-blur-md">
+                                <span className="material-symbols-outlined text-[16px]">download</span>
+                                Download
+                            </button>
+                            <button onClick={() => setPreviewImage(null)} className="flex items-center justify-center w-8 h-8 bg-clinical-red/80 hover:bg-clinical-red text-white rounded-full transition-colors backdrop-blur-md">
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+                        <div className="flex-grow overflow-auto flex items-center justify-center">
+                            <img src={previewImage} alt="ECG Paper" className="w-full h-auto object-contain rounded-xl shadow-2xl" />
+                        </div>
+                    </div>
+                </div>
+            )}
             
 
 
@@ -422,6 +449,15 @@ export const AnalyticsPage: React.FC = () => {
                                         <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${validationClass}`}>
                                             {validationStatus}
                                         </div>
+                                        {session.ecg_paper && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setPreviewImage(API_URL + session.ecg_paper); }} 
+                                                className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-white hover:bg-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">image</span>
+                                                Lihat Foto
+                                            </button>
+                                        )}
                                         <button className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
                                             <span className="material-symbols-outlined text-[14px]">history</span>
                                             Buka Detail
@@ -458,6 +494,15 @@ export const AnalyticsPage: React.FC = () => {
                                     {currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : '--'}
                                 </span>
                             </span>
+                            {currentSessionMeta?.ecg_paper && (
+                                <button 
+                                    onClick={() => setPreviewImage(API_URL + currentSessionMeta.ecg_paper)} 
+                                    className="ml-2 flex items-center gap-1 px-3 py-1.5 bg-clinical-blue text-white rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-sm"
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">image</span>
+                                    Lihat Foto EKG
+                                </button>
+                            )}
                         </div>
                         <div className="ml-auto flex items-center">
                             {currentSegment?.confirmation !== null && currentSegment?.confirmation !== undefined ? (

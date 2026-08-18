@@ -29,34 +29,71 @@ export const PatientHistoryPage: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [previewFile, setPreviewFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useStickyState(1, 'patientHistoryPage');
     const itemsPerPage = 10;
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0 || !uploadingSessionId) return;
         const file = e.target.files[0];
+        setPreviewFile(file);
+        if (previewUrl && previewFile) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(URL.createObjectURL(file));
+    };
+
+    const submitUpload = async () => {
+        if (!previewFile || !uploadingSessionId) return;
         const formData = new FormData();
-        formData.append('paper', file);
+        formData.append('paper', previewFile);
 
         try {
             const res = await fetchWithAuth(`/api/sessions/${uploadingSessionId}/ecg_paper`, {
                 method: 'POST',
                 body: formData
-            }); // Multipart is handled automatically by not setting Content-Type
+            });
             const data = await res.json();
             if (data.success) {
                 setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: data.path } : s));
+                cancelUpload();
             } else {
                 alert("Gagal mengunggah foto: " + data.message);
             }
         } catch (err) {
             console.error("Upload error:", err);
             alert("Terjadi kesalahan saat mengunggah foto.");
-        } finally {
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            setUploadingSessionId(null);
+        }
+    };
+
+    const cancelUpload = () => {
+        if (previewUrl && previewFile) URL.revokeObjectURL(previewUrl);
+        setPreviewFile(null);
+        setPreviewUrl(null);
+        setUploadingSessionId(null);
+        setIsEditMode(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const deleteUpload = async () => {
+        if (!uploadingSessionId) return;
+        if (!confirm("Apakah Anda yakin ingin menghapus foto EKG ini?")) return;
+        try {
+            const res = await fetchWithAuth(`/api/sessions/${uploadingSessionId}/ecg_paper`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: null } : s));
+                cancelUpload();
+            } else {
+                alert("Gagal menghapus foto: " + data.message);
+            }
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert("Terjadi kesalahan saat menghapus foto.");
         }
     };
 
@@ -126,13 +163,19 @@ export const PatientHistoryPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-3 w-full md:w-auto">
                                     {session.ecg_paper ? (
-                                        <button onClick={() => setPreviewImage(API_URL + session.ecg_paper)} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all outline-none">
-                                            Lihat Foto EKG
-                                            <span className="material-symbols-outlined text-[18px]">image</span>
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setPreviewImage(API_URL + session.ecg_paper)} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-4 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all outline-none">
+                                                Lihat Foto EKG
+                                                <span className="material-symbols-outlined text-[18px]">image</span>
+                                            </button>
+                                            <button onClick={() => { setUploadingSessionId(session.id); setIsEditMode(true); setPreviewUrl(API_URL + session.ecg_paper); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-4 rounded-full bg-amber-500 text-white font-bold text-[11px] uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all outline-none">
+                                                Edit
+                                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <button onClick={() => triggerUpload(session.id)} disabled={uploadingSessionId === session.id} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
-                                            {uploadingSessionId === session.id ? "Mengunggah..." : "Unggah Foto EKG"}
+                                        <button onClick={() => triggerUpload(session.id)} disabled={uploadingSessionId === session.id && !previewUrl} className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                            {uploadingSessionId === session.id && !previewUrl ? "Memproses..." : "Unggah Foto EKG"}
                                             <span className="material-symbols-outlined text-[18px]">upload</span>
                                         </button>
                                     )}
@@ -168,6 +211,36 @@ export const PatientHistoryPage: React.FC = () => {
                             <span className="material-symbols-outlined text-4xl">close</span>
                         </button>
                         <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                    </div>
+                </div>
+            )}
+            {uploadingSessionId && previewUrl && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            {isEditMode ? "Edit Foto EKG" : "Pratinjau Foto EKG"}
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewUrl} alt="Preview ECG" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={cancelUpload} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Batal
+                            </button>
+                            {isEditMode && !previewFile && (
+                                <button onClick={deleteUpload} className="py-3 px-6 rounded-full bg-clinical-red/10 text-clinical-red font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-red hover:text-white active:scale-95 transition-all outline-none">
+                                    Hapus
+                                </button>
+                            )}
+                            <button onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Pilih Gambar Lain
+                            </button>
+                            {previewFile && (
+                                <button onClick={submitUpload} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                    Submit
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

@@ -6,6 +6,7 @@ import { fetchWithAuth } from '../../../config/api';
 import { supabase } from '../../../config/supabaseClient';
 import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
+import { API_URL } from '../../../config/env';
 
 export const AdminSessionsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -28,6 +29,14 @@ export const AdminSessionsPage: React.FC = () => {
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
     const [editNoteValue, setEditNoteValue] = useState<string>('');
     const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+    
+    // ECG Paper States
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [previewFile, setPreviewFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const saveNote = async (sessionId: string) => {
         setIsSubmittingNote(true);
@@ -277,13 +286,32 @@ export const AdminSessionsPage: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button 
-                                        onClick={() => navigate(`/admin/analytics?sessionId=${session.id}`)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-navy text-white hover:bg-brand-navy/90 rounded-lg text-xs font-bold transition-colors shadow-sm"
-                                    >
-                                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                        Detail
-                                    </button>
+                                    <div className="flex justify-end items-center gap-2">
+                                        {session.ecg_paper ? (
+                                            <>
+                                                <button onClick={() => setPreviewImage(API_URL + session.ecg_paper)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-clinical-blue text-white hover:opacity-90 rounded-lg text-xs font-bold transition-colors shadow-sm">
+                                                    Lihat Foto
+                                                    <span className="material-symbols-outlined text-[14px]">image</span>
+                                                </button>
+                                                <button onClick={() => { setUploadingSessionId(session.id); setIsEditMode(true); setPreviewUrl(API_URL + session.ecg_paper); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white hover:opacity-90 rounded-lg text-xs font-bold transition-colors shadow-sm">
+                                                    Edit Foto
+                                                    <span className="material-symbols-outlined text-[14px]">edit</span>
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button onClick={() => triggerUpload(session.id)} disabled={uploadingSessionId === session.id && !previewUrl} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-clinical-charcoal/5 text-clinical-charcoal hover:bg-clinical-charcoal/10 rounded-lg text-xs font-bold transition-colors shadow-sm">
+                                                {uploadingSessionId === session.id && !previewUrl ? "Memproses..." : "Unggah Foto"}
+                                                <span className="material-symbols-outlined text-[14px]">upload</span>
+                                            </button>
+                                        )}
+                                        <button 
+                                            onClick={() => navigate(`/admin/analytics?sessionId=${session.id}`)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-navy text-white hover:bg-brand-navy/90 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                            Detail
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         );
@@ -298,6 +326,47 @@ export const AdminSessionsPage: React.FC = () => {
                     itemsPerPage={itemsPerPage}
                     onPageChange={setCurrentPageSessions}
                 />
+            )}
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+            {previewImage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
+                            <span className="material-symbols-outlined text-4xl">close</span>
+                        </button>
+                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                    </div>
+                </div>
+            )}
+            {uploadingSessionId && previewUrl && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            {isEditMode ? "Edit Foto EKG" : "Pratinjau Foto EKG"}
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewUrl} alt="Preview ECG" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={cancelUpload} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Batal
+                            </button>
+                            {isEditMode && !previewFile && (
+                                <button onClick={deleteUpload} className="py-3 px-6 rounded-full bg-clinical-red/10 text-clinical-red font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-red hover:text-white active:scale-95 transition-all outline-none">
+                                    Hapus
+                                </button>
+                            )}
+                            <button onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Pilih Gambar Lain
+                            </button>
+                            {previewFile && (
+                                <button onClick={submitUpload} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                    Submit
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -373,6 +442,47 @@ export const AdminSessionsPage: React.FC = () => {
                 itemsPerPage={itemsPerPage}
                 onPageChange={setCurrentPagePatients}
             />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+            {previewImage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
+                            <span className="material-symbols-outlined text-4xl">close</span>
+                        </button>
+                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                    </div>
+                </div>
+            )}
+            {uploadingSessionId && previewUrl && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            {isEditMode ? "Edit Foto EKG" : "Pratinjau Foto EKG"}
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewUrl} alt="Preview ECG" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={cancelUpload} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Batal
+                            </button>
+                            {isEditMode && !previewFile && (
+                                <button onClick={deleteUpload} className="py-3 px-6 rounded-full bg-clinical-red/10 text-clinical-red font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-red hover:text-white active:scale-95 transition-all outline-none">
+                                    Hapus
+                                </button>
+                            )}
+                            <button onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Pilih Gambar Lain
+                            </button>
+                            {previewFile && (
+                                <button onClick={submitUpload} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                    Submit
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -442,6 +552,47 @@ export const AdminSessionsPage: React.FC = () => {
                     </div>
                 </div>
             </main>
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+            {previewImage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setPreviewImage(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] w-full p-4" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 text-white hover:text-clinical-red transition-colors">
+                            <span className="material-symbols-outlined text-4xl">close</span>
+                        </button>
+                        <img src={previewImage} alt="ECG Paper" className="w-full h-full object-contain rounded-2xl shadow-2xl" />
+                    </div>
+                </div>
+            )}
+            {uploadingSessionId && previewUrl && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-clinical-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
+                        <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">
+                            {isEditMode ? "Edit Foto EKG" : "Pratinjau Foto EKG"}
+                        </h3>
+                        <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
+                            <img src={previewUrl} alt="Preview ECG" className="w-full h-auto rounded-lg object-contain" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button onClick={cancelUpload} className="py-3 px-6 rounded-full bg-clinical-charcoal/5 text-clinical-charcoal font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-charcoal/10 active:scale-95 transition-all outline-none">
+                                Batal
+                            </button>
+                            {isEditMode && !previewFile && (
+                                <button onClick={deleteUpload} className="py-3 px-6 rounded-full bg-clinical-red/10 text-clinical-red font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-red hover:text-white active:scale-95 transition-all outline-none">
+                                    Hapus
+                                </button>
+                            )}
+                            <button onClick={() => { if (fileInputRef.current) fileInputRef.current.click(); }} className="py-3 px-6 rounded-full bg-clinical-blue/10 text-clinical-blue font-bold text-[11px] uppercase tracking-widest hover:bg-clinical-blue hover:text-white active:scale-95 transition-all outline-none">
+                                Pilih Gambar Lain
+                            </button>
+                            {previewFile && (
+                                <button onClick={submitUpload} className="py-3 px-6 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all outline-none">
+                                    Submit
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
