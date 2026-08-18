@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PatientHeader } from '../../components/layout/PatientHeader';
 import { Pagination } from '../../components/shared/Pagination';
+import { useStickyState } from '../../../application/hooks/useStickyState';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
@@ -30,7 +31,7 @@ export const PatientHistoryPage: React.FC = () => {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     // Pagination
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useStickyState(1, 'patientHistoryPage');
     const itemsPerPage = 10;
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

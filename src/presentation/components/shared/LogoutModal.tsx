@@ -25,7 +25,11 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({ isOpen, onClose }) => 
             localStorage.removeItem('admin_user_id');
             localStorage.removeItem('original_role');
             sessionStorage.removeItem('is_impersonating');
-            navigate('/admin/dashboard');
+            
+            const returnUrl = sessionStorage.getItem('return_url') || '/admin/dashboard';
+            sessionStorage.removeItem('return_url');
+            
+            navigate(returnUrl);
             return;
         } else if (docToken && originalRole === 'dokter') {
             localStorage.setItem('auth_token', docToken);

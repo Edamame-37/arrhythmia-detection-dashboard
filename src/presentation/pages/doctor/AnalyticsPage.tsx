@@ -17,6 +17,7 @@ import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { Pagination } from '../../components/shared/Pagination';
+import { useStickyState } from '../../../application/hooks/useStickyState';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
@@ -48,7 +49,7 @@ export const AnalyticsPage: React.FC = () => {
     const [loadingAI, setLoadingAI] = useState<Record<string, boolean>>({});
 
     // Pagination
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useStickyState(1, 'doctorAnalyticsSidebarPage');
     const itemsPerPage = 10;
     
     const [segments, setSegments] = useState<Record<number, any>>({});

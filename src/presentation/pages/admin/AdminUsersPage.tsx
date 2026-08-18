@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
+import { supabase } from '../../../config/supabaseClient';
 import { API_URL } from '../../../config/env';
-import { fetchWithAuth } from '../../../config/api';
 import { Pagination } from '../../components/shared/Pagination';
+import { useStickyState } from '../../../application/hooks/useStickyState';
+import { fetchWithAuth } from '../../../config/api';
 
 interface AdminUser {
     id: string;
@@ -27,12 +29,13 @@ interface DeviceRecord {
 export const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
     const { isOpen, toggleSidebar } = useSidebar();
+    const [activeTab, setActiveTab] = useStickyState<'pasien' | 'dokter'>('pasien', 'adminUsersTab');
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'dokter' | 'pasien'>('pasien');
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
     const itemsPerPage = 10;
 
     // Add Modal State
@@ -229,6 +232,9 @@ export const AdminUsersPage: React.FC = () => {
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }
+
+                // Store return URL
+                sessionStorage.setItem('return_url', '/admin/users');
 
                 // Navigate
                 if (data.role === 'pasien') {
