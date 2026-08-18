@@ -3,7 +3,7 @@ import QRCode from 'react-qr-code';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { Pagination } from '../../components/shared/Pagination';
-import { useUrlState } from '../../../application/hooks/useUrlState';
+import { useStickyState } from '../../../application/hooks/useStickyState';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 
@@ -34,7 +34,7 @@ export const AdminDevicesPage: React.FC = () => {
         mqtt_password: ''
     });
 
-    const [currentPage, setCurrentPage] = useUrlState<number>('page', 1, parseInt);
+    const [currentPage, setCurrentPage] = useStickyState(1, 'adminDevicesPage');
     const itemsPerPage = 10;
 
     const fetchDevices = () => {

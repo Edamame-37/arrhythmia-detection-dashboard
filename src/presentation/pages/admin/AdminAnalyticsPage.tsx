@@ -15,7 +15,7 @@ import { DCBlocker } from '../../../core/algorithms/dcBlocker';
 import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { Pagination } from '../../components/shared/Pagination';
-import { useUrlState } from '../../../application/hooks/useUrlState';
+import { useStickyState } from '../../../application/hooks/useStickyState';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { VitalCard } from '../../components/dashboard/VitalCard';
@@ -57,7 +57,7 @@ export const AdminAnalyticsPage: React.FC = () => {
     const [isSubmittingSessionNote, setIsSubmittingSessionNote] = useState(false);
 
     // Pagination
-    const [currentPage, setCurrentPage] = useUrlState<number>('sidebarPage', 1, parseInt);
+    const [currentPage, setCurrentPage] = useStickyState(1, 'adminAnalyticsSidebarPage');
     const itemsPerPage = 10;
 
     useEffect(() => {
