@@ -102,7 +102,7 @@ export const PatientProfilePage: React.FC = () => {
                 body: JSON.stringify({
                     first_name: formData.first_name,
                     last_name: formData.last_name,
-                    age: Number(formData.age),
+                    age: String(formData.age),
                     profile_photo: formData.profile_photo || null
                 })
             });
