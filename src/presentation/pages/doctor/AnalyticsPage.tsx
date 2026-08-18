@@ -11,6 +11,7 @@ import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
 import { PanTompkins } from '../../../core/algorithms/panTompkins';
+import { DCBlocker } from '../../../core/algorithms/dcBlocker';
 import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
 import { DoctorSidebar } from '../../components/layout/DoctorSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
@@ -21,6 +22,7 @@ import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import type { ClinicalExplanation } from '../../../core/clinical/ruleBasedEngine';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { supabase } from '../../../config/supabaseClient';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -43,9 +45,15 @@ export const AnalyticsPage: React.FC = () => {
 
     const [events, setEvents] = useState<TimelineEvent[]>([]);
     const [segments, setSegments] = useState<Record<number, any>>({});
+    
+    const [sessionValidations, setSessionValidations] = useState<Record<string, { total: number, validated: number }>>({});
 
     useEffect(() => {
-        fetchWithAuth(`/api/sessions`)
+        const role = localStorage.getItem('user_role');
+        const userId = localStorage.getItem('user_id');
+        const url = role === 'dokter' ? `/api/sessions?doctor_id=${userId}` : `/api/sessions`;
+
+        fetchWithAuth(url)
             .then(res => res.json())
             .then(data => {
                 if (data && Array.isArray(data.sessions)) {
@@ -81,6 +89,29 @@ export const AnalyticsPage: React.FC = () => {
                     return prev;
                 });
             });
+
+            // Hitung persentase validasi dari frame_records
+            const sessionIds = allSessions.map(s => s.id);
+            if (sessionIds.length > 0) {
+                supabase.from('frame_records')
+                    .select('session_id, confirmation')
+                    .in('session_id', sessionIds)
+                    .then(({ data, error }) => {
+                        if (!error && data) {
+                            const counts: Record<string, { total: number, validated: number }> = {};
+                            sessionIds.forEach(id => counts[id] = { total: 0, validated: 0 });
+                            data.forEach(r => {
+                                if (counts[r.session_id]) {
+                                    counts[r.session_id].total++;
+                                    if (r.confirmation !== null) {
+                                        counts[r.session_id].validated++;
+                                    }
+                                }
+                            });
+                            setSessionValidations(counts);
+                        }
+                    });
+            }
         }
     }, [allSessions]);
 
@@ -93,20 +124,49 @@ export const AnalyticsPage: React.FC = () => {
         setIsLoading(true);
         Promise.all([
             fetchWithAuth(`/api/records/${sessionId}`).then(res => res.json()),
-            fetchWithAuth(`/api/sessions/${sessionId}/frames`).then(res => res.json()).catch(() => ({ frames: [] }))
+            supabase.from('frame_records').select('*').eq('session_id', sessionId)
         ])
-            .then(([data, framesData]) => {
+            .then(([data, { data: frameRecords }]) => {
                 const loadedEvents: TimelineEvent[] = [];
                 const loadedSegments: Record<number, any> = {};
                 
-                data.forEach((payload: any, i: number) => {
-                    const isAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) ||
+                const pt = new PanTompkins(250);
+                const globalDcBlocker = new DCBlocker(); // Jalur Matematis: Kontinu tanpa reset antar-frame
+                let lastPeakIndex = -1;
+                let absoluteIndexOffset = 0;
+                
+                const labelMap = new Map();
+                const hiddenMap = new Map();
+                if (frameRecords) {
+                    frameRecords.forEach(fr => {
+                        labelMap.set(fr.start_time, fr.label);
+                        hiddenMap.set(fr.start_time, fr.hidden);
+                    });
+                }
+
+                // Filter data to exclude hidden frames
+                const validData = data.filter((payload: any, originalIndex: number) => {
+                    const startTime = originalIndex * 10;
+                    return !hiddenMap.get(startTime);
+                });
+
+                validData.forEach((payload: any, i: number) => {
+                    const originalIndex = data.indexOf(payload);
+                    const startTime = originalIndex * 10;
+                    const dbLabel = labelMap.get(startTime);
+                    
+                    const isDbLabelAnomaly = dbLabel && dbLabel !== "Normal" && dbLabel !== "NORM" && dbLabel !== "NSR";
+                    const isPayloadAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) ||
                         (payload.prediction?.label && payload.prediction.label !== "Normal" && payload.prediction.label !== "NORM") || false;
+                    
+                    const isAnomaly = dbLabel ? isDbLabelAnomaly : isPayloadAnomaly;
+                    const classResult = dbLabel || payload.prediction?.label || payload.classification_result || "NORM";
+
                     loadedEvents.push({
                         index: i,
                         timeStr: `${Math.floor(i / 6).toString().padStart(2, '0')}:${((i % 6) * 10).toString().padStart(2, '0')}`,
                         isAnomaly,
-                        classResult: payload.prediction?.label || payload.classification_result || "NORM"
+                        classResult
                     });
                     
                     let xIndex = 0;
@@ -118,9 +178,8 @@ export const AnalyticsPage: React.FC = () => {
                     
                     const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
                     
-                    const pt = new PanTompkins(250);
                     const rrIntervals: number[] = [];
-                    let lastPeakIndex = -1;
+                    const visualDcBlocker = new DCBlocker(); // Jalur Visual: Di-reset murni per-frame
                     
                     for (let j = 0; j < samples.length; j++) {
                         let finalI, finalII, finalIII;
@@ -133,6 +192,23 @@ export const AnalyticsPage: React.FC = () => {
                             finalII = ch2[j] || 0;
                             finalIII = ch3[j] || 0;
                         }
+
+                        // JALUR MATEMATIS (KONTINU): Hitung DC Blocker kontinu lalu umpankan ke PanTompkins
+                        const mathCleaned = globalDcBlocker.process(finalI, finalII);
+                        let absoluteJ = absoluteIndexOffset + j;
+                        if (pt.detectRealTime(mathCleaned.cleanII, absoluteJ)) {
+                            if (lastPeakIndex !== -1) {
+                                rrIntervals.push((absoluteJ - lastPeakIndex) / 250);
+                            }
+                            lastPeakIndex = absoluteJ;
+                        }
+
+                        // JALUR VISUAL (PER-FRAME): Hitung DC Blocker per-frame agar sumbu tepat di 0
+                        const visualCleaned = visualDcBlocker.process(finalI, finalII);
+                        finalI = visualCleaned.cleanI;
+                        finalII = visualCleaned.cleanII;
+                        finalIII = visualCleaned.cleanIII;
+
                         const calculated = calculateEinthovenPoint(finalI, finalII);
                         const currentX = Number((xIndex * X_STEP).toFixed(2));
                         
@@ -144,17 +220,11 @@ export const AnalyticsPage: React.FC = () => {
                         paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
                         paths.V1.push(`${currentX},240.00`);
                         
-                        if (pt.detectRealTime(finalII, j)) {
-                            if (lastPeakIndex !== -1) {
-                                rrIntervals.push((j - lastPeakIndex) / 250);
-                            }
-                            lastPeakIndex = j;
-                        }
-                        
                         xIndex++;
                     }
+                    absoluteIndexOffset += samples.length;
                     
-                    const dbFrame = framesData?.frames?.find((f: any) => f.time_interval === loadedEvents[loadedEvents.length - 1].timeStr) || {};
+                    const dbFrame = frameRecords?.find((f: any) => f.start_time === startTime) || {};
                     const evalResult = evaluateIrregularity(rrIntervals);
                     const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || "--");
                     
@@ -168,7 +238,6 @@ export const AnalyticsPage: React.FC = () => {
                         deviceId: payload.device_id || "---",
                         createdAt: payload.created_at || "---",
                         dbId: dbFrame.id || null,
-                        devNote: dbFrame.dev_note || null,
                         docNote: dbFrame.doc_note || null,
                         confirmation: dbFrame.confirmation !== undefined ? dbFrame.confirmation : null,
                         docClassification: dbFrame.doc_classification || null,
@@ -307,30 +376,50 @@ export const AnalyticsPage: React.FC = () => {
                                     {allSessions.length === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
                                 </p>
                             </div>
-                        ) : filteredSessions.map(session => (
-                            <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex items-center justify-between gap-4 hover:shadow-md transition-shadow interactive-card cursor-pointer" onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)}>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden">
-                                        {session.patient_id && patientPhotos[session.patient_id] ? (
-                                            <img src={patientPhotos[session.patient_id]} alt={session.patient_name || ''} className="w-full h-full object-cover" />
-                                        ) : (
-                                            session.patient_name ? session.patient_name.substring(0, 2) : 'UK'
-                                        )}
+                        ) : filteredSessions.map(session => {
+                            const validation = sessionValidations[session.id] || { total: 0, validated: 0 };
+                            let validationStatus = "Belum Divalidasi";
+                            let validationClass = "bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant";
+                            
+                            if (validation.total > 0) {
+                                if (validation.validated === validation.total) {
+                                    validationStatus = "Sudah Divalidasi";
+                                    validationClass = "bg-signal-green/10 text-signal-green border border-signal-green/20";
+                                } else if (validation.validated > 0) {
+                                    const percentage = Math.round((validation.validated / validation.total) * 100);
+                                    validationStatus = `Tervalidasi ${percentage}%`;
+                                    validationClass = "bg-clinical-blue/10 text-clinical-blue border border-clinical-blue/20";
+                                }
+                            }
+
+                            return (
+                                <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-shadow interactive-card cursor-pointer" onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden flex-shrink-0">
+                                            {session.patient_id && patientPhotos[session.patient_id] ? (
+                                                <img src={patientPhotos[session.patient_id]} alt={session.patient_name || ''} className="w-full h-full object-cover" />
+                                            ) : (
+                                                session.patient_name ? session.patient_name.substring(0, 2) : 'UK'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal truncate max-w-[200px]">{session.patient_name || 'Pasien Anonim'}</h4>
+                                            <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
+                                            <p className="text-[10px] text-clinical-charcoal/70 mt-1 font-headline-md">{new Date(session.started_at).toLocaleString('id-ID')}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal truncate max-w-[200px]">{session.patient_name || 'Pasien Anonim'}</h4>
-                                        <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
-                                        <p className="text-[10px] text-clinical-charcoal/70 mt-1 font-headline-md">{new Date(session.started_at).toLocaleString('id-ID')}</p>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${validationClass}`}>
+                                            {validationStatus}
+                                        </div>
+                                        <button className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">history</span>
+                                            Buka Detail
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <button className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-[14px]">history</span>
-                                        Buka Detail
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )})() : (
@@ -349,6 +438,17 @@ export const AnalyticsPage: React.FC = () => {
                                     {currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : '--'}
                                 </span>
                             </span>
+                        </div>
+                        <div className="ml-auto flex items-center">
+                            {currentSegment?.confirmation !== null && currentSegment?.confirmation !== undefined ? (
+                                <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-signal-green/10 text-signal-green border border-signal-green/20">
+                                    Sudah Divalidasi
+                                </div>
+                            ) : (
+                                <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant">
+                                    Belum Divalidasi
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -399,12 +499,61 @@ export const AnalyticsPage: React.FC = () => {
                         isDoctorReview={true}
                         timeInterval={currentEvent ? `${currentEvent.timeStr} - ${events[selectedIdx + 1]?.timeStr || 'Akhir'}` : undefined}
                         frameId={currentSegment?.dbId}
-                        initialDevNote={currentSegment?.devNote}
                         initialDocNote={currentSegment?.docNote}
                         initialConfirmation={currentSegment?.confirmation}
                         initialDocClassification={currentSegment?.docClassification}
                         startTime={currentSegment?.startTime}
                         endTime={currentSegment?.endTime}
+                        onGoToNext={() => {
+                            if (selectedIdx < events.length - 1) {
+                                setIsLoading(true);
+                                setTimeout(() => {
+                                    setSelectedIdx(selectedIdx + 1);
+                                    setIsLoading(false);
+                                }, 300);
+                            }
+                        }}
+                        isLastFrame={selectedIdx >= events.length - 1}
+                        onGoToList={() => navigate('/doctor/analytics')}
+                        onValidationSuccess={(updatedFrame) => {
+                            // Update the frame record in local state so the badge turns green instantly
+                            setSegments(prev => {
+                                const currentSeg = prev[selectedIdx];
+                                const wasValidated = currentSeg?.confirmation !== null && currentSeg?.confirmation !== undefined;
+                                const isValidatedNow = updatedFrame.confirmation !== null && updatedFrame.confirmation !== undefined;
+                                
+                                // Update session validation counts locally
+                                setSessionValidations(prevCounts => {
+                                    const currentCount = prevCounts[sessionId] || { total: 0, validated: 0 };
+                                    let newValidated = currentCount.validated;
+                                    
+                                    if (!wasValidated && isValidatedNow) {
+                                        newValidated += 1;
+                                    } else if (wasValidated && !isValidatedNow) {
+                                        newValidated = Math.max(0, newValidated - 1);
+                                    }
+                                    
+                                    return {
+                                        ...prevCounts,
+                                        [sessionId]: {
+                                            ...currentCount,
+                                            validated: newValidated
+                                        }
+                                    };
+                                });
+
+                                return {
+                                    ...prev,
+                                    [selectedIdx]: {
+                                        ...currentSeg,
+                                        confirmation: updatedFrame.confirmation,
+                                        docClassification: updatedFrame.docClassification,
+                                        docNote: updatedFrame.docNote,
+                                        isAnomaly: updatedFrame.confirmation ? (updatedFrame.docClassification !== 'Normal' && updatedFrame.docClassification !== 'NORM') : currentSeg.isAnomaly
+                                    }
+                                };
+                            });
+                        }}
                     />
                     <div className="mt-auto">
                         <DeviceCard deviceId={deviceId} aiMetrics={aiMetrics} isLive={false} />

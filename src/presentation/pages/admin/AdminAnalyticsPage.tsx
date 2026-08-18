@@ -251,7 +251,6 @@ export const AdminAnalyticsPage: React.FC = () => {
                         deviceId: payload.device_id || "---",
                         createdAt: payload.created_at || "---",
                         dbId: dbFrame.id || null,
-                        devNote: dbFrame.dev_note || null,
                         docNote: dbFrame.doc_note || null,
                         confirmation: dbFrame.confirmation !== undefined ? dbFrame.confirmation : null,
                         docClassification: dbFrame.doc_classification || null,
