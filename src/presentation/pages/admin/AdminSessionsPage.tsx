@@ -286,7 +286,6 @@ export const AdminSessionsPage: React.FC = () => {
                             <tr key={session.id} className="hover:bg-surface-container-lowest/50 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="font-bold text-charcoal">{patientName}</div>
-                                    <div className="text-xs text-on-surface-variant font-mono mt-1 truncate max-w-[120px]">{session.patient_id}</div>
                                 </td>
                                 <td className="px-6 py-4 font-mono text-xs text-on-surface-variant whitespace-nowrap">
                                     {session.id.substring(0, 15)}
