@@ -5,7 +5,7 @@ import { useSidebar } from '../../../application/context/SidebarContext';
 import { supabase } from '../../../config/supabaseClient';
 import { API_URL } from '../../../config/env';
 import { Pagination } from '../../components/shared/Pagination';
-import { useStickyState } from '../../../application/hooks/useStickyState';
+import { useUrlState } from '../../../application/hooks/useUrlState';
 import { fetchWithAuth } from '../../../config/api';
 
 interface AdminUser {
@@ -29,17 +29,20 @@ interface DeviceRecord {
 export const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
     const { isOpen, toggleSidebar } = useSidebar();
-    const [activeTab, setActiveTab] = useStickyState<'pasien' | 'dokter'>('pasien', 'adminUsersTab');
+    const [activeTab, setActiveTab] = useUrlState<'pasien' | 'dokter'>('tab', 'pasien');
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     
-    const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
+    const [currentPage, setCurrentPage] = useUrlState<number>('page', 1, parseInt);
     const itemsPerPage = 10;
 
     // Add Modal State
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddModalStr, setShowAddModalStr] = useUrlState<string | null>('add', null);
+    const showAddModal = showAddModalStr === 'true';
+    const setShowAddModal = (val: boolean) => setShowAddModalStr(val ? 'true' : null);
+    
     const [addEmail, setAddEmail] = useState('');
     const [addPassword, setAddPassword] = useState('');
     const [addRole, setAddRole] = useState<'dokter' | 'pasien'>('dokter');
@@ -51,9 +54,21 @@ export const AdminUsersPage: React.FC = () => {
     const [addError, setAddError] = useState<string | null>(null);
 
     // Detail Modal State
+    const [detailUserId, setDetailUserId] = useUrlState<string | null>('detail', null);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
     const [userDetail, setUserDetail] = useState<any>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
+
+    // Sync URL detailUserId with selectedUser
+    useEffect(() => {
+        if (!detailUserId && selectedUser) {
+            setSelectedUser(null);
+            setUserDetail(null);
+        } else if (detailUserId && !selectedUser && users.length > 0) {
+            const user = users.find(u => u.id === detailUserId);
+            if (user) handleViewDetail(user, true);
+        }
+    }, [detailUserId, users]);
 
     // Sync states
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
@@ -126,7 +141,8 @@ export const AdminUsersPage: React.FC = () => {
         setAddLoading(false);
     };
 
-    const handleViewDetail = async (user: AdminUser) => {
+    const handleViewDetail = async (user: AdminUser, fromEffect = false) => {
+        if (!fromEffect) setDetailUserId(user.id);
         setSelectedUser(user);
         setUserDetail(null);
         setLoadingDetail(true);
@@ -150,8 +166,7 @@ export const AdminUsersPage: React.FC = () => {
     };
 
     const closeDetailModal = () => {
-        setSelectedUser(null);
-        setUserDetail(null);
+        setDetailUserId(null);
     };
 
     const handleSyncDoctor = async () => {
@@ -233,8 +248,8 @@ export const AdminUsersPage: React.FC = () => {
                     localStorage.setItem('auth_token', data.token);
                 }
 
-                // Store return URL
-                sessionStorage.setItem('return_url', '/admin/users');
+                // Store return URL including search params
+                sessionStorage.setItem('return_url', window.location.pathname + window.location.search);
 
                 // Navigate
                 if (data.role === 'pasien') {

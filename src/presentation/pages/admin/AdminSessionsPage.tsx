@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
-import { fetchWithAuth } from '../../../config/api';
 import { supabase } from '../../../config/supabaseClient';
 import { Pagination } from '../../components/shared/Pagination';
-import { useStickyState } from '../../../application/hooks/useStickyState';
+import { useUrlState } from '../../../application/hooks/useUrlState';
 
 export const AdminSessionsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -17,12 +16,12 @@ export const AdminSessionsPage: React.FC = () => {
     const [sessionValidations, setSessionValidations] = useState<Record<string, { total: number, validated: number }>>({});
     
     // View States
-    const [viewMode, setViewMode] = useStickyState<'all' | 'users'>('all', 'adminSessionsViewMode');
-    const [selectedUserId, setSelectedUserId] = useStickyState<string | null>(null, 'adminSessionsSelectedUser');
+    const [viewMode, setViewMode] = useUrlState<'all' | 'users'>('view', 'all');
+    const [selectedUserId, setSelectedUserId] = useUrlState<string | null>('userId', null);
 
     // Pagination States
-    const [currentPageSessions, setCurrentPageSessions] = useStickyState(1, 'adminSessionsPageAll');
-    const [currentPagePatients, setCurrentPagePatients] = useStickyState(1, 'adminSessionsPagePatients');
+    const [currentPageSessions, setCurrentPageSessions] = useUrlState<number>('p_sessions', 1, parseInt);
+    const [currentPagePatients, setCurrentPagePatients] = useUrlState<number>('p_patients', 1, parseInt);
 
     // Note Editing States
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);

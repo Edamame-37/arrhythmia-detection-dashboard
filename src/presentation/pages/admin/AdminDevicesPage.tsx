@@ -3,7 +3,7 @@ import QRCode from 'react-qr-code';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { Pagination } from '../../components/shared/Pagination';
-import { useStickyState } from '../../../application/hooks/useStickyState';
+import { useUrlState } from '../../../application/hooks/useUrlState';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 
@@ -28,13 +28,13 @@ export const AdminDevicesPage: React.FC = () => {
     const [formData, setFormData] = useState({
         name: '',
         mqtt_broker: '',
-        mqtt_port: 8883,
+        mqtt_port: 1883,
         mqtt_topic: '',
         mqtt_username: '',
         mqtt_password: ''
     });
 
-    const [currentPage, setCurrentPage] = useStickyState(1, 'adminDevicesPage');
+    const [currentPage, setCurrentPage] = useUrlState<number>('page', 1, parseInt);
     const itemsPerPage = 10;
 
     const fetchDevices = () => {
