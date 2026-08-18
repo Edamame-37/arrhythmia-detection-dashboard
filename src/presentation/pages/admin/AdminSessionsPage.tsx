@@ -164,8 +164,7 @@ export const AdminSessionsPage: React.FC = () => {
                 <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-lowest border-b border-outline-variant">
                     <tr>
                         <th className="px-6 py-4 font-bold tracking-wider">Pasien</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Dokter Pengawas</th>
-                        <th className="px-6 py-4 font-bold tracking-wider">Device ID</th>
+
                         <th className="px-6 py-4 font-bold tracking-wider">Waktu Mulai</th>
                         <th className="px-6 py-4 font-bold tracking-wider">Catatan</th>
                         <th className="px-6 py-4 font-bold tracking-wider text-center">Progress Validasi</th>
@@ -198,14 +197,7 @@ export const AdminSessionsPage: React.FC = () => {
                                     <div className="font-bold text-charcoal">{patientName}</div>
                                     <div className="text-xs text-on-surface-variant font-mono mt-1 truncate max-w-[120px]">{session.patient_id}</div>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <div className="font-semibold text-charcoal">{doctorName}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="font-mono text-xs bg-surface-variant/30 px-2 py-1 rounded text-charcoal font-semibold border border-outline-variant/50">
-                                        {session.device_id || '-'}
-                                    </span>
-                                </td>
+
                                 <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">
                                     {formatDate(session.start_time)}
                                 </td>
