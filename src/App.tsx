@@ -20,7 +20,6 @@ import { DevToolsBlocker } from './presentation/components/DevToolsBlocker';
 // Admin Pages
 import { ErrorBoundary } from './presentation/components/ErrorBoundary';
 import { AdminDashboardPage } from './presentation/pages/admin/AdminDashboardPage';
-import { AdminMonitorPage } from './presentation/pages/admin/AdminMonitorPage';
 import { AdminUsersPage } from './presentation/pages/admin/AdminUsersPage';
 import { AdminDevicesPage } from './presentation/pages/admin/AdminDevicesPage';
 import { AdminSessionsPage } from './presentation/pages/admin/AdminSessionsPage';
@@ -134,7 +133,6 @@ export const App: React.FC = () => {
 
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-        <Route path="/admin/monitor" element={<AdminMonitorPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/devices" element={<AdminDevicesPage />} />
         <Route path="/admin/sessions" element={<AdminSessionsPage />} />

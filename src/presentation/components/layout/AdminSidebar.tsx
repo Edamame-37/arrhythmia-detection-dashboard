@@ -50,10 +50,6 @@ export const AdminSidebar: React.FC = () => {
                         <span className={`material-symbols-outlined ${isActive('/admin/sessions') ? '' : 'text-outline group-hover:text-brand-red'}`}>history</span>
                         <span className="text-sm">Manajemen Sesi</span>
                     </Link>
-                    <Link className={`flex items-center gap-3 px-4 py-3 rounded-lg font-semibold shadow-sm transition-all ${isActive('/admin/monitor') ? 'bg-brand-red text-white' : 'text-on-surface-variant hover:bg-surface-container-low group'}`} to="/admin/monitor">
-                        <span className={`material-symbols-outlined ${isActive('/admin/monitor') ? '' : 'text-outline group-hover:text-brand-red'}`}>online_prediction</span>
-                        <span className="text-sm">Live Stream Raw</span>
-                    </Link>
                 </nav>
 
                 <div className="p-4 border-t border-outline-variant/40 bg-surface-container-low/50">
