@@ -259,6 +259,17 @@ export const AdminUsersPage: React.FC = () => {
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const doctorsList = users.filter(u => u.role === 'dokter');
 
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return '-';
+        const d = new Date(dateString);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${dd}-${mm}-${yy} ${hh}:${min}`;
+    };
+
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
             <AdminSidebar />
@@ -312,7 +323,7 @@ export const AdminUsersPage: React.FC = () => {
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
                                     ) : paginatedUsers.map(u => (
                                         <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
-                                            <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id}</td>
+                                            <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id.substring(0, 9)}</td>
                                             <td className="p-4 text-sm font-bold text-charcoal">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/50 shadow-sm overflow-hidden flex items-center justify-center text-on-surface-variant shrink-0">
@@ -335,7 +346,7 @@ export const AdminUsersPage: React.FC = () => {
                                                     {u.connected_device_id ? u.connected_device_id : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
                                                 </td>
                                             )}
-                                            <td className="p-4 text-xs text-on-surface-variant">{u.registered_at.split('T')[0]}</td>
+                                            <td className="p-4 text-xs text-on-surface-variant">{formatDate(u.registered_at)}</td>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-4">
                                                     <button onClick={() => handleViewDetail(u)} className="text-primary hover:underline text-xs font-bold flex items-center gap-1">
