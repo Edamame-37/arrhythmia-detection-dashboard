@@ -72,6 +72,72 @@ export const AdminSessionsPage: React.FC = () => {
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0 || !uploadingSessionId) return;
+        const file = e.target.files[0];
+        setPreviewFile(file);
+        if (previewUrl && previewFile) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(URL.createObjectURL(file));
+    };
+
+    const submitUpload = async () => {
+        if (!previewFile || !uploadingSessionId) return;
+        const formData = new FormData();
+        formData.append('paper', previewFile);
+
+        try {
+            const res = await fetchWithAuth(`/api/sessions/${uploadingSessionId}/ecg_paper`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: data.path } : s));
+                cancelUpload();
+            } else {
+                alert("Gagal mengunggah foto: " + data.message);
+            }
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Terjadi kesalahan saat mengunggah foto.");
+        }
+    };
+
+    const cancelUpload = () => {
+        if (previewUrl && previewFile) URL.revokeObjectURL(previewUrl);
+        setPreviewFile(null);
+        setPreviewUrl(null);
+        setUploadingSessionId(null);
+        setIsEditMode(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const deleteUpload = async () => {
+        if (!uploadingSessionId) return;
+        if (!confirm("Apakah Anda yakin ingin menghapus foto EKG ini?")) return;
+        try {
+            const res = await fetchWithAuth(`/api/sessions/${uploadingSessionId}/ecg_paper`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: null } : s));
+                cancelUpload();
+            } else {
+                alert("Gagal menghapus foto: " + data.message);
+            }
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert("Terjadi kesalahan saat menghapus foto.");
+        }
+    };
+
+    const triggerUpload = (sessionId: string) => {
+        setUploadingSessionId(sessionId);
+        if (fileInputRef.current) fileInputRef.current.click();
+    };
+
+
     useEffect(() => {
         setLoading(true);
         // Fetch sessions

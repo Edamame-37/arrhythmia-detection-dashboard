@@ -298,6 +298,24 @@ export const AnalyticsPage: React.FC = () => {
     const system = currentSegment?.system || null;
     const network = currentSegment?.network || null;
 
+    const handleDownload = async (url: string) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `ecg_paper_${sessionId || 'download'}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            console.error("Download failed:", err);
+            window.open(url, '_blank');
+        }
+    };
+
     return (
         <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen">
             <DoctorSidebar />
