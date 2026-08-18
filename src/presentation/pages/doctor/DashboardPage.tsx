@@ -189,31 +189,7 @@ export const DashboardPage: React.FC = () => {
 
 
 
-                    <section className="mb-8">
-                        <h2 className="text-base font-body-md font-headline-md text-clinical-charcoal mb-4 flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${devices.length > 0 ? 'bg-clinical-blue animate-ping' : 'bg-clinical-blue/20'}`}></span>
-                            <span>Perangkat Online</span>
-                        </h2>
-                        {devices.length > 0 ? (
-                            <div className="flex flex-col gap-4">
-                                {devices.map(device => (
-                                    <div key={device.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex items-center gap-3 shadow-sm">
-                                        <div className="w-10 h-10 rounded-full bg-clinical-blue/10 flex items-center justify-center text-clinical-blue">
-                                            <span className="material-symbols-outlined text-xl">router</span>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-headline-md text-clinical-charcoal text-sm font-body-sm">{device.name}</h3>
-                                            <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">ID: {device.id}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
-                                <p className="text-sm font-body-sm text-clinical-charcoal/70">Belum ada perangkat yang terhubung ke dashboard.</p>
-                            </div>
-                        )}
-                    </section>
+
 
                     <section className="mb-8">
                         <div className="flex justify-between items-center mb-4">
@@ -244,9 +220,9 @@ export const DashboardPage: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 w-full sm:w-auto mt-3 sm:mt-0">
-                                            <button onClick={() => handleImpersonate(patient.id)} className="flex-1 sm:flex-none bg-medical-teal text-white hover:brightness-110 px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
-                                                <span className="material-symbols-outlined text-[16px]">login</span>
-                                                Login
+                                            <button onClick={() => navigate('/doctor/analytics')} className="flex-1 sm:flex-none border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md bg-white transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                                                <span className="material-symbols-outlined text-[16px]">history</span>
+                                                Lihat Riwayat
                                             </button>
                                             <button onClick={() => {
                                                 setPatientToDisconnect(patient.id);
