@@ -16,6 +16,7 @@ interface PatientProfile {
     gender: string;
     primary_doctor_id: number | null;
     profile_photo: string | null;
+    device_id: string | null;
   };
   doctor: {
     id: number;
@@ -76,6 +77,13 @@ export const PatientDashboardPage: React.FC = () => {
         })
         .then(data => {
             setProfile(data);
+            if (data.patient.device_id) {
+                localStorage.setItem('synced_device_id', data.patient.device_id);
+                setSyncedDeviceId(data.patient.device_id);
+            } else {
+                localStorage.removeItem('synced_device_id');
+                setSyncedDeviceId(null);
+            }
             setError(null);
         })
         .catch(err => {
