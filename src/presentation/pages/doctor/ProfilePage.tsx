@@ -182,20 +182,15 @@ export const ProfilePage: React.FC = () => {
             </header>
 
             <main className="flex-1 overflow-y-auto custom-scrollbar relative animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
-                {/* Clinical Banner */}
-                <div className="w-full h-40 md:h-56 bg-gradient-to-r from-clinical-blue to-red-500 relative overflow-hidden">
-                    <div className="absolute inset-0 ecg-grid opacity-20 pointer-events-none"></div>
-                </div>
-
-                <div className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 pb-12 -mt-16 md:-mt-24 relative z-10">
+                <div className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 relative z-10">
                     <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden flex flex-col lg:flex-row transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)]">
                         
                         {/* Profile Info Section */}
-                        <div className="p-6 md:p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-clinical-charcoal/5 bg-clinical-surface/30 flex flex-col items-center text-center relative overflow-hidden group">
+                        <div className="p-6 md:p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-clinical-charcoal/5 bg-clinical-surface/50 flex flex-col items-center text-center relative overflow-hidden group">
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-blue">
-                                <span className="material-symbols-outlined text-[120px] md:text-[200px]">manage_accounts</span>
+                                <span className="material-symbols-outlined text-[150px] md:text-[200px]">manage_accounts</span>
                             </div>
-                            <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-clinical-surface flex items-center justify-center mb-4 md:mb-6 ring-4 ring-clinical-blue/10 z-10">
+                            <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-white flex items-center justify-center mb-5 md:mb-6 z-10 group-hover:shadow-2xl transition-all duration-700">
                                 {profile?.profile_photo ? (
                                     <img alt="Profile" className="w-full h-full object-cover" src={profile.profile_photo} />
                                 ) : (
