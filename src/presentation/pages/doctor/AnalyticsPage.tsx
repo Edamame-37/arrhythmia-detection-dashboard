@@ -467,7 +467,8 @@ export const AnalyticsPage: React.FC = () => {
                         <div className="mt-8 mb-4">
                             <Pagination
                                 currentPage={currentPage}
-                                totalPages={Math.ceil(totalSessions / itemsPerPage)}
+                                totalItems={totalSessions}
+                                itemsPerPage={itemsPerPage}
                                 onPageChange={setCurrentPage}
                             />
                         </div>
