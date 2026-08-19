@@ -35,6 +35,7 @@ export const PatientHistoryPage: React.FC = () => {
 
     // Pagination
     const [currentPage, setCurrentPage] = useStickyState(1, 'patientHistoryPage');
+    const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,20 +115,26 @@ export const PatientHistoryPage: React.FC = () => {
             .then(res => res.json())
             .then(data => setProfile(data))
             .catch(console.error);
+    }, []);
 
-        fetch(`${API_URL}/api/patients/${userId}/sessions`)
+    useEffect(() => {
+        const userId = localStorage.getItem('user_id') || '1';
+        fetch(`${API_URL}/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`)
             .then(res => res.json())
             .then(data => {
                 if (data && data.data) {
                     setSessions(data.data);
+                    setTotalPages(data.pagination.total_pages);
                 } else if (Array.isArray(data)) {
                     setSessions(data);
+                    setTotalPages(Math.ceil(data.length / itemsPerPage));
                 } else {
                     setSessions([]);
+                    setTotalPages(1);
                 }
             })
             .catch(console.error);
-    }, []);
+    }, [currentPage]);
 
     const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
 
@@ -201,8 +208,7 @@ export const PatientHistoryPage: React.FC = () => {
                         <div className="mt-8 z-10">
                             <Pagination 
                                 currentPage={currentPage}
-                                totalItems={sessions.length}
-                                itemsPerPage={itemsPerPage}
+                                totalPages={totalPages}
                                 onPageChange={setCurrentPage}
                             />
                         </div>
