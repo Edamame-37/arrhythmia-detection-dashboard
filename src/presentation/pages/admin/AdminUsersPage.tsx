@@ -34,13 +34,13 @@ export const AdminUsersPage: React.FC = () => {
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    
+
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
     const itemsPerPage = 10;
 
     // Add Modal State
     const [showAddModal, setShowAddModal] = useState(false);
-    
+
     const [addEmail, setAddEmail] = useState('');
     const [addPassword, setAddPassword] = useState('');
     const [addRole, setAddRole] = useState<'dokter' | 'pasien'>('dokter');
@@ -288,10 +288,10 @@ export const AdminUsersPage: React.FC = () => {
                 <div className="px-6 max-w-container-max mx-auto mt-6">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
                         <div className="flex bg-surface-container-low rounded-lg p-1">
-                            <button 
+                            <button
                                 onClick={() => { setActiveTab('pasien'); setCurrentPage(1); }}
                                 className={`px-4 py-2 font-bold text-sm transition-all relative ${activeTab === 'pasien' ? 'text-primary bg-white shadow-sm rounded-md' : 'text-on-surface-variant hover:text-charcoal'}`}
-                            >Data Pasien</button>
+                            > Pasien</button>
                             <button
                                 onClick={() => { setActiveTab('dokter'); setCurrentPage(1); }}
                                 className={`px-4 py-2 font-bold text-sm transition-all relative ${activeTab === 'dokter' ? 'text-medical-teal bg-white shadow-sm rounded-md' : 'text-on-surface-variant hover:text-charcoal'}`}
@@ -312,7 +312,7 @@ export const AdminUsersPage: React.FC = () => {
                                         <th className="p-4 font-bold border-b border-outline-variant/60">Nama Lengkap</th>
                                         {activeTab === 'pasien' && <th className="p-4 font-bold border-b border-outline-variant/60">Dokter Terhubung</th>}
                                         {activeTab === 'pasien' && <th className="p-4 font-bold border-b border-outline-variant/60">Device Terhubung</th>}
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">Tgl Daftar</th>
+                                        <th className="p-4 font-bold border-b border-outline-variant/60">Tanggal Daftar</th>
                                         <th className="p-4 font-bold border-b border-outline-variant/60">Aksi</th>
                                     </tr>
                                 </thead>
@@ -365,7 +365,7 @@ export const AdminUsersPage: React.FC = () => {
                             </table>
                         </div>
                         {filteredUsers.length > 0 && (
-                            <Pagination 
+                            <Pagination
                                 currentPage={currentPage}
                                 totalItems={filteredUsers.length}
                                 itemsPerPage={itemsPerPage}
