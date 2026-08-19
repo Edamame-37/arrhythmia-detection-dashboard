@@ -34,7 +34,7 @@ export const PatientHistoryPage: React.FC = () => {
     const { data: profile } = useCachedFetch(`/api/patients/${userId}`);
     const { data: sessionsResponse, mutate: mutateSessions } = useCachedFetch(`/api/patients/${userId}/sessions`);
 
-    const sessionsData = sessionsResponse?.data || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+    const sessionsData = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
     const totalPages = Math.ceil(sessionsData.length / itemsPerPage) || 1;
 
     // Default internal state for optimistic UI updates (e.g. after uploading a photo)

@@ -39,7 +39,7 @@ export const PatientDashboardPage: React.FC = () => {
   const { data: doctorData } = useCachedFetch(profileData?.patient?.primary_doctor_id ? `/api/doctors/${profileData.patient.primary_doctor_id}` : null);
 
   const profile: PatientProfile | null = profileData || null;
-  const sessions = sessionsResponse?.data || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+  const sessions = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
 
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);

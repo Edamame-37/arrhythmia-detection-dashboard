@@ -36,7 +36,7 @@ export const AdminSessionsPage: React.FC = () => {
     const patientsViewData = patientsViewResponse?.data || (Array.isArray(patientsViewResponse) ? patientsViewResponse : []);
     const totalPatientsView = patientsViewResponse?.pagination?.total || patientsViewData.length;
 
-    const [patientSessionsData, setPatientSessionsData] = useState<Record<string, any[]>>({});
+    const { data: expandedPatientSessionsResponse } = useCachedFetch(expandedPatientId ? `/api/patients/${expandedPatientId}/sessions` : null);
 
     // Note Editing States
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -167,6 +167,7 @@ export const AdminSessionsPage: React.FC = () => {
     useEffect(() => {
         if (viewMode === 'all' && allSessionsResponse) {
             const fetchedSessions = allSessionsResponse.data || allSessionsResponse.sessions || (Array.isArray(allSessionsResponse) ? allSessionsResponse : []);
+            setSessions(fetchedSessions); // Tampilkan secara instan tanpa delay Supabase
             
             const sessionIds = fetchedSessions.map((s: any) => s.id);
             if (sessionIds.length > 0) {
@@ -499,14 +500,6 @@ export const AdminSessionsPage: React.FC = () => {
                                             onClick={() => {
                                                 const newId = expandedPatientId === patient.id ? null : patient.id;
                                                 setExpandedPatientId(newId);
-                                                if (newId && !patientSessionsData[newId]) {
-                                                    const token = localStorage.getItem('auth_token') || '';
-                                                    fetchWithAuth(`/api/patients/${newId}/sessions`, { headers: { 'Authorization': `Bearer ${token}` } })
-                                                        .then(res => res.json())
-                                                        .then(data => {
-                                                            setPatientSessionsData(prev => ({ ...prev, [newId]: data.data || data || [] }));
-                                                        }).catch(console.error);
-                                                }
                                             }}
                                             className="inline-flex items-center gap-1 bg-surface-variant/50 hover:bg-surface-variant text-charcoal px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                                         >
@@ -523,7 +516,7 @@ export const AdminSessionsPage: React.FC = () => {
                                                     <span className="material-symbols-outlined text-[18px]">history</span>
                                                     Daftar Rekaman Sesi: {patient.name}
                                                 </h4>
-                                                {renderSessionsTable(patientSessionsData[patient.id] || [], true)}
+                                                {renderSessionsTable(expandedPatientId === patient.id ? (expandedPatientSessionsResponse?.data || expandedPatientSessionsResponse?.sessions || (Array.isArray(expandedPatientSessionsResponse) ? expandedPatientSessionsResponse : [])) : [], true)}
                                             </div>
                                         </td>
                                     </tr>

@@ -30,12 +30,20 @@ import { supabase } from '../../../config/supabaseClient';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
+const SessionPatientAvatar: React.FC<{ patientId: string | number, patientName: string }> = ({ patientId, patientName }) => {
+    const { data: profile } = useCachedFetch<any>(`/api/patients/${patientId}`);
+    const photo = profile?.patient?.profile_photo || profile?.profile_photo || null;
+    return photo ? (
+        <img src={photo} alt={patientName || ''} className="w-full h-full object-cover" />
+    ) : (
+        <>{patientName ? patientName.substring(0, 2) : 'UK'}</>
+    );
+};
+
 export const AnalyticsPage: React.FC = () => {
     const query = useQuery();
     const sessionId = query.get('sessionId') || '';
     const navigate = useNavigate();
-
-    const [patientPhotos, setPatientPhotos] = useState<Record<string, string>>({});
 
     const [speed, setSpeed] = useState<25 | 50>(25);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
@@ -64,40 +72,18 @@ export const AnalyticsPage: React.FC = () => {
     const userId = localStorage.getItem('user_id');
     const sessionsUrl = selectedPatientFilter === 'ALL'
         ? (role === 'dokter' ? `/api/sessions?doctor_id=${userId}&page=${currentPage}&limit=${itemsPerPage}` : `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`)
-        : `/api/patients/${selectedPatientFilter}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
+        : `/api/patients/${selectedPatientFilter}/sessions`;
 
     const { data: sessionsResponse, isLoading: loadingSessions } = useCachedFetch(sessionId ? null : sessionsUrl);
     
     // Derived state
-    const allSessions = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
-    const totalSessions = sessionsResponse?.pagination?.total || sessionsResponse?.total_sessions || allSessions.length;
+    const allSessionsFetched = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+    const totalSessions = sessionsResponse?.pagination?.total || sessionsResponse?.total_sessions || allSessionsFetched.length;
+    // Paginasi manual (client-side) jika selectedPatientFilter !== 'ALL'
+    const allSessions = selectedPatientFilter === 'ALL' ? allSessionsFetched : allSessionsFetched.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     useEffect(() => {
         if (allSessions.length > 0) {
-            const uniquePatientIds = Array.from(new Set(allSessions.map((s: any) => s.patient_id).filter(Boolean)));
-            
-            uniquePatientIds.forEach((id: any) => {
-                // Hindari fetch berulang jika sudah ada di state
-                setPatientPhotos(prev => {
-                    if (prev[id as string]) return prev;
-                    
-                    fetchWithAuth(`/api/patients/${id}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data && data.patient && data.patient.profile_photo) {
-                                setPatientPhotos(p => ({
-                                    ...p,
-                                    [id as string]: data.patient.profile_photo
-                                }));
-                            }
-                        })
-                        .catch(e => console.error("Error fetching patient", id, e));
-                        
-                    return prev;
-                });
-            });
-
-            // Hitung persentase validasi menggunakan RPC Supabase
             const sessionIds = allSessions.map((s: any) => s.id);
             if (sessionIds.length > 0) {
                 supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
@@ -421,8 +407,8 @@ export const AnalyticsPage: React.FC = () => {
                                 <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-shadow interactive-card cursor-pointer" onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)}>
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden flex-shrink-0">
-                                            {session.patient_id && patientPhotos[session.patient_id] ? (
-                                                <img src={patientPhotos[session.patient_id]} alt={session.patient_name || ''} className="w-full h-full object-cover" />
+                                            {session.patient_id ? (
+                                                <SessionPatientAvatar patientId={session.patient_id} patientName={session.patient_name || ''} />
                                             ) : (
                                                 session.patient_name ? session.patient_name.substring(0, 2) : 'UK'
                                             )}
