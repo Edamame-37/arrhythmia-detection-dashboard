@@ -191,7 +191,7 @@ export const ProfilePage: React.FC = () => {
                     <div className="bg-white/60 backdrop-blur-2xl rounded-[1.5rem] md:rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.05)] border border-white/50 overflow-hidden flex flex-col lg:flex-row transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.1)]">
                         
                         {/* Profile Info Section */}
-                        <div className="p-6 md:p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-white/40 bg-white/30 flex flex-col items-center text-center relative overflow-hidden group">
+                        <div className="p-6 md:p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-white/40 bg-white/30 flex flex-col justify-center items-center text-center relative overflow-hidden group">
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-blue">
                                 <span className="material-symbols-outlined text-[150px] md:text-[200px]">manage_accounts</span>
                             </div>
@@ -216,17 +216,6 @@ export const ProfilePage: React.FC = () => {
                                 </button>
                             )}
 
-                            {/* Mock Stats to fill space */}
-                            <div className="w-full mt-8 grid grid-cols-2 gap-4 relative z-10">
-                                <div className="bg-white/40 backdrop-blur-md rounded-2xl p-4 border border-white/50 text-center transition-all duration-700 hover:bg-white/60">
-                                    <p className="text-[10px] font-bold text-clinical-charcoal/50 uppercase tracking-widest mb-1">Sesi Aktif</p>
-                                    <p className="text-xl font-bold text-clinical-blue">12</p>
-                                </div>
-                                <div className="bg-white/40 backdrop-blur-md rounded-2xl p-4 border border-white/50 text-center transition-all duration-700 hover:bg-white/60">
-                                    <p className="text-[10px] font-bold text-clinical-charcoal/50 uppercase tracking-widest mb-1">Total Pasien</p>
-                                    <p className="text-xl font-bold text-clinical-blue">348</p>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Details & Form Section */}
