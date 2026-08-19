@@ -113,19 +113,19 @@ export const DashboardPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-clinical-surface/30 text-clinical-charcoal antialiased overflow-x-hidden w-full relative">
-            <div className="absolute inset-0 ecg-grid opacity-[0.15] pointer-events-none z-0"></div>
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full relative min-h-screen">
+            <div className="fixed inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
             <DoctorSidebar />
             <main id="main-content" className={`min-h-screen pb-24 md:pb-12 transition-all duration-300 w-full relative z-10 ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
 
-                <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-6 py-4 flex justify-between items-center max-w-container-max mx-auto">
+                <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full">
                     <div className="flex items-center gap-3">
                         <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
                             <span className="material-symbols-outlined">menu</span>
                         </button>
                         <div>
-                            <h1 className="text-xl md:text-2xl font-headline-md tracking-tight text-clinical-charcoal">Dashboard Utama Klinis</h1>
-                            <p className="text-xs font-body-sm text-clinical-charcoal/70 mt-0.5">
+                            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-clinical-charcoal">Dashboard Utama Klinis</h1>
+                            <p className="text-xs md:text-sm font-medium text-clinical-charcoal/60 mt-0.5">
                                 {new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(currentTime)} • {new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(currentTime).replace(/\./g, ':')}
                             </p>
                         </div>
@@ -138,7 +138,7 @@ export const DashboardPage: React.FC = () => {
                     </div>
                 </header>
 
-                <div className="px-6 max-w-container-max mx-auto mt-6">
+                <div className="px-4 md:px-6 max-w-container-max mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
                     {activeSessions.length > 0 && (
                         <section className="mb-6">
                             <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden group">

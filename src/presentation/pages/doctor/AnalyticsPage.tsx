@@ -290,7 +290,8 @@ export const AnalyticsPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen">
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen relative w-full">
+            <div className="fixed inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
             <DoctorSidebar />
 
             {/* ECG Photo Preview Modal */}
@@ -321,15 +322,15 @@ export const AnalyticsPage: React.FC = () => {
 
             <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
             {/* --- HEADER KOMPONEN --- */}
-            <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full">
+            <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full">
                 
                 <div className="flex items-center gap-3">
                     <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
                         <span className="material-symbols-outlined">menu</span>
                     </button>
                     <div>
-                        <h1 className="text-2xl font-headline-md tracking-tight text-clinical-charcoal">Riwayat Klinis</h1>
-                        <p className="text-xs font-body-sm text-clinical-charcoal/70 mt-0.5">Peninjauan rekam historis EKG dan AI Analytics</p>
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-clinical-charcoal">Riwayat Klinis</h1>
+                        <p className="text-xs md:text-sm font-medium text-clinical-charcoal/60 mt-0.5">Peninjauan rekam historis EKG dan AI Analytics</p>
                     </div>
                 </div>
 
@@ -337,7 +338,7 @@ export const AnalyticsPage: React.FC = () => {
             </header>
 
             {/* --- TOOLBAR INFORMASI --- */}
-            <div className="bg-white border-b border-clinical-blue/20/30 w-full shadow-sm z-30 relative">
+            <div className="bg-white border-b border-clinical-charcoal/5 w-full shadow-sm z-30 relative">
                 <div className="max-w-container-max mx-auto px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-clinical-blue/10 p-2 rounded-lg text-clinical-blue">
@@ -372,6 +373,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
 
             {/* --- KONTEN UTAMA --- */}
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out w-full flex-1 flex flex-col">
             {!sessionId ? (() => {
                 if (connectedPatients.length === 0) {
                     return (
@@ -620,6 +622,7 @@ export const AnalyticsPage: React.FC = () => {
                 </aside>
             </div>
             )}
+            </div>
             </main>
         </div>
     );

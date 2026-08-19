@@ -173,25 +173,26 @@ export const QrScannerPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full min-h-screen flex">
+    <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full min-h-screen flex relative">
+      <div className="fixed inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
 
 
       <DoctorSidebar />
 
-      <main id="main-content" className={`flex-grow min-h-screen pb-24 md:pb-12 transition-all duration-300 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
-        <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-6 py-4 flex justify-between items-center max-w-container-max mx-auto">
+      <main id="main-content" className={`flex-grow min-h-screen pb-24 md:pb-12 transition-all duration-300 w-full relative z-10 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
+        <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full">
           <div className="flex items-center gap-3">
             <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
               <span className="material-symbols-outlined">menu</span>
             </button>
             <div>
-              <h1 className="text-2xl font-headline-md tracking-tight text-clinical-charcoal">Scanner Pasien</h1>
-              <p className="text-xs font-body-sm text-clinical-charcoal/70 mt-0.5">Scan QR code atau masukkan ID Pasien</p>
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-clinical-charcoal">Scanner Pasien</h1>
+              <p className="text-xs md:text-sm font-medium text-clinical-charcoal/60 mt-0.5">Scan QR code atau masukkan ID Pasien</p>
             </div>
           </div>
         </header>
 
-        <div className="p-4 md:p-6 max-w-4xl mx-auto mt-6">
+        <div className="p-4 md:p-6 max-w-4xl mx-auto mt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
           <div className="bg-white rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden p-6 md:p-12 transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] relative">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0">
                 <span className="material-symbols-outlined text-[300px]">qr_code_scanner</span>

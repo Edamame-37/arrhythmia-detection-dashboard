@@ -156,18 +156,19 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-hidden flex h-screen w-full font-sans">
+    <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-hidden flex h-screen w-full font-sans relative">
+        <div className="absolute inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
         <DoctorSidebar />
 
-        <div className={`flex-1 flex flex-col min-w-0 bg-clinical-surface relative transition-all duration-300 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
+        <div className={`flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
 
-            <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-6 py-4 flex justify-between items-center w-full shadow-sm">
+            <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
                     <button onClick={toggleSidebar} id="toggle-sidebar-btn" className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Menu Utama">
                         <span className="material-symbols-outlined">menu</span>
                     </button>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-headline-md tracking-tight text-clinical-charcoal">Pengaturan Akun</h1>
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-clinical-charcoal">Pengaturan Akun</h1>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -180,7 +181,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto custom-scrollbar bg-white-container-lowest">
+            <main className="flex-1 overflow-y-auto custom-scrollbar relative animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
                 {/* Clinical Banner */}
                 <div className="w-full h-48 bg-clinical-blue relative overflow-hidden">
                     <div className="absolute inset-0 ecg-grid opacity-20 pointer-events-none"></div>
