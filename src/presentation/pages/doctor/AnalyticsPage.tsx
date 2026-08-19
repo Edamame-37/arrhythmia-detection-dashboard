@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ECGCanvas } from '../../components/canvas/ECGCanvas';
+import { EcgViewer } from '../../components/dashboard/EcgViewer';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
