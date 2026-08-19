@@ -51,6 +51,7 @@ export const AnalyticsPage: React.FC = () => {
     // Pagination
     const [currentPage, setCurrentPage] = useStickyState(1, 'doctorAnalyticsSidebarPage');
     const itemsPerPage = 10;
+    const [totalSessions, setTotalSessions] = useState(0);
     
     const [segments, setSegments] = useState<Record<number, any>>({});
     
@@ -62,21 +63,26 @@ export const AnalyticsPage: React.FC = () => {
     useEffect(() => {
         const role = localStorage.getItem('user_role');
         const userId = localStorage.getItem('user_id');
-        const url = role === 'dokter' ? `/api/sessions?doctor_id=${userId}` : `/api/sessions`;
+        const url = selectedPatientFilter === 'ALL'
+            ? (role === 'dokter' ? `/api/sessions?doctor_id=${userId}&page=${currentPage}&limit=${itemsPerPage}` : `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`)
+            : `/api/patients/${selectedPatientFilter}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
 
         fetchWithAuth(url)
             .then(res => res.json())
             .then(data => {
                 if (data && data.data) {
                     setAllSessions(data.data);
+                    setTotalSessions(data.pagination?.total || data.data.length);
                 } else if (data && Array.isArray(data.sessions)) {
                     setAllSessions(data.sessions);
+                    setTotalSessions(data.total_sessions || data.sessions.length);
                 } else if (Array.isArray(data)) {
                     setAllSessions(data);
+                    setTotalSessions(data.length);
                 }
             })
             .catch(err => console.error("Error fetching sessions:", err));
-    }, []);
+    }, [currentPage, selectedPatientFilter]);
 
     useEffect(() => {
         if (allSessions.length > 0) {
@@ -359,16 +365,12 @@ export const AnalyticsPage: React.FC = () => {
                     {!sessionId && (
                         <select
                             value={selectedPatientFilter}
-                            onChange={(e) => setSelectedPatientFilter(e.target.value)}
+                            onChange={(e) => { setSelectedPatientFilter(e.target.value); setCurrentPage(1); }}
                             className="text-xs font-body-sm text-clinical-charcoal border border-clinical-blue/20 px-3 py-2 rounded-lg bg-white outline-none focus:border-clinical-blue transition-all cursor-pointer"
                         >
                             <option value="ALL">Semua Pasien</option>
-                            {Array.from(new Map(
-                                allSessions
-                                    .filter(s => s.patient_id)
-                                    .map(s => [s.patient_id, { id: s.patient_id, name: s.patient_name || 'Pasien Anonim' }])
-                            ).values()).map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
+                            {connectedPatients.map(p => (
+                                <option key={p.id || p.raw_id} value={p.id || p.raw_id}>{p.name}</option>
                             ))}
                         </select>
                     )}
@@ -393,22 +395,16 @@ export const AnalyticsPage: React.FC = () => {
                     );
                 }
 
-                const filteredSessions = selectedPatientFilter === 'ALL' 
-                    ? allSessions 
-                    : allSessions.filter(s => s.patient_id === selectedPatientFilter);
-                
-                const paginatedSessions = filteredSessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
                 return (
                 <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
                     <div className="space-y-3">
-                        {filteredSessions.length === 0 ? (
+                        {allSessions.length === 0 ? (
                             <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
                                 <p className="text-sm font-body-sm text-clinical-charcoal/70">
-                                    {allSessions.length === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
+                                    {totalSessions === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
                                 </p>
                             </div>
-                        ) : paginatedSessions.map(session => {
+                        ) : allSessions.map(session => {
                             const validation = sessionValidations[session.id] || { total: 0, validated: 0 };
                             let validationStatus = "Belum Divalidasi";
                             let validationClass = "bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant";
@@ -467,12 +463,11 @@ export const AnalyticsPage: React.FC = () => {
                             );
                         })}
                     </div>
-                    {filteredSessions.length > 0 && (
-                        <div className="mt-4">
-                            <Pagination 
+                    {totalSessions > itemsPerPage && (
+                        <div className="mt-8 mb-4">
+                            <Pagination
                                 currentPage={currentPage}
-                                totalItems={filteredSessions.length}
-                                itemsPerPage={itemsPerPage}
+                                totalPages={Math.ceil(totalSessions / itemsPerPage)}
                                 onPageChange={setCurrentPage}
                             />
                         </div>
