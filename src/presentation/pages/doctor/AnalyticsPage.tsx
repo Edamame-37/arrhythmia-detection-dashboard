@@ -352,7 +352,7 @@ export const AnalyticsPage: React.FC = () => {
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 justify-end w-full md:w-auto">
                     {!sessionId && (
                         <div className="relative">
                             <select
