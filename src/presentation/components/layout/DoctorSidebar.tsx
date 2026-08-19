@@ -49,10 +49,10 @@ export const DoctorSidebar: React.FC = () => {
                 />
             )}
             <aside id="main-sidebar" className={`
-                z-50 flex-col transition-all duration-300
+                z-50 flex-col transition-all duration-500 ease-in-out
                 md:fixed md:top-0 md:h-screen md:w-[260px] md:bg-white-container-lowest md:border-r md:border-clinical-blue/20 md:translate-y-0 md:flex md:rounded-none md:shadow-none
-                fixed top-[72px] left-4 right-4 w-[calc(100%-32px)] bg-white rounded-2xl shadow-2xl border border-clinical-blue/20/30 overflow-hidden pb-4 md:pb-0
-                ${isOpen ? 'opacity-100 scale-100 flex translate-y-0 md:translate-x-0 md:left-0 md:opacity-100' : 'opacity-0 scale-95 pointer-events-none hidden md:flex md:-translate-x-full md:opacity-0'}
+                fixed top-[72px] left-0 right-0 w-full bg-white/95 backdrop-blur-xl rounded-b-[2rem] shadow-2xl border-b border-clinical-charcoal/5 overflow-hidden pb-6 md:pb-0
+                ${isOpen ? 'translate-y-0 opacity-100 flex md:translate-x-0 md:opacity-100' : '-translate-y-[150%] opacity-0 pointer-events-none flex md:-translate-x-full md:opacity-0 md:translate-y-0'}
             `}>
                 <div className="hidden md:flex p-6 items-center gap-3 border-b border-clinical-blue/20/30 cursor-pointer" onClick={() => { navigate('/doctor/dashboard'); handleNavClick(); }}>
                     <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJfACqMSzy6S1S81otlvrhfNIHr526OT9XlgCl04PJNewQysO-szQBYwNy1CAVfF851GuVn5qSOMjNWQdVGWANcLFnC4v9hdbnEGw6a6zjZHiO-z3KrczLQUpmNPbJBK3DPcvSUNAMyxXlVaN3XK5XqDW2MwFfclgdHRXsKHmF-u3QnVmzkBpw6dRTGNCyHk4YD526zmZNozyix_CMqEgOacA2M9LUFTaMDhBfigT5e7htUaxvw6bZCKeoVwqQgtQxho0qkC32iy0g"
