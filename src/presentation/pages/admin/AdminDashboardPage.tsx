@@ -37,8 +37,7 @@ export const AdminDashboardPage: React.FC = () => {
                 });
         };
         fetchStats();
-        const interval = setInterval(fetchStats, 60000); // Sync every minute
-        return () => clearInterval(interval);
+        // Removed polling (setInterval) to save server load and prevent global sluggishness
     }, []);
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
