@@ -26,6 +26,9 @@ export const AdminSessionsPage: React.FC = () => {
     const [currentPagePatients, setCurrentPagePatients] = useStickyState(1, 'adminSessionsPagePatients');
     const [totalSessions, setTotalSessions] = useState(0);
     const [totalSessionPages, setTotalSessionPages] = useState(1);
+    const [patientsViewData, setPatientsViewData] = useState<any[]>([]);
+    const [totalPatientsView, setTotalPatientsView] = useState(0);
+    const [patientSessionsData, setPatientSessionsData] = useState<Record<string, any[]>>({});
     const itemsPerPage = 10;
 
     // Note Editing States
@@ -166,9 +169,32 @@ export const AdminSessionsPage: React.FC = () => {
         }
     };
 
-    useEffect(() => {
+    const fetchPatientsView = async (page: number) => {
         setLoading(true);
-        fetchSessions(currentPageSessions).then((fetchedSessions) => {
+        try {
+            const token = localStorage.getItem('auth_token') || '';
+            const res = await fetchWithAuth(`/api/admin/users?role=pasien&page=${page}&limit=${itemsPerPage}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (data.data) {
+                setPatientsViewData(data.data);
+                setTotalPatientsView(data.pagination.total);
+            } else {
+                setPatientsViewData(Array.isArray(data) ? data : []);
+                setTotalPatientsView(Array.isArray(data) ? data.length : 0);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (viewMode === 'users') {
+            fetchPatientsView(currentPagePatients);
+        } else {
+            setLoading(true);
+            fetchSessions(currentPageSessions).then((fetchedSessions) => {
 
                   if (!Object.keys(doctorNames).length) {
                 fetchWithAuth('/api/admin/users?limit=1000')
@@ -227,7 +253,8 @@ export const AdminSessionsPage: React.FC = () => {
                 console.error("Failed to load sessions data", err);
                 setLoading(false);
             });
-    }, [currentPageSessions]);
+        }
+    }, [viewMode, currentPageSessions, currentPagePatients]);
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
@@ -484,9 +511,8 @@ export const AdminSessionsPage: React.FC = () => {
 };
 
     const renderPatientsTable = () => {
-        const itemsPerPage = 10;
-        const totalItems = patientsList.length;
-        const paginatedPatients = patientsList.slice((currentPagePatients - 1) * itemsPerPage, currentPagePatients * itemsPerPage);
+        const totalItems = totalPatientsView;
+        const paginatedPatients = patientsViewData;
 
         return (
         <div className="flex flex-col w-full">
@@ -512,16 +538,29 @@ export const AdminSessionsPage: React.FC = () => {
                                         <span className="text-xs text-on-surface-variant font-mono truncate max-w-[150px] inline-block">{patient.id}</span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className="font-bold text-medical-teal bg-medical-teal/10 px-3 py-1 rounded-full">
-                                            {patient.totalSessions}
+                                        <span className="text-xs text-on-surface-variant italic">
+                                            Buka Sesi
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-on-surface-variant">
-                                        {formatDate(patient.lastSessionDate)}
+                                        <span className="text-xs italic">
+                                            {formatDate(patient.registered_at)}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <button 
-                                            onClick={() => setExpandedPatientId(expandedPatientId === patient.id ? null : patient.id)}
+                                            onClick={() => {
+                                                const newId = expandedPatientId === patient.id ? null : patient.id;
+                                                setExpandedPatientId(newId);
+                                                if (newId && !patientSessionsData[newId]) {
+                                                    const token = localStorage.getItem('auth_token') || '';
+                                                    fetchWithAuth(`/api/patients/${newId}/sessions`, { headers: { 'Authorization': `Bearer ${token}` } })
+                                                        .then(res => res.json())
+                                                        .then(data => {
+                                                            setPatientSessionsData(prev => ({ ...prev, [newId]: data.data || data || [] }));
+                                                        }).catch(console.error);
+                                                }
+                                            }}
                                             className="inline-flex items-center gap-1 bg-surface-variant/50 hover:bg-surface-variant text-charcoal px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                                         >
                                             <span>{expandedPatientId === patient.id ? 'Tutup' : 'Lihat Sesi'}</span>
@@ -537,7 +576,7 @@ export const AdminSessionsPage: React.FC = () => {
                                                     <span className="material-symbols-outlined text-[18px]">history</span>
                                                     Daftar Rekaman Sesi: {patient.name}
                                                 </h4>
-                                                {renderSessionsTable(sessions.filter(s => s.patient_id === patient.id), true)}
+                                                {renderSessionsTable(patientSessionsData[patient.id] || [], true)}
                                             </div>
                                         </td>
                                     </tr>

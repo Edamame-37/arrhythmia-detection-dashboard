@@ -208,7 +208,8 @@ export const PatientHistoryPage: React.FC = () => {
                         <div className="mt-8 z-10">
                             <Pagination 
                                 currentPage={currentPage}
-                                totalPages={totalPages}
+                                totalItems={totalPages * itemsPerPage}
+                                itemsPerPage={itemsPerPage}
                                 onPageChange={setCurrentPage}
                             />
                         </div>
