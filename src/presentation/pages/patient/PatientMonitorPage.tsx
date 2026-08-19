@@ -77,7 +77,8 @@ export const PatientMonitorPage: React.FC = () => {
         fetchWithAuth(`/api/sessions`)
             .then(res => res.json())
             .then(data => {
-                const activeSessions = data.sessions ? data.sessions.filter((s: any) => !s.ended_at) : [];
+                const sessionsArray = data.data || data.sessions || (Array.isArray(data) ? data : []);
+                const activeSessions = sessionsArray.filter((s: any) => !s.ended_at);
                 if (activeSessions.length > 0) {
                     startStream(); // Only reconnect WebSocket, do not send START command
                 }
@@ -124,7 +125,8 @@ export const PatientMonitorPage: React.FC = () => {
                 const sessRes = await fetchWithAuth(`/api/sessions`);
                 if (sessRes.ok) {
                     const sessData = await sessRes.json();
-                    const activeSession = sessData.sessions?.find((s: any) => !s.ended_at && s.patient_id === selectedPatientId);
+                    const sessionsArray = sessData.data || sessData.sessions || (Array.isArray(sessData) ? sessData : []);
+                    const activeSession = sessionsArray.find((s: any) => !s.ended_at && s.patient_id === selectedPatientId);
                     if (activeSession) {
                         targetDeviceId = activeSession.device_id;
                     }

@@ -31,11 +31,14 @@ export const AdminUsersPage: React.FC = () => {
     const { isOpen, toggleSidebar } = useSidebar();
     const [activeTab, setActiveTab] = useStickyState<'pasien' | 'dokter'>('pasien', 'adminUsersTab');
     const [users, setUsers] = useState<AdminUser[]>([]);
+    const [allDoctors, setAllDoctors] = useState<AdminUser[]>([]);
     const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
 
     // Add Modal State
@@ -60,22 +63,40 @@ export const AdminUsersPage: React.FC = () => {
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
-    const fetchUsersAndDevices = () => {
+    const fetchUsers = () => {
         setLoading(true);
         const token = localStorage.getItem('auth_token') || '';
-        Promise.all([
-            fetchWithAuth(`/api/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-            fetchWithAuth(`/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
-        ])
-            .then(([usersData, devicesData]) => {
-                setUsers(usersData);
-                setDevices(devicesData);
+        fetchWithAuth(`/api/admin/users?page=${currentPage}&limit=${itemsPerPage}&role=${activeTab}`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(resData => {
+                if (resData.data) {
+                    setUsers(resData.data);
+                    setTotalUsers(resData.pagination.total);
+                    setTotalPages(resData.pagination.total_pages);
+                } else {
+                    setUsers(Array.isArray(resData) ? resData : []);
+                }
                 setLoading(false);
             })
             .catch(err => {
-                console.error("Failed to fetch data", err);
+                console.error("Failed to fetch paginated users", err);
                 setLoading(false);
             });
+    };
+
+    const fetchInitialData = () => {
+        const token = localStorage.getItem('auth_token') || '';
+        Promise.all([
+            fetchWithAuth(`/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
+            fetchWithAuth(`/api/admin/users?role=dokter&limit=1000`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
+        ]).then(([devicesData, docsData]) => {
+            setDevices(devicesData);
+            if (docsData.data) {
+                setAllDoctors(docsData.data);
+            } else {
+                setAllDoctors(Array.isArray(docsData) ? docsData : []);
+            }
+        });
     };
 
     useEffect(() => {
@@ -87,8 +108,18 @@ export const AdminUsersPage: React.FC = () => {
             const adminId = localStorage.getItem('admin_user_id');
             if (adminId) localStorage.setItem('user_id', adminId);
         }
-        fetchUsersAndDevices();
+        fetchInitialData();
     }, []);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [currentPage, activeTab]);
+    
+    // For when a modal adds/updates a user and we just want to refresh the current list
+    const fetchUsersAndDevices = () => {
+        fetchUsers();
+        fetchInitialData();
+    };
 
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -255,9 +286,8 @@ export const AdminUsersPage: React.FC = () => {
         }
     };
 
-    const filteredUsers = users.filter(u => u.role === activeTab);
-    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    const doctorsList = users.filter(u => u.role === 'dokter');
+    const paginatedUsers = users;
+    const doctorsList = allDoctors;
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
@@ -319,7 +349,7 @@ export const AdminUsersPage: React.FC = () => {
                                 <tbody>
                                     {loading ? (
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm">Memuat data...</td></tr>
-                                    ) : filteredUsers.length === 0 ? (
+                                    ) : users.length === 0 ? (
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
                                     ) : paginatedUsers.map(u => (
                                         <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
@@ -338,7 +368,7 @@ export const AdminUsersPage: React.FC = () => {
                                             </td>
                                             {activeTab === 'pasien' && (
                                                 <td className="p-4 text-xs font-mono-data font-bold text-medical-teal">
-                                                    {u.connected_doctor_id ? (users.find(d => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
+                                                    {u.connected_doctor_id ? (allDoctors.find(d => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
                                                 </td>
                                             )}
                                             {activeTab === 'pasien' && (
@@ -364,10 +394,10 @@ export const AdminUsersPage: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                        {filteredUsers.length > 0 && (
+                        {users.length > 0 && (
                             <Pagination
                                 currentPage={currentPage}
-                                totalItems={filteredUsers.length}
+                                totalItems={totalUsers}
                                 itemsPerPage={itemsPerPage}
                                 onPageChange={setCurrentPage}
                             />

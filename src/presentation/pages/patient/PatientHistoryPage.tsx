@@ -118,7 +118,13 @@ export const PatientHistoryPage: React.FC = () => {
         fetch(`${API_URL}/api/patients/${userId}/sessions`)
             .then(res => res.json())
             .then(data => {
-                setSessions(data || []);
+                if (data && data.data) {
+                    setSessions(data.data);
+                } else if (Array.isArray(data)) {
+                    setSessions(data);
+                } else {
+                    setSessions([]);
+                }
             })
             .catch(console.error);
     }, []);

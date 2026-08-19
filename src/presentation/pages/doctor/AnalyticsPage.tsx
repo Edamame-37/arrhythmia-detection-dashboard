@@ -67,7 +67,9 @@ export const AnalyticsPage: React.FC = () => {
         fetchWithAuth(url)
             .then(res => res.json())
             .then(data => {
-                if (data && Array.isArray(data.sessions)) {
+                if (data && data.data) {
+                    setAllSessions(data.data);
+                } else if (data && Array.isArray(data.sessions)) {
                     setAllSessions(data.sessions);
                 } else if (Array.isArray(data)) {
                     setAllSessions(data);

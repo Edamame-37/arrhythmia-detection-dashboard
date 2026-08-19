@@ -24,6 +24,9 @@ export const AdminSessionsPage: React.FC = () => {
     // Pagination States
     const [currentPageSessions, setCurrentPageSessions] = useStickyState(1, 'adminSessionsPageAll');
     const [currentPagePatients, setCurrentPagePatients] = useStickyState(1, 'adminSessionsPagePatients');
+    const [totalSessions, setTotalSessions] = useState(0);
+    const [totalSessionPages, setTotalSessionPages] = useState(1);
+    const itemsPerPage = 10;
 
     // Note Editing States
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -138,23 +141,40 @@ export const AdminSessionsPage: React.FC = () => {
     };
 
 
+    const fetchSessions = async (page: number) => {
+        setLoading(true);
+        try {
+            const res = await fetchWithAuth(`/api/sessions?page=${page}&limit=${itemsPerPage}`);
+            const data = await res.json();
+            
+            let fetchedSessions: any[] = [];
+            if (data.data) {
+                fetchedSessions = data.data;
+                setTotalSessions(data.pagination.total);
+                setTotalSessionPages(data.pagination.total_pages);
+            } else {
+                fetchedSessions = Array.isArray(data.sessions) ? data.sessions : (Array.isArray(data) ? data : []);
+                setTotalSessions(fetchedSessions.length);
+                setTotalSessionPages(Math.ceil(fetchedSessions.length / itemsPerPage));
+            }
+            
+            setSessions(fetchedSessions);
+            return fetchedSessions;
+        } catch (err) {
+            console.error("Failed to load sessions data", err);
+            return [];
+        }
+    };
+
     useEffect(() => {
         setLoading(true);
-        // Fetch sessions
-        fetchWithAuth(`/api/sessions`)
-            .then((res: Response) => res.json())
-            .then((data: any) => {
-                const fetchedSessions = Array.isArray(data.sessions) ? data.sessions : (Array.isArray(data) ? data : []);
-                
-                // Sort descending (terbaru paling atas)
-                fetchedSessions.sort((a: any, b: any) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
-                
-                setSessions(fetchedSessions);
+        fetchSessions(currentPageSessions).then((fetchedSessions) => {
 
                   if (!Object.keys(doctorNames).length) {
-                fetchWithAuth('/api/admin/users')
+                fetchWithAuth('/api/admin/users?limit=1000')
                     .then((r: Response) => r.json())
-                    .then((users: any[]) => {
+                    .then((usersData: any) => {
+                        const users = usersData.data || (Array.isArray(usersData) ? usersData : []);
                         const pNames: Record<string, string> = {};
                         const dNames: Record<string, string> = {};
                         if (Array.isArray(users)) {
@@ -207,7 +227,7 @@ export const AdminSessionsPage: React.FC = () => {
                 console.error("Failed to load sessions data", err);
                 setLoading(false);
             });
-    }, []);
+    }, [currentPageSessions]);
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
@@ -241,10 +261,8 @@ export const AdminSessionsPage: React.FC = () => {
     const displayedSessions = sessions;
 
     const renderSessionsTable = (sessionList: any[], isMiniTable: boolean = false) => {
-        const itemsPerPage = 10;
-        const totalItems = sessionList.length;
-        // If it's a mini table, we just show all of them (or limit to a small number without pagination)
-        const paginatedSessions = isMiniTable ? sessionList : sessionList.slice((currentPageSessions - 1) * itemsPerPage, currentPageSessions * itemsPerPage);
+        const totalItems = totalSessions;
+        const paginatedSessions = isMiniTable ? sessionList : sessionList;
 
         return (
         <div className={`flex flex-col w-full ${isMiniTable ? 'border border-outline-variant/50 rounded-xl overflow-hidden' : ''}`}>

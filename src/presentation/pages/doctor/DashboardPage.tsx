@@ -58,7 +58,9 @@ export const DashboardPage: React.FC = () => {
         fetchWithAuth(url)
             .then(res => res.json())
             .then(data => {
-                if (data && Array.isArray(data.sessions)) {
+                if (data && data.data) {
+                    setSessions(data.data);
+                } else if (data && Array.isArray(data.sessions)) {
                     setSessions(data.sessions);
                 } else if (Array.isArray(data)) {
                     setSessions(data);

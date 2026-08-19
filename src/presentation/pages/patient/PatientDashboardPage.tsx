@@ -97,7 +97,15 @@ export const PatientDashboardPage: React.FC = () => {
 
       fetchWithAuth(`/api/patients/${userId}/sessions`)
         .then(res => res.json())
-        .then(data => setSessions(data))
+        .then(data => {
+            if (data && data.data) {
+                setSessions(data.data);
+            } else if (Array.isArray(data)) {
+                setSessions(data);
+            } else {
+                setSessions([]);
+            }
+        })
         .catch(err => console.error("Error fetching sessions:", err));
     };
 
