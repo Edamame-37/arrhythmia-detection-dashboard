@@ -189,6 +189,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                     const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
                     const ch2 = payload.raw?.ch2 || [];
                     const calculatedHR = payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--");
+                    const dbFrame = frameRecords?.find((f: any) => f.start_time === startTime) || {};
                     
                     loadedSegments[i] = {
                         payload, // Store raw payload for lazy parsing

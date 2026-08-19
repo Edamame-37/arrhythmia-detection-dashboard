@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { ECGPaths } from '../../core/types/ecgTypes';
-import { calculateEinthovenPoint } from '../../core/signal/ecgMath';
-import { DCBlocker } from '../../core/signal/DCBlocker';
+import { calculateEinthovenPoint } from '../../core/algorithms/einthoven';
+import { DCBlocker } from '../../core/algorithms/dcBlocker';
 
 export const useLazyEcgPaths = (samples: any[], ch2: any[], ch3: any[]): ECGPaths => {
     return useMemo(() => {
