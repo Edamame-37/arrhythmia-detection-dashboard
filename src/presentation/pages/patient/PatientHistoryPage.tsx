@@ -158,8 +158,7 @@ export const PatientHistoryPage: React.FC = () => {
                         {sessions.length === 0 ? (
                             <div className="text-center text-clinical-charcoal/60 p-8 bg-white rounded-2xl border border-clinical-charcoal/5 shadow-sm">{t('history.noHistory')}</div>
                         ) : (() => {
-                            const paginatedSessions = sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-                            return paginatedSessions.map(session => (
+                            return sessions.map(session => (
                             <article key={session.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-clinical-charcoal/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-clinical-blue/20 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-700">
                                 <div>
                                     <h2 className="font-bold text-clinical-charcoal mb-1 uppercase tracking-widest text-xs">{t('history.recordingSession')}</h2>
@@ -208,8 +207,7 @@ export const PatientHistoryPage: React.FC = () => {
                         <div className="mt-8 z-10">
                             <Pagination 
                                 currentPage={currentPage}
-                                totalItems={totalPages * itemsPerPage}
-                                itemsPerPage={itemsPerPage}
+                                totalPages={totalPages}
                                 onPageChange={setCurrentPage}
                             />
                         </div>
