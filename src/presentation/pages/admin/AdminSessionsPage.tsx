@@ -605,29 +605,30 @@ export const AdminSessionsPage: React.FC = () => {
 };
 
     return (
-        <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full min-h-screen relative font-sans">
+            <div className="absolute inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
             <AdminSidebar />
 
-            <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
+            <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full relative z-10 ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
                 {/* Header */}
-                <header className="sticky top-0 bg-surface/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center w-full">
+                <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex justify-between items-center w-full transition-all duration-300">
                     <div className="flex items-center gap-3">
-                        <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+                        <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
                             <span className="material-symbols-outlined">menu</span>
                         </button>
                         <div>
-                            <h1 className="text-2xl font-black tracking-tight text-charcoal">Manajemen Sesi</h1>
-                            <p className="text-xs font-semibold tracking-wide text-on-surface-variant uppercase mt-1">Sistem Pemantauan Seluruh Rekaman</p>
+                            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-clinical-charcoal">Manajemen Sesi</h1>
+                            <p className="text-xs md:text-sm font-medium text-clinical-charcoal/60 mt-0.5">Sistem Pemantauan Seluruh Rekaman</p>
                         </div>
                     </div>
                 </header>
 
-                <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
+                <div className="flex-1 px-4 md:px-6 max-w-container-max mx-auto mt-6 w-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
                     
-                    <div className="bg-surface rounded-3xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
-                        <div className="px-4 py-4 md:px-6 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-start sm:items-center bg-surface-container-lowest gap-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                                <h2 className="text-lg font-bold text-charcoal">
+                    <div className="bg-white rounded-[2rem] border border-clinical-charcoal/5 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-500">
+                        <div className="px-6 py-6 border-b border-clinical-charcoal/5 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white/50 backdrop-blur-sm gap-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
+                                <h2 className="text-lg font-bold text-clinical-charcoal">
                                     Daftar Rekaman
                                 </h2>
                                 <div className="relative">
@@ -639,28 +640,28 @@ export const AdminSessionsPage: React.FC = () => {
                                             if (e.target.value === 'all') setCurrentPageSessions(1);
                                             else setCurrentPagePatients(1);
                                         }}
-                                        className="bg-white border border-outline-variant text-charcoal text-sm font-bold rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-clinical-blue/50 cursor-pointer appearance-none shadow-sm hover:border-clinical-blue/50 transition-colors"
+                                        className="bg-white border border-clinical-charcoal/10 text-clinical-charcoal text-sm font-bold rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-clinical-blue/50 cursor-pointer appearance-none shadow-sm hover:border-clinical-blue/50 transition-colors w-full sm:w-auto"
                                     >
                                         <option value="all">Semua Rekaman</option>
                                         <option value="users">Kelompokkan Berdasarkan Pasien</option>
                                     </select>
-                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">
+                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-clinical-charcoal/50 text-[20px]">
                                         expand_more
                                     </span>
                                 </div>
                             </div>
                             
                             <div className="flex items-center gap-3">
-                                <div className="text-sm font-semibold text-on-surface-variant bg-surface-variant/30 px-3 py-1.5 rounded-lg">
-                                    Total: {viewMode === 'users' ? totalPatientsView : sessions.length} {viewMode === 'users' ? 'Pasien' : 'Sesi'}
+                                <div className="text-xs font-bold text-clinical-charcoal/70 bg-clinical-surface px-4 py-2 rounded-xl">
+                                    Total: <span className="text-clinical-blue">{viewMode === 'users' ? totalPatientsView : sessions.length}</span> {viewMode === 'users' ? 'Pasien' : 'Sesi'}
                                 </div>
                             </div>
                         </div>
 
                         {loading ? (
-                            <div className="p-12 text-center text-on-surface-variant">Memuat data {viewMode === 'users' ? 'pasien' : 'sesi'}...</div>
+                            <div className="p-12 text-center text-clinical-charcoal/50 font-medium">Memuat data {viewMode === 'users' ? 'pasien' : 'sesi'}...</div>
                         ) : (viewMode === 'users' ? patientsViewData.length === 0 : sessions.length === 0) ? (
-                            <div className="p-12 text-center text-on-surface-variant font-medium">Belum ada data {viewMode === 'users' ? 'pasien' : 'sesi rekaman EKG'}.</div>
+                            <div className="p-12 text-center text-clinical-charcoal/50 font-medium">Belum ada data {viewMode === 'users' ? 'pasien' : 'sesi rekaman EKG'}.</div>
                         ) : (
                             viewMode === 'users' 
                                 ? renderPatientsTable() 
