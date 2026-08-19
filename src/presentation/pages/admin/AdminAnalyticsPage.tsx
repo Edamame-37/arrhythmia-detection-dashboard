@@ -13,7 +13,6 @@ import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
 import { PanTompkins } from '../../../core/algorithms/panTompkins';
 import { DCBlocker } from '../../../core/algorithms/dcBlocker';
 import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
-import { processAllLeadEcgData } from '../../../core/algorithms/ecgPipeline';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
@@ -191,8 +190,36 @@ export const AdminAnalyticsPage: React.FC = () => {
                     const X_STEP = 2000 / TOTAL_POINTS;
                     const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
                     const ch2 = payload.raw?.ch2 || [];
-                    const calculatedHR = payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--");
+                    const ch3 = payload.raw?.ch3 || [];
+
+                    const rrIntervals: number[] = [];
+                    for (let j = 0; j < samples.length; j++) {
+                        let finalI, finalII, finalIII;
+                        if (Array.isArray(samples[j])) {
+                            finalI = samples[j][0] || 0;
+                            finalII = samples[j][1] || 0;
+                            finalIII = samples[j][2] || 0;
+                        } else {
+                            finalI = samples[j] || 0;
+                            finalII = ch2[j] || 0;
+                            finalIII = ch3[j] || 0;
+                        }
+
+                        // JALUR MATEMATIS (KONTINU): Hitung DC Blocker kontinu lalu umpankan ke PanTompkins
+                        const mathCleaned = globalDcBlocker.process(finalI, finalII);
+                        let absoluteJ = absoluteIndexOffset + j;
+                        if (pt.detectRealTime(mathCleaned.cleanII, absoluteJ)) {
+                            if (lastPeakIndex !== -1) {
+                                rrIntervals.push((absoluteJ - lastPeakIndex) / 250);
+                            }
+                            lastPeakIndex = absoluteJ;
+                        }
+                    }
+                    absoluteIndexOffset += samples.length;
+
                     const dbFrame = frameRecords?.find((f: any) => f.start_time === startTime) || {};
+                    const evalResult = evaluateIrregularity(rrIntervals);
+                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--"));
                     
                     loadedSegments[i] = {
                         payload, // Store raw payload for lazy parsing
@@ -281,23 +308,7 @@ export const AdminAnalyticsPage: React.FC = () => {
         severity: currentSegment.isAnomaly ? "CRITICAL" : "NORMAL"
     } : null;
 
-    const getDynamicHeartRate = () => {
-        if (!currentSegment) return "--";
-        const payload = currentSegment.payload;
-        if (!payload) return currentSegment.heartRate || "--";
-        const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
-        const ch2 = payload.raw?.ch2 || [];
-        const ch3 = payload.raw?.ch3 || [];
-        try {
-            if (samples.length > 0) {
-                const metrics = processAllLeadEcgData({ ch1: samples, ch2, ch3 }, 250);
-                if (metrics.bpm && metrics.bpm > 0) return metrics.bpm;
-            }
-        } catch(e) {}
-        return currentSegment.heartRate || "--";
-    };
-
-    const heartRate = getDynamicHeartRate();
+    const heartRate = currentSegment?.heartRate || "--";
     const stressTest = currentSegment?.stressTest || null;
     let createdAt = currentSegment?.createdAt || null;
     const aiProbabilities = currentSegment?.aiProbabilities || null;
