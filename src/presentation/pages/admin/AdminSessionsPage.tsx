@@ -710,15 +710,15 @@ export const AdminSessionsPage: React.FC = () => {
                             
                             <div className="flex items-center gap-3">
                                 <div className="text-sm font-semibold text-on-surface-variant bg-surface-variant/30 px-3 py-1.5 rounded-lg">
-                                    Total: {viewMode === 'users' ? patientsList.length : sessions.length} {viewMode === 'users' ? 'Pasien' : 'Sesi'}
+                                    Total: {viewMode === 'users' ? totalPatientsView : sessions.length} {viewMode === 'users' ? 'Pasien' : 'Sesi'}
                                 </div>
                             </div>
                         </div>
 
                         {loading ? (
-                            <div className="p-12 text-center text-on-surface-variant">Memuat data sesi...</div>
-                        ) : sessions.length === 0 ? (
-                            <div className="p-12 text-center text-on-surface-variant font-medium">Belum ada sesi rekaman EKG.</div>
+                            <div className="p-12 text-center text-on-surface-variant">Memuat data {viewMode === 'users' ? 'pasien' : 'sesi'}...</div>
+                        ) : (viewMode === 'users' ? patientsViewData.length === 0 : sessions.length === 0) ? (
+                            <div className="p-12 text-center text-on-surface-variant font-medium">Belum ada data {viewMode === 'users' ? 'pasien' : 'sesi rekaman EKG'}.</div>
                         ) : (
                             viewMode === 'users' 
                                 ? renderPatientsTable() 
