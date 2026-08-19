@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PatientHeader } from '../../components/layout/PatientHeader';
-import { ECGCanvas } from '../../components/canvas/ECGCanvas';
+import { EcgViewer } from '../../components/dashboard/EcgViewer';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import { VitalCard } from '../../components/dashboard/VitalCard';
 import { AiCard } from '../../components/dashboard/AiCard';
@@ -114,65 +114,14 @@ export const PatientHistoryDetailPage: React.FC = () => {
                     const TOTAL_POINTS = 2500;
                     const X_STEP = 2000 / TOTAL_POINTS;
                     const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
-                    const ch2 = payload.raw?.ch2 || [];
-                    const ch3 = payload.raw?.ch3 || [];
+                        const calculatedHR = payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--");
 
-                    const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
-
-                    const rrIntervals: number[] = [];
-                    const visualDcBlocker = new DCBlocker(); // Jalur Visual: Reset per-frame
-
-                    for (let j = 0; j < samples.length; j++) {
-                        let finalI, finalII, finalIII;
-                        if (Array.isArray(samples[j])) {
-                            finalI = samples[j][0] || 0;
-                            finalII = samples[j][1] || 0;
-                            finalIII = samples[j][2] || 0;
-                        } else {
-                            finalI = samples[j] || 0;
-                            finalII = ch2[j] || 0;
-                            finalIII = ch3[j] || 0;
-                        }
-
-                        // JALUR MATEMATIS
-                        const mathCleaned = globalDcBlocker.process(finalI, finalII);
-                        let absoluteJ = absoluteIndexOffset + j;
-                        if (pt.detectRealTime(mathCleaned.cleanII, absoluteJ)) {
-                            if (lastPeakIndex !== -1) {
-                                rrIntervals.push((absoluteJ - lastPeakIndex) / 250);
-                            }
-                            lastPeakIndex = absoluteJ;
-                        }
-
-                        // JALUR VISUAL
-                        const visualCleaned = visualDcBlocker.process(finalI, finalII);
-                        finalI = visualCleaned.cleanI;
-                        finalII = visualCleaned.cleanII;
-                        finalIII = visualCleaned.cleanIII;
-
-                        const calculated = calculateEinthovenPoint(finalI, finalII);
-                        const currentX = Number((xIndex * X_STEP).toFixed(2));
-
-                        paths.I.push(`${currentX},${(240 - finalI * 80).toFixed(2)}`);
-                        paths.II.push(`${currentX},${(240 - finalII * 80).toFixed(2)}`);
-                        paths.III.push(`${currentX},${(240 - finalIII * 80).toFixed(2)}`);
-                        paths.aVR.push(`${currentX},${(240 - calculated.aVR * 80).toFixed(2)}`);
-                        paths.aVL.push(`${currentX},${(240 - calculated.aVL * 80).toFixed(2)}`);
-                        paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
-                        paths.V1.push(`${currentX},240.00`);
-
-                        xIndex++;
-                    }
-                    absoluteIndexOffset += samples.length;
-
-                    const evalResult = evaluateIrregularity(rrIntervals);
-                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--"));
-                    loadedSegments[i] = {
-                        paths,
-                        rPeaks: [],
-                        isAnomaly,
-                        diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
-                        heartRate: calculatedHR,
+                        loadedSegments[i] = {
+                            payload, // Store the raw payload so EcgViewer can parse it lazily
+                            rPeaks: [],
+                            isAnomaly,
+                            diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
+                            heartRate: calculatedHR,
                         frameId: payload.message_id || payload.frame_id || "---",
                         deviceId: payload.device_id || "---",
                         createdAt: payload.created_at || "---",
@@ -248,24 +197,21 @@ export const PatientHistoryDetailPage: React.FC = () => {
                             </div>
 
                             {/* Pembungkus Kanvas 7-Lead */}
-                            <div className="relative flex-1 min-h-[300px] lg:min-h-0 bg-white border border-clinical-charcoal/5 rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group">
-                                <div className="absolute inset-0 overflow-hidden rounded-[2rem] flex flex-col">
-                                    <ECGCanvas
-                                        paths={currentSegment?.paths || { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] }}
-                                        rPeaks={currentSegment?.rPeaks || []}
-                                        speed={speed}
-                                        isAnomaly={currentSegment?.isAnomaly || false}
-                                        classResult={currentEvent?.classResult}
+                            <div className="relative flex-1 min-h-[400px]">
+                                <div className="absolute inset-0 z-0 bg-white border border-clinical-blue/20 rounded-[2rem] overflow-y-auto overflow-x-hidden shadow-[0px_20px_40px_rgba(0,0,0,0.04)] flex flex-col">
+                                    <EcgViewer 
+                                        segment={currentSegment}
+                                        speed={speed} 
+                                        classResult={currentEvent?.classResult} 
                                         timeOffset={selectedIdx * 10}
-                                        scale={scale}
                                     />
-                                </div>
-                                {isLoading && (
+                                    {isLoading && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-md z-50 transition-all duration-300">
                                         <span className="material-symbols-outlined text-clinical-blue text-4xl animate-spin">sync</span>
                                         <p className="mt-3 text-sm font-bold text-clinical-charcoal">{t('history.loadingSegment')}</p>
                                     </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
 
                             {/* Timeline Multi-Aritmia */}

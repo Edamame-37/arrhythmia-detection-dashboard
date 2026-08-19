@@ -183,62 +183,10 @@ export const AnalyticsPage: React.FC = () => {
                     const X_STEP = 2000 / TOTAL_POINTS;
                     const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
                     const ch2 = payload.raw?.ch2 || [];
-                    const ch3 = payload.raw?.ch3 || [];
-                    
-                    const paths: ECGPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
-                    
-                    const rrIntervals: number[] = [];
-                    const visualDcBlocker = new DCBlocker(); // Jalur Visual: Di-reset murni per-frame
-                    
-                    for (let j = 0; j < samples.length; j++) {
-                        let finalI, finalII, finalIII;
-                        if (Array.isArray(samples[j])) {
-                            finalI = samples[j][0] || 0;
-                            finalII = samples[j][1] || 0;
-                            finalIII = samples[j][2] || 0;
-                        } else {
-                            finalI = samples[j] || 0;
-                            finalII = ch2[j] || 0;
-                            finalIII = ch3[j] || 0;
-                        }
-
-                        // JALUR MATEMATIS (KONTINU): Hitung DC Blocker kontinu lalu umpankan ke PanTompkins
-                        const mathCleaned = globalDcBlocker.process(finalI, finalII);
-                        let absoluteJ = absoluteIndexOffset + j;
-                        if (pt.detectRealTime(mathCleaned.cleanII, absoluteJ)) {
-                            if (lastPeakIndex !== -1) {
-                                rrIntervals.push((absoluteJ - lastPeakIndex) / 250);
-                            }
-                            lastPeakIndex = absoluteJ;
-                        }
-
-                        // JALUR VISUAL (PER-FRAME): Hitung DC Blocker per-frame agar sumbu tepat di 0
-                        const visualCleaned = visualDcBlocker.process(finalI, finalII);
-                        finalI = visualCleaned.cleanI;
-                        finalII = visualCleaned.cleanII;
-                        finalIII = visualCleaned.cleanIII;
-
-                        const calculated = calculateEinthovenPoint(finalI, finalII);
-                        const currentX = Number((xIndex * X_STEP).toFixed(2));
-                        
-                        paths.I.push(`${currentX},${(240 - finalI * 80).toFixed(2)}`);
-                        paths.II.push(`${currentX},${(240 - finalII * 80).toFixed(2)}`);
-                        paths.III.push(`${currentX},${(240 - finalIII * 80).toFixed(2)}`);
-                        paths.aVR.push(`${currentX},${(240 - calculated.aVR * 80).toFixed(2)}`);
-                        paths.aVL.push(`${currentX},${(240 - calculated.aVL * 80).toFixed(2)}`);
-                        paths.aVF.push(`${currentX},${(240 - calculated.aVF * 80).toFixed(2)}`);
-                        paths.V1.push(`${currentX},240.00`);
-                        
-                        xIndex++;
-                    }
-                    absoluteIndexOffset += samples.length;
-                    
-                    const dbFrame = frameRecords?.find((f: any) => f.start_time === startTime) || {};
-                    const evalResult = evaluateIrregularity(rrIntervals);
-                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || "--");
+                    const calculatedHR = payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--");
                     
                     loadedSegments[i] = {
-                        paths,
+                        payload, // Store raw payload for lazy parsing
                         rPeaks: [], 
                         isAnomaly,
                         diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
@@ -538,18 +486,16 @@ export const AnalyticsPage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Pembungkus Kanvas 7-Lead */}
-                    <div className="relative flex-1 min-h-[400px]">
-                        <div className="absolute inset-0 z-0 bg-white-container-lowest border border-clinical-blue/20 rounded-xl overflow-y-auto overflow-x-hidden shadow-sm flex flex-col">
-                            <ECGCanvas 
-                                paths={currentSegment?.paths || { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] }} 
-                                rPeaks={currentSegment?.rPeaks || []} 
-                                speed={speed} 
-                                isAnomaly={currentSegment?.isAnomaly || false}
-                                classResult={currentEvent?.classResult} 
-                                timeOffset={selectedIdx * 10} // Kalkulasi waktu riwayat
-                            />
-                            {isLoading && (
+                            {/* Pembungkus Kanvas 7-Lead */}
+                            <div className="relative flex-1 min-h-[400px]">
+                                <div className="absolute inset-0 z-0 bg-white-container-lowest border border-clinical-blue/20 rounded-xl overflow-y-auto overflow-x-hidden shadow-sm flex flex-col">
+                                    <EcgViewer 
+                                        segment={currentSegment}
+                                        speed={speed} 
+                                        classResult={currentEvent?.classResult} 
+                                        timeOffset={selectedIdx * 10} 
+                                    />
+                                    {isLoading && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-50">
                                     <span className="material-symbols-outlined text-clinical-blue text-4xl animate-spin">sync</span>
                                     <p className="mt-2 text-sm font-body-sm font-headline-md text-clinical-charcoal">Menarik Arsip Segmen...</p>
