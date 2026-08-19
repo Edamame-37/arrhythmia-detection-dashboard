@@ -338,15 +338,15 @@ export const AnalyticsPage: React.FC = () => {
             </header>
 
             {/* --- TOOLBAR INFORMASI --- */}
-            <div className="bg-white border-b border-clinical-charcoal/5 w-full shadow-sm z-30 relative">
-                <div className="max-w-container-max mx-auto px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="bg-clinical-blue/10 p-2 rounded-lg text-clinical-blue">
-                        <span className="material-symbols-outlined text-[20px]">folder_managed</span>
+            <div className="max-w-container-max mx-auto px-4 md:px-6 pt-6 z-30 relative w-full">
+                <div className="bg-white rounded-[2rem] border border-clinical-charcoal/5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] p-4 md:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="bg-clinical-surface text-clinical-blue p-3 rounded-[1rem] flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[24px]">folder_managed</span>
                     </div>
                     <div>
-                        <h2 className="text-sm font-body-sm font-headline-md text-clinical-charcoal">{!sessionId ? 'Daftar Seluruh Riwayat Sesi' : 'Mode Peninjauan Sesi'}</h2>
-                        <p className="text-[11px] text-clinical-charcoal/70">
+                        <h2 className="text-sm font-bold text-clinical-charcoal">{!sessionId ? 'Daftar Seluruh Riwayat Sesi' : 'Mode Peninjauan Sesi'}</h2>
+                        <p className="text-[11px] font-medium text-clinical-charcoal/60 mt-0.5">
                             {!sessionId ? 'Pilih sesi dari daftar di bawah untuk melihat detail rekaman.' : (currentSessionMeta ? `Pasien: ${currentSessionMeta.patient_name || 'Anonim'} | Mulai: ${new Date(currentSessionMeta.started_at).toLocaleString('id-ID')} | Sesi: ${sessionId}` : `Menampilkan detail rekaman EKG untuk Sesi: ${sessionId}`)}
                         </p>
                     </div>
@@ -354,20 +354,26 @@ export const AnalyticsPage: React.FC = () => {
                 
                 <div className="flex items-center gap-3">
                     {!sessionId && (
-                        <select
-                            value={selectedPatientFilter}
-                            onChange={(e) => { setSelectedPatientFilter(e.target.value); setCurrentPage(1); }}
-                            className="text-xs font-body-sm text-clinical-charcoal border border-clinical-blue/20 px-3 py-2 rounded-lg bg-white outline-none focus:border-clinical-blue transition-all cursor-pointer"
-                        >
-                            <option value="ALL">Semua Pasien</option>
-                            {connectedPatients.map(p => (
-                                <option key={p.id || p.raw_id} value={p.raw_id || p.id}>{p.name}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={selectedPatientFilter}
+                                onChange={(e) => { setSelectedPatientFilter(e.target.value); setCurrentPage(1); }}
+                                className="appearance-none text-[11px] font-bold uppercase tracking-wider text-clinical-charcoal bg-clinical-surface border border-clinical-charcoal/5 px-5 py-2.5 pr-10 rounded-full outline-none focus:border-clinical-blue/30 transition-all duration-700 cursor-pointer shadow-sm hover:shadow-md hover:border-clinical-blue/20"
+                            >
+                                <option value="ALL">Semua Pasien</option>
+                                {connectedPatients.map(p => (
+                                    <option key={p.id || p.raw_id} value={p.raw_id || p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined text-[16px] text-clinical-charcoal/50 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+                        </div>
                     )}
-                    <button onClick={() => navigate(-1)} className="text-xs font-body-sm font-headline-md text-clinical-charcoal/70 hover:text-clinical-blue border border-clinical-blue/20 px-4 py-2 rounded-lg hover:border-clinical-blue transition-all">
-                        Kembali
-                    </button>
+                    {sessionId && (
+                        <button onClick={() => navigate(-1)} className="text-[11px] font-bold uppercase tracking-wider text-clinical-charcoal/70 hover:text-clinical-blue bg-clinical-surface border border-clinical-charcoal/5 hover:border-clinical-blue/20 px-5 py-2.5 rounded-full transition-all duration-700 flex items-center gap-2 shadow-sm hover:shadow-md">
+                            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                            Kembali
+                        </button>
+                    )}
                 </div>
                 </div>
             </div>
