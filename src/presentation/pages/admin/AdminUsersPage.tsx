@@ -34,9 +34,23 @@ export const AdminUsersPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
     const itemsPerPage = 10;
     
-    const { data: usersResponse, isLoading: loadingUsers, mutate: mutateUsers } = useCachedFetch(`/api/admin/users?page=${currentPage}&limit=${itemsPerPage}&role=${activeTab}`);
-    const { data: devicesResponse, mutate: mutateDevices } = useCachedFetch(`/api/admin/devices`);
-    const { data: doctorsResponse } = useCachedFetch(`/api/admin/users?role=dokter&limit=1000`);
+    const [tokenRestored, setTokenRestored] = useState(false);
+
+    useEffect(() => {
+        // Jika kembali (Back) dari impersonasi, pulihkan sesi admin
+        const adminToken = localStorage.getItem('admin_auth_token');
+        if (adminToken && localStorage.getItem('user_role') !== 'admin') {
+            localStorage.setItem('auth_token', adminToken);
+            localStorage.setItem('user_role', 'admin');
+            const adminId = localStorage.getItem('admin_user_id');
+            if (adminId) localStorage.setItem('user_id', adminId);
+        }
+        setTokenRestored(true);
+    }, []);
+
+    const { data: usersResponse, isLoading: loadingUsers, mutate: mutateUsers } = useCachedFetch(tokenRestored ? `/api/admin/users?page=${currentPage}&limit=${itemsPerPage}&role=${activeTab}` : null);
+    const { data: devicesResponse, mutate: mutateDevices } = useCachedFetch(tokenRestored ? `/api/admin/devices` : null);
+    const { data: doctorsResponse } = useCachedFetch(tokenRestored ? `/api/admin/users?role=dokter&limit=1000` : null);
 
     const users = usersResponse?.data || (Array.isArray(usersResponse) ? usersResponse : []);
     const totalUsers = usersResponse?.pagination?.total || users.length;
@@ -68,16 +82,7 @@ export const AdminUsersPage: React.FC = () => {
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
-    useEffect(() => {
-        // Jika kembali (Back) dari impersonasi, pulihkan sesi admin
-        const adminToken = localStorage.getItem('admin_auth_token');
-        if (adminToken && localStorage.getItem('user_role') !== 'admin') {
-            localStorage.setItem('auth_token', adminToken);
-            localStorage.setItem('user_role', 'admin');
-            const adminId = localStorage.getItem('admin_user_id');
-            if (adminId) localStorage.setItem('user_id', adminId);
-        }
-    }, []);
+    // Cleanup old useEffect that was restoring tokens too late
     
     // For when a modal adds/updates a user and we just want to refresh the current list
     const fetchUsersAndDevices = () => {

@@ -6,6 +6,7 @@ import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 interface DeviceRecord {
     id: string;
@@ -19,8 +20,8 @@ interface DeviceRecord {
 
 export const AdminDevicesPage: React.FC = () => {
     const { isOpen, toggleSidebar } = useSidebar();
-    const [devices, setDevices] = useState<DeviceRecord[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: devicesData, isLoading: loading, mutate: mutateDevices } = useCachedFetch('/api/admin/devices');
+    const devices: DeviceRecord[] = devicesData || [];
     const [selectedDeviceQr, setSelectedDeviceQr] = useState<string | null>(null);
 
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -37,23 +38,7 @@ export const AdminDevicesPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminDevicesPage');
     const itemsPerPage = 10;
 
-    const fetchDevices = () => {
-        setLoading(true);
-        fetchWithAuth(`/api/admin/devices`)
-            .then(res => res.json())
-            .then(data => {
-                setDevices(data);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to fetch devices", err);
-                setLoading(false);
-            });
-    };
-
-    useEffect(() => {
-        fetchDevices();
-    }, []);
+    // Fetching is handled by SWR
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,9 +57,9 @@ export const AdminDevicesPage: React.FC = () => {
             });
             const data = await res.json();
             if (data.success) {
-                alert(`Berhasil ${editingDeviceId ? 'mengedit' : 'mendaftarkan'} alat dan pairing MQTT dimulai.`);
+                alert("Device registered successfully!");
                 setIsRegisterModalOpen(false);
-                fetchDevices();
+                mutateDevices();
             } else {
                 alert("Gagal: " + (data.message || data.error || JSON.stringify(data)));
             }

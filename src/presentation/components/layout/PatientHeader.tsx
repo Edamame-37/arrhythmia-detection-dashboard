@@ -29,6 +29,7 @@ const handleReturnToOriginalProfile = (navigate: any) => {
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 interface PatientProfile {
     patient: {
@@ -43,35 +44,9 @@ export const PatientHeader: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
-    const [profile, setProfile] = useState<PatientProfile | null>(null);
-
-    useEffect(() => {
-        const fetchHeaderProfile = () => {
-            const userId = localStorage.getItem('user_id') || '1';
-            fetchWithAuth(`/api/patients/${userId}`)
-                .then(res => {
-                    if (!res.ok) throw new Error('API offline');
-                    return res.json();
-                })
-                .then(data => setProfile(data))
-                .catch(err => {
-                    console.error("Error fetching patient profile:", err);
-                    const savedMock = localStorage.getItem('mock_patient_profile');
-                    if (savedMock) {
-                        setProfile(JSON.parse(savedMock));
-                    }
-                });
-        };
-
-        fetchHeaderProfile();
-
-        const handleUpdate = () => {
-            fetchHeaderProfile();
-        };
-
-        window.addEventListener('patient_profile_updated', handleUpdate);
-        return () => window.removeEventListener('patient_profile_updated', handleUpdate);
-    }, []);
+    const userId = localStorage.getItem('user_id') || '1';
+    const { data: profileData } = useCachedFetch<PatientProfile>(`/api/patients/${userId}`);
+    const profile = profileData || null;
 
     const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
 

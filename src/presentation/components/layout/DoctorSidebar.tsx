@@ -4,6 +4,7 @@ import { useSidebar } from '../../../application/context/SidebarContext';
 import { LogoutModal } from '../shared/LogoutModal';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 const handleReturnToOriginalProfile = (navigate: any) => {
     const adminToken = localStorage.getItem('admin_auth_token');
@@ -25,7 +26,9 @@ export const DoctorSidebar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { isOpen, closeSidebar } = useSidebar();
-    const [profile, setProfile] = useState<any>(null);
+    const userId = localStorage.getItem('user_id');
+    const { data: profileData } = useCachedFetch(userId ? `/api/doctors/${userId}` : null);
+    const profile = profileData || null;
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
     const handleNavClick = () => {
@@ -33,16 +36,6 @@ export const DoctorSidebar: React.FC = () => {
             closeSidebar();
         }
     };
-
-    useEffect(() => {
-        const userId = localStorage.getItem('user_id');
-        if (userId) {
-            fetchWithAuth(`/api/doctors/${userId}`)
-                .then(res => res.json())
-                .then(data => setProfile(data))
-                .catch(err => console.error("Failed to load profile for sidebar", err));
-        }
-    }, []);
 
     const isActive = (path: string) => location.pathname === path;
 

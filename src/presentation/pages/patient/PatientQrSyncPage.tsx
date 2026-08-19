@@ -5,6 +5,7 @@ import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 interface PatientProfile {
   patient: {
@@ -17,16 +18,9 @@ interface PatientProfile {
 
 export const PatientQrSyncPage: React.FC = () => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<PatientProfile | null>(null);
+  const userId = localStorage.getItem('user_id') || '1';
+  const { data: profile } = useCachedFetch<PatientProfile>(`/api/patients/${userId}`);
   const { t } = useTranslation();
-
-  useEffect(() => {
-    const userId = localStorage.getItem('user_id') || '1';
-    fetchWithAuth(`/api/patients/${userId}`)
-      .then(res => res.json())
-      .then(data => setProfile(data))
-      .catch(err => console.error("Error fetching patient profile:", err));
-  }, []);
 
   const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
   const patientIdFormatted = profile ? `PAT-${profile.patient.id.toString().padStart(4, '0')}-XYZ` : t('profile.loading');

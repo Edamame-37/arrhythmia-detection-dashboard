@@ -4,6 +4,7 @@ import { useSidebar } from '../../../application/context/SidebarContext';
 import { useSecurity } from '../../../application/context/SecurityContext';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 interface AdminStats {
     total_patients: number;
@@ -15,30 +16,15 @@ interface AdminStats {
 export const AdminDashboardPage: React.FC = () => {
     const { isOpen, toggleSidebar } = useSidebar();
     const { isDevToolsBlocked, toggleDevToolsBlocker } = useSecurity();
-    const [stats, setStats] = useState<AdminStats | null>(null);
-    const [loading, setLoading] = useState(true);
     const [lastSync, setLastSync] = useState<Date | null>(null);
+    const { data: statsData, isLoading: loading } = useCachedFetch<AdminStats>(`/api/admin/stats`);
+    const stats = statsData || null;
 
     useEffect(() => {
-        const fetchStats = () => {
-            const token = localStorage.getItem('auth_token') || '';
-            fetchWithAuth(`/api/admin/stats`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    setStats(data);
-                    setLastSync(new Date());
-                    setLoading(false);
-                })
-                .catch(err => {
-                    console.error("Failed to fetch stats", err);
-                    setLoading(false);
-                });
-        };
-        fetchStats();
-        // Removed polling (setInterval) to save server load and prevent global sluggishness
-    }, []);
+        if (statsData) {
+            setLastSync(new Date());
+        }
+    }, [statsData]);
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
             <AdminSidebar />

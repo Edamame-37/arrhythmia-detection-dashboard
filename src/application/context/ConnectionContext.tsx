@@ -42,8 +42,24 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
 
-  const role = localStorage.getItem('user_role');
-  const userId = localStorage.getItem('user_id');
+  const [authContext, setAuthContext] = useState({
+    role: localStorage.getItem('user_role'),
+    userId: localStorage.getItem('user_id')
+  });
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const currentRole = localStorage.getItem('user_role');
+      const currentUserId = localStorage.getItem('user_id');
+      if (currentRole !== authContext.role || currentUserId !== authContext.userId) {
+        setAuthContext({ role: currentRole, userId: currentUserId });
+      }
+    };
+    const interval = setInterval(checkAuth, 1000);
+    return () => clearInterval(interval);
+  }, [authContext]);
+
+  const { role, userId } = authContext;
 
   const { data: doctorPatientsData, mutate: mutateDoctorPatients } = useCachedFetch(
     role === 'dokter' && userId ? `/api/doctors/${userId}/patients` : null,
