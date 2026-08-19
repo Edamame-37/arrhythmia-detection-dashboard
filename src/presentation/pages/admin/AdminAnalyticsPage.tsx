@@ -102,44 +102,28 @@ export const AdminAnalyticsPage: React.FC = () => {
                 });
             });
 
-            // Hitung persentase validasi dari frame_records
-            const sessionIds = allSessions.map(s => s.id);
-            if (sessionIds.length > 0) {
-                const fetchAllFrames = async () => {
-                    let allFrames: any[] = [];
-                    let hasMore = true;
-                    let page = 0;
-                    const pageSize = 1000;
-                    
-                    while (hasMore) {
-                        const { data, error } = await supabase.from('frame_records')
-                            .select('session_id, confirmation')
-                            .in('session_id', sessionIds)
-                            .range(page * pageSize, (page + 1) * pageSize - 1);
-                            
-                        if (error || !data || data.length === 0) {
-                            hasMore = false;
-                        } else {
-                            allFrames = [...allFrames, ...data];
-                            if (data.length < pageSize) hasMore = false;
-                            page++;
-                        }
-                    }
-                    
-                    const counts: Record<string, { total: number, validated: number }> = {};
-                    sessionIds.forEach(id => counts[id] = { total: 0, validated: 0 });
-                    allFrames.forEach(r => {
-                        if (counts[r.session_id]) {
-                            counts[r.session_id].total++;
-                            if (r.confirmation !== null) {
-                                counts[r.session_id].validated++;
+                // Hitung persentase validasi menggunakan RPC Supabase
+                const sessionIds = allSessions.map(s => s.id);
+                if (sessionIds.length > 0) {
+                    supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
+                        .then(({ data: stats, error }) => {
+                            if (!error && stats) {
+                                const counts: Record<string, { total: number, validated: number }> = {};
+                                sessionIds.forEach((id: string) => {
+                                    counts[id] = { total: 0, validated: 0 };
+                                });
+                                stats.forEach((st: any) => {
+                                    counts[st.session_id] = {
+                                        total: Number(st.total_frames) || 0,
+                                        validated: Number(st.validated_frames) || 0
+                                    };
+                                });
+                                setSessionValidations(counts);
+                            } else {
+                                console.error("RPC Error:", error);
                             }
-                        }
-                    });
-                    setSessionValidations(counts);
-                };
-                fetchAllFrames();
-            }
+                        });
+                }
         }
     }, [allSessions]);
 

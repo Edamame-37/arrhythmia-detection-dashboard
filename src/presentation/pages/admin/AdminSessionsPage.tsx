@@ -168,27 +168,25 @@ export const AdminSessionsPage: React.FC = () => {
                     });
                 }
 
-                // Kalkulasi validasi dari Supabase
+                // Kalkulasi validasi menggunakan RPC
                 const sessionIds = fetchedSessions.map((s: any) => s.id);
                 if (sessionIds.length > 0) {
-                    supabase.from('frame_records')
-                        .select('session_id, confirmation')
-                        .in('session_id', sessionIds)
-                        .then(({ data: frames, error }) => {
-                            if (!error && frames) {
+                    supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
+                        .then(({ data: stats, error }) => {
+                            if (!error && stats) {
                                 const counts: Record<string, { total: number, validated: number }> = {};
                                 sessionIds.forEach((id: string) => {
                                     counts[id] = { total: 0, validated: 0 };
                                 });
-                                frames.forEach(fr => {
-                                    if (counts[fr.session_id]) {
-                                        counts[fr.session_id].total++;
-                                        if (fr.confirmation !== null && fr.confirmation !== undefined) {
-                                            counts[fr.session_id].validated++;
-                                        }
-                                    }
+                                stats.forEach((st: any) => {
+                                    counts[st.session_id] = {
+                                        total: Number(st.total_frames) || 0,
+                                        validated: Number(st.validated_frames) || 0
+                                    };
                                 });
                                 setSessionValidations(counts);
+                            } else {
+                                console.error("RPC Error:", error);
                             }
                         });
                         

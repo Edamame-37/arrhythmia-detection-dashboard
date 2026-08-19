@@ -101,25 +101,23 @@ export const AnalyticsPage: React.FC = () => {
                 });
             });
 
-            // Hitung persentase validasi dari frame_records
+            // Hitung persentase validasi menggunakan RPC Supabase
             const sessionIds = allSessions.map(s => s.id);
             if (sessionIds.length > 0) {
-                supabase.from('frame_records')
-                    .select('session_id, confirmation')
-                    .in('session_id', sessionIds)
-                    .then(({ data, error }) => {
-                        if (!error && data) {
+                supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
+                    .then(({ data: stats, error }) => {
+                        if (!error && stats) {
                             const counts: Record<string, { total: number, validated: number }> = {};
                             sessionIds.forEach(id => counts[id] = { total: 0, validated: 0 });
-                            data.forEach(r => {
-                                if (counts[r.session_id]) {
-                                    counts[r.session_id].total++;
-                                    if (r.confirmation !== null) {
-                                        counts[r.session_id].validated++;
-                                    }
-                                }
+                            stats.forEach((st: any) => {
+                                counts[st.session_id] = {
+                                    total: Number(st.total_frames) || 0,
+                                    validated: Number(st.validated_frames) || 0
+                                };
                             });
                             setSessionValidations(counts);
+                        } else {
+                            console.error("RPC Error:", error);
                         }
                     });
             }
