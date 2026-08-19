@@ -13,6 +13,7 @@ import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
 import { PanTompkins } from '../../../core/algorithms/panTompkins';
 import { DCBlocker } from '../../../core/algorithms/dcBlocker';
 import { evaluateIrregularity } from '../../../core/clinical/ruleBasedEngine';
+import { processAllLeadEcgData } from '../../../core/algorithms/ecgPipeline';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
@@ -280,7 +281,23 @@ export const AdminAnalyticsPage: React.FC = () => {
         severity: currentSegment.isAnomaly ? "CRITICAL" : "NORMAL"
     } : null;
 
-    const heartRate = currentSegment?.heartRate || "--";
+    const getDynamicHeartRate = () => {
+        if (!currentSegment) return "--";
+        const payload = currentSegment.payload;
+        if (!payload) return currentSegment.heartRate || "--";
+        const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
+        const ch2 = payload.raw?.ch2 || [];
+        const ch3 = payload.raw?.ch3 || [];
+        try {
+            if (samples.length > 0) {
+                const metrics = processAllLeadEcgData({ ch1: samples, ch2, ch3 }, 250);
+                if (metrics.bpm && metrics.bpm > 0) return metrics.bpm;
+            }
+        } catch(e) {}
+        return currentSegment.heartRate || "--";
+    };
+
+    const heartRate = getDynamicHeartRate();
     const stressTest = currentSegment?.stressTest || null;
     let createdAt = currentSegment?.createdAt || null;
     const aiProbabilities = currentSegment?.aiProbabilities || null;
