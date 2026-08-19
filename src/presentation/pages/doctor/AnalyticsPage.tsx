@@ -6,7 +6,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import useSWR from 'swr';
 import { EcgViewer } from '../../components/dashboard/EcgViewer';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
@@ -33,7 +35,6 @@ export const AnalyticsPage: React.FC = () => {
     const sessionId = query.get('sessionId') || '';
     const navigate = useNavigate();
 
-    const [allSessions, setAllSessions] = useState<any[]>([]);
     const [patientPhotos, setPatientPhotos] = useState<Record<string, string>>({});
 
     const [speed, setSpeed] = useState<25 | 50>(25);
@@ -51,7 +52,6 @@ export const AnalyticsPage: React.FC = () => {
     // Pagination
     const [currentPage, setCurrentPage] = useStickyState(1, 'doctorAnalyticsSidebarPage');
     const itemsPerPage = 10;
-    const [totalSessions, setTotalSessions] = useState(0);
     
     const [segments, setSegments] = useState<Record<number, any>>({});
     
@@ -60,35 +60,23 @@ export const AnalyticsPage: React.FC = () => {
     // ECG Paper state
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-    useEffect(() => {
-        const role = localStorage.getItem('user_role');
-        const userId = localStorage.getItem('user_id');
-        const url = selectedPatientFilter === 'ALL'
-            ? (role === 'dokter' ? `/api/sessions?doctor_id=${userId}&page=${currentPage}&limit=${itemsPerPage}` : `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`)
-            : `/api/patients/${selectedPatientFilter}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
+    const role = localStorage.getItem('user_role');
+    const userId = localStorage.getItem('user_id');
+    const sessionsUrl = selectedPatientFilter === 'ALL'
+        ? (role === 'dokter' ? `/api/sessions?doctor_id=${userId}&page=${currentPage}&limit=${itemsPerPage}` : `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`)
+        : `/api/patients/${selectedPatientFilter}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
 
-        fetchWithAuth(url)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.data) {
-                    setAllSessions(data.data);
-                    setTotalSessions(data.pagination?.total || data.data.length);
-                } else if (data && Array.isArray(data.sessions)) {
-                    setAllSessions(data.sessions);
-                    setTotalSessions(data.total_sessions || data.sessions.length);
-                } else if (Array.isArray(data)) {
-                    setAllSessions(data);
-                    setTotalSessions(data.length);
-                }
-            })
-            .catch(err => console.error("Error fetching sessions:", err));
-    }, [currentPage, selectedPatientFilter]);
+    const { data: sessionsResponse, isLoading: loadingSessions } = useCachedFetch(sessionId ? null : sessionsUrl);
+    
+    // Derived state
+    const allSessions = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+    const totalSessions = sessionsResponse?.pagination?.total || sessionsResponse?.total_sessions || allSessions.length;
 
     useEffect(() => {
         if (allSessions.length > 0) {
-            const uniquePatientIds = Array.from(new Set(allSessions.map(s => s.patient_id).filter(Boolean)));
+            const uniquePatientIds = Array.from(new Set(allSessions.map((s: any) => s.patient_id).filter(Boolean)));
             
-            uniquePatientIds.forEach(id => {
+            uniquePatientIds.forEach((id: any) => {
                 // Hindari fetch berulang jika sudah ada di state
                 setPatientPhotos(prev => {
                     if (prev[id as string]) return prev;
@@ -110,13 +98,13 @@ export const AnalyticsPage: React.FC = () => {
             });
 
             // Hitung persentase validasi menggunakan RPC Supabase
-            const sessionIds = allSessions.map(s => s.id);
+            const sessionIds = allSessions.map((s: any) => s.id);
             if (sessionIds.length > 0) {
                 supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
                     .then(({ data: stats, error }) => {
                         if (!error && stats) {
                             const counts: Record<string, { total: number, validated: number }> = {};
-                            sessionIds.forEach(id => counts[id] = { total: 0, validated: 0 });
+                            sessionIds.forEach((id: any) => counts[id] = { total: 0, validated: 0 });
                             stats.forEach((st: any) => {
                                 counts[st.session_id] = {
                                     total: Number(st.total_frames) || 0,
@@ -132,19 +120,33 @@ export const AnalyticsPage: React.FC = () => {
         }
     }, [allSessions]);
 
+    const { data: recordsData, isLoading: loadingRecords } = useCachedFetch(sessionId ? `/api/records/${sessionId}` : null);
+    
+    // Gunakan SWR manual untuk Supabase agar ikut ter-cache
+    const { data: frameRecordsData, isLoading: loadingFrames } = useSWR(
+        sessionId ? `supabase_frame_records_${sessionId}` : null, 
+        async () => {
+            const { data } = await supabase.from('frame_records').select('*').eq('session_id', sessionId);
+            return data;
+        },
+        { revalidateOnFocus: false } // Hindari refetch query supabase terus menerus
+    );
+
     useEffect(() => {
         if (!sessionId) {
             setIsLoading(false);
             return;
         }
 
-        setIsLoading(true);
-        Promise.all([
-            fetchWithAuth(`/api/records/${sessionId}`).then(res => res.json()),
-            supabase.from('frame_records').select('*').eq('session_id', sessionId)
-        ])
-            .then(([data, { data: frameRecords }]) => {
-                const loadedEvents: TimelineEvent[] = [];
+        if (!recordsData || !frameRecordsData) {
+            setIsLoading(true);
+            return;
+        }
+
+        const data = recordsData;
+        const frameRecords = frameRecordsData;
+
+        const loadedEvents: TimelineEvent[] = [];
                 const loadedSegments: Record<number, any> = {};
                 
                 const pt = new PanTompkins(250);
@@ -251,17 +253,12 @@ export const AnalyticsPage: React.FC = () => {
                 setEvents(loadedEvents);
                 setSegments(loadedSegments);
                 setIsLoading(false);
-            })
-            .catch(err => {
-                console.error("Error fetching session records:", err);
-                setIsLoading(false);
-            });
-    }, [sessionId]);
+    }, [sessionId, recordsData, frameRecordsData]);
 
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
     
-    const currentSessionMeta = allSessions.find(s => s.id === sessionId);
+    const currentSessionMeta = allSessions.find((s: any) => s.id === sessionId);
 
     // Data Pasien dan Sesi diambil dari Dashboard, AnalyticsPage difokuskan untuk viewer
 
@@ -404,7 +401,7 @@ export const AnalyticsPage: React.FC = () => {
                                     {totalSessions === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
                                 </p>
                             </div>
-                        ) : allSessions.map(session => {
+                        ) : allSessions.map((session: any) => {
                             const validation = sessionValidations[session.id] || { total: 0, validated: 0 };
                             let validationStatus = "Belum Divalidasi";
                             let validationClass = "bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant";
@@ -564,7 +561,7 @@ export const AnalyticsPage: React.FC = () => {
                         startTime={currentSegment?.startTime}
                         endTime={currentSegment?.endTime}
                         onViewEcgPaper={(() => {
-                            const currentSession = allSessions.find(s => s.id === sessionId);
+                            const currentSession = allSessions.find((s: any) => s.id === sessionId);
                             return currentSession?.ecg_paper ? () => setPreviewImage(API_URL + currentSession.ecg_paper) : undefined;
                         })()}
                         onGoToNext={() => {

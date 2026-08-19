@@ -6,6 +6,7 @@ import { supabase } from '../../../config/supabaseClient';
 import { API_URL } from '../../../config/env';
 import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { fetchWithAuth } from '../../../config/api';
 
 interface AdminUser {
@@ -30,16 +31,20 @@ export const AdminUsersPage: React.FC = () => {
     const navigate = useNavigate();
     const { isOpen, toggleSidebar } = useSidebar();
     const [activeTab, setActiveTab] = useStickyState<'pasien' | 'dokter'>('pasien', 'adminUsersTab');
-    const [users, setUsers] = useState<AdminUser[]>([]);
-    const [allDoctors, setAllDoctors] = useState<AdminUser[]>([]);
-    const [devices, setDevices] = useState<DeviceRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
-    const [totalUsers, setTotalUsers] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
+    
+    const { data: usersResponse, isLoading: loadingUsers, mutate: mutateUsers } = useCachedFetch(`/api/admin/users?page=${currentPage}&limit=${itemsPerPage}&role=${activeTab}`);
+    const { data: devicesResponse, mutate: mutateDevices } = useCachedFetch(`/api/admin/devices`);
+    const { data: doctorsResponse } = useCachedFetch(`/api/admin/users?role=dokter&limit=1000`);
+
+    const users = usersResponse?.data || (Array.isArray(usersResponse) ? usersResponse : []);
+    const totalUsers = usersResponse?.pagination?.total || users.length;
+    const totalPages = usersResponse?.pagination?.total_pages || Math.ceil(totalUsers / itemsPerPage);
+    const devices = Array.isArray(devicesResponse) ? devicesResponse : (devicesResponse?.data || []);
+    const allDoctors = doctorsResponse?.data || (Array.isArray(doctorsResponse) ? doctorsResponse : []);
+    
+    const loading = loadingUsers;
 
     // Add Modal State
     const [showAddModal, setShowAddModal] = useState(false);
@@ -63,42 +68,6 @@ export const AdminUsersPage: React.FC = () => {
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
-    const fetchUsers = () => {
-        setLoading(true);
-        const token = localStorage.getItem('auth_token') || '';
-        fetchWithAuth(`/api/admin/users?page=${currentPage}&limit=${itemsPerPage}&role=${activeTab}`, { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => res.json())
-            .then(resData => {
-                if (resData.data) {
-                    setUsers(resData.data);
-                    setTotalUsers(resData.pagination.total);
-                    setTotalPages(resData.pagination.total_pages);
-                } else {
-                    setUsers(Array.isArray(resData) ? resData : []);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to fetch paginated users", err);
-                setLoading(false);
-            });
-    };
-
-    const fetchInitialData = () => {
-        const token = localStorage.getItem('auth_token') || '';
-        Promise.all([
-            fetchWithAuth(`/api/admin/devices`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json()),
-            fetchWithAuth(`/api/admin/users?role=dokter&limit=1000`, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json())
-        ]).then(([devicesData, docsData]) => {
-            setDevices(devicesData);
-            if (docsData.data) {
-                setAllDoctors(docsData.data);
-            } else {
-                setAllDoctors(Array.isArray(docsData) ? docsData : []);
-            }
-        });
-    };
-
     useEffect(() => {
         // Jika kembali (Back) dari impersonasi, pulihkan sesi admin
         const adminToken = localStorage.getItem('admin_auth_token');
@@ -108,17 +77,12 @@ export const AdminUsersPage: React.FC = () => {
             const adminId = localStorage.getItem('admin_user_id');
             if (adminId) localStorage.setItem('user_id', adminId);
         }
-        fetchInitialData();
     }, []);
-
-    useEffect(() => {
-        fetchUsers();
-    }, [currentPage, activeTab]);
     
     // For when a modal adds/updates a user and we just want to refresh the current list
     const fetchUsersAndDevices = () => {
-        fetchUsers();
-        fetchInitialData();
+        mutateUsers();
+        mutateDevices();
     };
 
     const handleAddUser = async (e: React.FormEvent) => {
@@ -171,7 +135,7 @@ export const AdminUsersPage: React.FC = () => {
                 if (user.role === 'pasien') {
                     // pre-fill selected options
                     setSelectedDoctorId(data.patient?.primary_doctor_id || '');
-                    const assignedDevice = devices.find(d => d.assigned_to === user.id);
+                    const assignedDevice = devices.find((d: any) => d.assigned_to === user.id);
                     setSelectedDeviceId(assignedDevice?.id || '');
                 }
             }
@@ -216,7 +180,7 @@ export const AdminUsersPage: React.FC = () => {
                 });
                 if (!response.ok) throw new Error(await response.text());
             } else {
-                const assignedDevice = devices.find(d => d.assigned_to === selectedUser.id);
+                const assignedDevice = devices.find((d: any) => d.assigned_to === selectedUser.id);
                 if (assignedDevice) {
                     const response = await fetchWithAuth(`/api/devices/${assignedDevice.id}/assign`, {
                         method: 'POST',
@@ -351,7 +315,7 @@ export const AdminUsersPage: React.FC = () => {
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm">Memuat data...</td></tr>
                                     ) : users.length === 0 ? (
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
-                                    ) : paginatedUsers.map(u => (
+                                    ) : paginatedUsers.map((u: any) => (
                                         <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
                                             <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id.substring(0, 9)}</td>
                                             <td className="p-4 text-sm font-bold text-charcoal">
@@ -368,7 +332,7 @@ export const AdminUsersPage: React.FC = () => {
                                             </td>
                                             {activeTab === 'pasien' && (
                                                 <td className="p-4 text-xs font-mono-data font-bold text-medical-teal">
-                                                    {u.connected_doctor_id ? (allDoctors.find(d => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
+                                                    {u.connected_doctor_id ? (allDoctors.find((d: any) => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
                                                 </td>
                                             )}
                                             {activeTab === 'pasien' && (
@@ -529,7 +493,7 @@ export const AdminUsersPage: React.FC = () => {
                                                     <label className="block text-[11px] font-bold text-blue-900 uppercase tracking-wider mb-2">Dokter Penanggung Jawab</label>
                                                     <select value={selectedDoctorId} onChange={e => setSelectedDoctorId(e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm transition-colors text-charcoal">
                                                         <option value="">-- Kosong (Tidak Terhubung) --</option>
-                                                        {doctorsList.map(d => (
+                                                        {doctorsList.map((d: any) => (
                                                             <option key={d.id} value={d.id}>{d.name} ({d.id})</option>
                                                         ))}
                                                     </select>
@@ -546,7 +510,7 @@ export const AdminUsersPage: React.FC = () => {
                                                     <label className="block text-[11px] font-bold text-emerald-900 uppercase tracking-wider mb-2">Alat ECG Terpasang</label>
                                                     <select value={selectedDeviceId} onChange={e => setSelectedDeviceId(e.target.value)} className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-emerald-500 shadow-sm transition-colors text-charcoal">
                                                         <option value="">-- Kosong (Tidak Terhubung) --</option>
-                                                        {devices.map(d => (
+                                                        {devices.map((d: any) => (
                                                             <option key={d.id} value={d.id} disabled={d.assigned_to !== null && d.assigned_to !== selectedUser.id}>
                                                                 {d.name} {d.assigned_to && d.assigned_to !== selectedUser.id ? '(Sedang dipakai pasien lain)' : ''}
                                                             </option>

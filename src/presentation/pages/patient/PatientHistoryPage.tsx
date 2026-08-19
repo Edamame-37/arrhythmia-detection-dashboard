@@ -6,6 +6,7 @@ import { useStickyState } from '../../../application/hooks/useStickyState';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 interface SessionRecord {
     id: string;
@@ -24,19 +25,33 @@ interface PatientProfile {
 
 export const PatientHistoryPage: React.FC = () => {
     const navigate = useNavigate();
-    const [profile, setProfile] = useState<PatientProfile | null>(null);
-    const [sessions, setSessions] = useState<SessionRecord[]>([]);
+    const userId = localStorage.getItem('user_id') || '1';
+    
+    // Pagination
+    const [currentPage, setCurrentPage] = useStickyState(1, 'patientHistoryPage');
+    const itemsPerPage = 10;
+
+    const { data: profile } = useCachedFetch(`/api/patients/${userId}`);
+    const { data: sessionsResponse, mutate: mutateSessions } = useCachedFetch(`/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`);
+
+    const sessionsData = sessionsResponse?.data || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+    const totalPages = sessionsResponse?.pagination?.total_pages || Math.ceil(sessionsData.length / itemsPerPage);
+
+    // Default internal state for optimistic UI updates (e.g. after uploading a photo)
+    const [localSessions, setLocalSessions] = useState<SessionRecord[]>([]);
+
+    useEffect(() => {
+        if (sessionsData) setLocalSessions(sessionsData);
+    }, [sessionsData]);
+
+    const sessions = localSessions;
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [previewFile, setPreviewFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
-
-    // Pagination
-    const [currentPage, setCurrentPage] = useStickyState(1, 'patientHistoryPage');
-    const [totalPages, setTotalPages] = useState(1);
-    const itemsPerPage = 10;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0 || !uploadingSessionId) return;
@@ -58,7 +73,8 @@ export const PatientHistoryPage: React.FC = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: data.path } : s));
+                setLocalSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: data.path } : s));
+                mutateSessions();
                 cancelUpload();
             } else {
                 alert("Gagal mengunggah foto: " + data.message);
@@ -87,7 +103,8 @@ export const PatientHistoryPage: React.FC = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: null } : s));
+                setLocalSessions(prev => prev.map(s => s.id === uploadingSessionId ? { ...s, ecg_paper: null } : s));
+                mutateSessions();
                 cancelUpload();
             } else {
                 alert("Gagal menghapus foto: " + data.message);
@@ -108,33 +125,6 @@ export const PatientHistoryPage: React.FC = () => {
         if (!firstName && !lastName) return '';
         return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
     };
-
-    useEffect(() => {
-        const userId = localStorage.getItem('user_id') || '1';
-        fetch(`${API_URL}/api/patients/${userId}`)
-            .then(res => res.json())
-            .then(data => setProfile(data))
-            .catch(console.error);
-    }, []);
-
-    useEffect(() => {
-        const userId = localStorage.getItem('user_id') || '1';
-        fetch(`${API_URL}/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.data) {
-                    setSessions(data.data);
-                    setTotalPages(data.pagination.total_pages);
-                } else if (Array.isArray(data)) {
-                    setSessions(data);
-                    setTotalPages(Math.ceil(data.length / itemsPerPage));
-                } else {
-                    setSessions([]);
-                    setTotalPages(1);
-                }
-            })
-            .catch(console.error);
-    }, [currentPage]);
 
     const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.loading');
 

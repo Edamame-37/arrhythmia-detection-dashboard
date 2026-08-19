@@ -6,7 +6,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import useSWR from 'swr';
 import { EcgViewer } from '../../components/dashboard/EcgViewer';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { TimelineBar } from '../../components/shared/TimelineBar';
 import type { ECGPaths, RPeakMarker, TimelineEvent } from '../../../core/types/ecgTypes';
 import { calculateEinthovenPoint } from '../../../core/algorithms/einthoven';
@@ -33,7 +35,6 @@ export const AdminAnalyticsPage: React.FC = () => {
     const sessionId = query.get('sessionId') || '';
     const navigate = useNavigate();
 
-    const [allSessions, setAllSessions] = useState<any[]>([]);
     const [patientPhotos, setPatientPhotos] = useState<Record<string, string>>({});
 
     const [speed, setSpeed] = useState<25 | 50>(25);
@@ -60,28 +61,21 @@ export const AdminAnalyticsPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminAnalyticsSidebarPage');
     const itemsPerPage = 10;
 
-    useEffect(() => {
-        const role = localStorage.getItem('user_role');
-        const userId = localStorage.getItem('user_id');
-        const url = role === 'dokter' ? `/api/sessions?doctor_id=${userId}` : `/api/sessions`;
+    const role = localStorage.getItem('user_role');
+    const userId = localStorage.getItem('user_id');
+    const sessionsUrl = selectedPatientFilter === 'ALL'
+        ? (role === 'dokter' ? `/api/sessions?doctor_id=${userId}&page=${currentPage}&limit=${itemsPerPage}` : `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`)
+        : `/api/patients/${selectedPatientFilter}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
 
-        fetchWithAuth(url)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.data) {
-                    setAllSessions(data.data);
-                } else if (data && Array.isArray(data.sessions)) {
-                    setAllSessions(data.sessions);
-                } else if (Array.isArray(data)) {
-                    setAllSessions(data);
-                }
-            })
-            .catch(err => console.error("Error fetching sessions:", err));
-    }, []);
+    const { data: sessionsResponse, isLoading: loadingSessions } = useCachedFetch(sessionId ? null : sessionsUrl);
+    
+    // Derived state
+    const allSessions = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+    const totalSessions = sessionsResponse?.pagination?.total || sessionsResponse?.total_sessions || allSessions.length;
 
     useEffect(() => {
         if (allSessions.length > 0) {
-            const uniquePatientIds = Array.from(new Set(allSessions.map(s => s.patient_id).filter(Boolean)));
+            const uniquePatientIds = Array.from(new Set(allSessions.map((s: any) => s.patient_id).filter(Boolean)));
             
             uniquePatientIds.forEach(id => {
                 // Hindari fetch berulang jika sudah ada di state
@@ -105,7 +99,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             });
 
                 // Hitung persentase validasi menggunakan RPC Supabase
-                const sessionIds = allSessions.map(s => s.id);
+                const sessionIds = allSessions.map((s: any) => s.id);
                 if (sessionIds.length > 0) {
                     supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
                         .then(({ data: stats, error }) => {
@@ -129,19 +123,40 @@ export const AdminAnalyticsPage: React.FC = () => {
         }
     }, [allSessions]);
 
+    const { data: recordsData, isLoading: loadingRecords } = useCachedFetch(sessionId ? `/api/records/${sessionId}` : null);
+    
+    const { data: frameRecordsData, isLoading: loadingFrames } = useSWR(
+        sessionId ? `supabase_frame_records_${sessionId}` : null, 
+        async () => {
+            const { data } = await supabase.from('frame_records').select('*').eq('session_id', sessionId);
+            return data;
+        },
+        { revalidateOnFocus: false }
+    );
+
+    const { data: sessionDataObj } = useSWR(
+        sessionId ? `supabase_session_note_${sessionId}` : null,
+        async () => {
+            const { data } = await supabase.from('sessions').select('dev_note').eq('id', sessionId).single();
+            return data;
+        },
+        { revalidateOnFocus: false }
+    );
+
     useEffect(() => {
         if (!sessionId) {
             setIsLoading(false);
             return;
         }
 
-        setIsLoading(true);
-        Promise.all([
-            fetchWithAuth(`/api/records/${sessionId}`).then(res => res.json()),
-            supabase.from('frame_records').select('*').eq('session_id', sessionId),
-            supabase.from('sessions').select('dev_note').eq('id', sessionId).single()
-        ])
-            .then(([data, { data: frameRecords }, { data: sessionData }]) => {
+        if (!recordsData || !frameRecordsData || sessionDataObj === undefined) {
+            setIsLoading(true);
+            return;
+        }
+
+        const data = recordsData;
+        const frameRecords = frameRecordsData;
+        const sessionData = sessionDataObj;
                 if (sessionData) {
                     setSessionDevNote(sessionData.dev_note);
                 }
@@ -253,12 +268,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 setEvents(loadedEvents);
                 setSegments(loadedSegments);
                 setIsLoading(false);
-            })
-            .catch(err => {
-                console.error("Error fetching session records:", err);
-                setIsLoading(false);
-            });
-    }, [sessionId]);
+    }, [sessionId, recordsData, frameRecordsData, sessionDataObj]);
 
     const saveSessionNote = async () => {
         setIsSubmittingSessionNote(true);
@@ -297,7 +307,7 @@ export const AdminAnalyticsPage: React.FC = () => {
     const currentSegment = segments[selectedIdx];
     const currentEvent = events.find(e => e.index === selectedIdx);
     
-    const currentSessionMeta = allSessions.find(s => s.id === sessionId);
+    const currentSessionMeta = allSessions.find((s: any) => s.id === sessionId);
 
     // Data Pasien dan Sesi diambil dari Dashboard, AnalyticsPage difokuskan untuk viewer
 
@@ -368,16 +378,12 @@ export const AdminAnalyticsPage: React.FC = () => {
                     {!sessionId && (
                         <select
                             value={selectedPatientFilter}
-                            onChange={(e) => setSelectedPatientFilter(e.target.value)}
+                            onChange={(e) => { setSelectedPatientFilter(e.target.value); setCurrentPage(1); }}
                             className="text-xs font-body-sm text-clinical-charcoal border border-clinical-blue/20 px-3 py-2 rounded-lg bg-white outline-none focus:border-clinical-blue transition-all cursor-pointer"
                         >
                             <option value="ALL">Semua Pasien</option>
-                            {Array.from(new Map(
-                                allSessions
-                                    .filter(s => s.patient_id)
-                                    .map(s => [s.patient_id, { id: s.patient_id, name: s.patient_name || 'Pasien Anonim' }])
-                            ).values()).map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
+                            {connectedPatients.map(p => (
+                                <option key={p.id || p.raw_id} value={p.id || p.raw_id}>{p.name}</option>
                             ))}
                         </select>
                     )}
@@ -402,22 +408,16 @@ export const AdminAnalyticsPage: React.FC = () => {
                     );
                 }
 
-                const filteredSessions = selectedPatientFilter === 'ALL' 
-                    ? allSessions 
-                    : allSessions.filter(s => s.patient_id === selectedPatientFilter);
-                
-                const paginatedSessions = filteredSessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
                 return (
                 <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
                     <div className="space-y-3">
-                        {filteredSessions.length === 0 ? (
+                        {allSessions.length === 0 ? (
                             <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
                                 <p className="text-sm font-body-sm text-clinical-charcoal/70">
-                                    {allSessions.length === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
+                                    {totalSessions === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
                                 </p>
                             </div>
-                        ) : paginatedSessions.map(session => {
+                        ) : allSessions.map((session: any) => {
                             const validation = sessionValidations[session.id] || { total: 0, validated: 0 };
                             let validationStatus = "Belum Divalidasi";
                             let validationClass = "bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant";
@@ -462,11 +462,11 @@ export const AdminAnalyticsPage: React.FC = () => {
                             );
                         })}
                     </div>
-                    {filteredSessions.length > 0 && (
-                        <div className="mt-4">
+                    {totalSessions > itemsPerPage && (
+                        <div className="mt-4 mb-12">
                             <Pagination 
                                 currentPage={currentPage}
-                                totalItems={filteredSessions.length}
+                                totalItems={totalSessions}
                                 itemsPerPage={itemsPerPage}
                                 onPageChange={setCurrentPage}
                             />

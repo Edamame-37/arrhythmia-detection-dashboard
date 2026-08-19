@@ -18,7 +18,8 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.8",
     "react-qr-code": "^2.2.0",
-    "react-router-dom": "^7.18.0"
+    "react-router-dom": "^7.18.0",
+    "swr": "^2.5.1"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",

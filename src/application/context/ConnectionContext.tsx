@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { API_URL } from '../../config/env';
 import { fetchWithAuth } from '../../config/api';
+import { useCachedFetch } from '../hooks/useCachedFetch';
 
 export interface ConnectedPatient {
   id: string;
@@ -41,66 +42,51 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Polling backend untuk sinkronisasi role DOCTOR dan PATIENT
+  const role = localStorage.getItem('user_role');
+  const userId = localStorage.getItem('user_id');
+
+  const { data: doctorPatientsData, mutate: mutateDoctorPatients } = useCachedFetch(
+    role === 'dokter' && userId ? `/api/doctors/${userId}/patients` : null,
+    { refreshInterval: 5000 }
+  );
+
+  const { data: patientData, mutate: mutatePatient } = useCachedFetch(
+    role === 'pasien' && userId ? `/api/patients/${userId}` : null,
+    { refreshInterval: 5000 }
+  );
+
   useEffect(() => {
-    let isMounted = true;
-    
-    const syncStatus = async () => {
-      const role = localStorage.getItem('user_role');
-      const userId = localStorage.getItem('user_id');
-      
-      if (!role || !userId) return;
+    if (role === 'dokter' && doctorPatientsData) {
+      const data = doctorPatientsData.data || (Array.isArray(doctorPatientsData.patients) ? doctorPatientsData.patients : (Array.isArray(doctorPatientsData) ? doctorPatientsData : []));
+      const mapped = data.map((p: any) => {
+        const numStr = String(p.id).replace(/[^0-9]/g, '');
+        const displayId = `PAT-${numStr.padStart(4, '0')}-XYZ`;
+        return {
+          id: displayId,
+          raw_id: String(p.id),
+          name: p.name,
+          profile_photo: p.profile_photo || undefined,
+          connectedAt: new Date().toISOString()
+        };
+      });
+      setConnectedPatientsState(mapped);
+    }
+  }, [role, doctorPatientsData]);
 
-      try {
-        if (role === 'dokter') {
-          const res = await fetchWithAuth(`/api/doctors/${userId}/patients`);
-          if (res.ok) {
-            const responseData = await res.json();
-            const data = responseData.data || (Array.isArray(responseData.patients) ? responseData.patients : (Array.isArray(responseData) ? responseData : []));
-            const mapped = data.map((p: any) => {
-              const numStr = p.id.replace(/[^0-9]/g, '');
-              const displayId = `PAT-${numStr.padStart(4, '0')}-XYZ`;
-              return {
-                id: displayId,
-                raw_id: p.id,
-                name: p.name,
-                profile_photo: p.profile_photo || undefined,
-                connectedAt: new Date().toISOString()
-              };
-            });
-            if (isMounted) setConnectedPatientsState(mapped);
-          }
-        } else if (role === 'pasien') {
-          const res = await fetchWithAuth(`/api/patients/${userId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.doctor) {
-              if (isMounted) setConnectedDoctorState({
-                id: data.doctor.id,
-                name: `Dr. ${data.doctor.first_name} ${data.doctor.last_name}`,
-                hospital: "",
-                photo: data.doctor.profile_photo || undefined
-              });
-            } else {
-              if (isMounted) setConnectedDoctorState(null);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to sync connection status", err);
+  useEffect(() => {
+    if (role === 'pasien' && patientData) {
+      if (patientData.doctor) {
+        setConnectedDoctorState({
+          id: String(patientData.doctor.id),
+          name: `Dr. ${patientData.doctor.first_name} ${patientData.doctor.last_name}`,
+          hospital: "",
+          photo: patientData.doctor.profile_photo || undefined
+        });
+      } else {
+        setConnectedDoctorState(null);
       }
-    };
-
-    // Initial sync
-    syncStatus();
-    
-    // Polling setiap 5 detik
-    const interval = setInterval(syncStatus, 5000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+    }
+  }, [role, patientData]);
 
   const addConnectedPatient = async (patient: ConnectedPatient) => {
     const dbPatientId = patient.raw_id || patient.id;
@@ -118,6 +104,9 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
         if (prev.some(p => p.id === patient.id)) return prev;
         return [...prev, patient];
       });
+      if (role === 'dokter') {
+        mutateDoctorPatients();
+      }
     } catch (e) {
       console.error("Failed to connect patient", e);
     }
@@ -133,6 +122,9 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
         method: 'POST'
       });
       setConnectedPatientsState(prev => prev.filter(p => p.id !== patientId));
+      if (role === 'dokter') {
+        mutateDoctorPatients();
+      }
     } catch (e) {
       console.error("Failed to disconnect patient", e);
     }

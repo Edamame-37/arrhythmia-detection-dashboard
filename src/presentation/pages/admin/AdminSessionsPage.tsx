@@ -6,6 +6,7 @@ import { fetchWithAuth } from '../../../config/api';
 import { supabase } from '../../../config/supabaseClient';
 import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { API_URL } from '../../../config/env';
 
 export const AdminSessionsPage: React.FC = () => {
@@ -24,12 +25,18 @@ export const AdminSessionsPage: React.FC = () => {
     // Pagination States
     const [currentPageSessions, setCurrentPageSessions] = useStickyState(1, 'adminSessionsPageAll');
     const [currentPagePatients, setCurrentPagePatients] = useStickyState(1, 'adminSessionsPagePatients');
-    const [totalSessions, setTotalSessions] = useState(0);
-    const [totalSessionPages, setTotalSessionPages] = useState(1);
-    const [patientsViewData, setPatientsViewData] = useState<any[]>([]);
-    const [totalPatientsView, setTotalPatientsView] = useState(0);
-    const [patientSessionsData, setPatientSessionsData] = useState<Record<string, any[]>>({});
     const itemsPerPage = 10;
+
+    const { data: allSessionsResponse, isLoading: loadingSessions } = useCachedFetch(viewMode === 'all' ? `/api/sessions?page=${currentPageSessions}&limit=${itemsPerPage}` : null);
+    const { data: patientsViewResponse, isLoading: loadingPatients } = useCachedFetch(viewMode === 'users' ? `/api/admin/users?role=pasien&page=${currentPagePatients}&limit=${itemsPerPage}` : null);
+    const { data: usersData } = useCachedFetch('/api/admin/users?limit=1000');
+
+    const totalSessions = allSessionsResponse?.pagination?.total || (allSessionsResponse?.data || allSessionsResponse?.sessions || []).length;
+    const totalSessionPages = allSessionsResponse?.pagination?.total_pages || Math.ceil(totalSessions / itemsPerPage);
+    const patientsViewData = patientsViewResponse?.data || (Array.isArray(patientsViewResponse) ? patientsViewResponse : []);
+    const totalPatientsView = patientsViewResponse?.pagination?.total || patientsViewData.length;
+
+    const [patientSessionsData, setPatientSessionsData] = useState<Record<string, any[]>>({});
 
     // Note Editing States
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -143,118 +150,58 @@ export const AdminSessionsPage: React.FC = () => {
         if (fileInputRef.current) fileInputRef.current.click();
     };
 
-
-    const fetchSessions = async (page: number) => {
-        setLoading(true);
-        try {
-            const res = await fetchWithAuth(`/api/sessions?page=${page}&limit=${itemsPerPage}`);
-            const data = await res.json();
-            
-            let fetchedSessions: any[] = [];
-            if (data.data) {
-                fetchedSessions = data.data;
-                setTotalSessions(data.pagination.total);
-                setTotalSessionPages(data.pagination.total_pages);
-            } else {
-                fetchedSessions = Array.isArray(data.sessions) ? data.sessions : (Array.isArray(data) ? data : []);
-                setTotalSessions(fetchedSessions.length);
-                setTotalSessionPages(Math.ceil(fetchedSessions.length / itemsPerPage));
-            }
-            
-            setSessions(fetchedSessions);
-            return fetchedSessions;
-        } catch (err) {
-            console.error("Failed to load sessions data", err);
-            return [];
+    useEffect(() => {
+        if (usersData) {
+            const users = usersData.data || (Array.isArray(usersData) ? usersData : []);
+            const pNames: Record<string, string> = {};
+            const dNames: Record<string, string> = {};
+            users.forEach((u: any) => {
+                if (u.role === 'pasien') pNames[u.id] = u.name;
+                if (u.role === 'dokter') dNames[u.id] = u.name;
+            });
+            setPatientNames(pNames);
+            setDoctorNames(dNames);
         }
-    };
-
-    const fetchPatientsView = async (page: number) => {
-        setLoading(true);
-        try {
-            const token = localStorage.getItem('auth_token') || '';
-            const res = await fetchWithAuth(`/api/admin/users?role=pasien&page=${page}&limit=${itemsPerPage}`, { headers: { 'Authorization': `Bearer ${token}` } });
-            const data = await res.json();
-            if (data.data) {
-                setPatientsViewData(data.data);
-                setTotalPatientsView(data.pagination.total);
-            } else {
-                setPatientsViewData(Array.isArray(data) ? data : []);
-                setTotalPatientsView(Array.isArray(data) ? data.length : 0);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [usersData]);
 
     useEffect(() => {
-        if (viewMode === 'users') {
-            fetchPatientsView(currentPagePatients);
-        } else {
-            setLoading(true);
-            fetchSessions(currentPageSessions).then((fetchedSessions) => {
-
-                  if (!Object.keys(doctorNames).length) {
-                fetchWithAuth('/api/admin/users?limit=1000')
-                    .then((r: Response) => r.json())
-                    .then((usersData: any) => {
-                        const users = usersData.data || (Array.isArray(usersData) ? usersData : []);
-                        const pNames: Record<string, string> = {};
-                        const dNames: Record<string, string> = {};
-                        if (Array.isArray(users)) {
-                            users.forEach(u => {
-                                if (u.role === 'pasien') pNames[u.id] = u.name;
-                                if (u.role === 'dokter') dNames[u.id] = u.name;
+        if (viewMode === 'all' && allSessionsResponse) {
+            const fetchedSessions = allSessionsResponse.data || allSessionsResponse.sessions || (Array.isArray(allSessionsResponse) ? allSessionsResponse : []);
+            
+            const sessionIds = fetchedSessions.map((s: any) => s.id);
+            if (sessionIds.length > 0) {
+                supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
+                    .then(({ data: stats, error }) => {
+                        if (!error && stats) {
+                            const counts: Record<string, { total: number, validated: number }> = {};
+                            sessionIds.forEach((id: string) => counts[id] = { total: 0, validated: 0 });
+                            stats.forEach((st: any) => {
+                                counts[st.session_id] = { total: Number(st.total_frames) || 0, validated: Number(st.validated_frames) || 0 };
                             });
+                            setSessionValidations(counts);
                         }
-                        setPatientNames(pNames);
-                        setDoctorNames(dNames);
                     });
-                }
-
-                // Kalkulasi validasi menggunakan RPC
-                const sessionIds = fetchedSessions.map((s: any) => s.id);
-                if (sessionIds.length > 0) {
-                    supabase.rpc('get_sessions_validation_counts', { session_ids: sessionIds })
-                        .then(({ data: stats, error }) => {
-                            if (!error && stats) {
-                                const counts: Record<string, { total: number, validated: number }> = {};
-                                sessionIds.forEach((id: string) => {
-                                    counts[id] = { total: 0, validated: 0 };
-                                });
-                                stats.forEach((st: any) => {
-                                    counts[st.session_id] = {
-                                        total: Number(st.total_frames) || 0,
-                                        validated: Number(st.validated_frames) || 0
-                                    };
-                                });
-                                setSessionValidations(counts);
-                            } else {
-                                console.error("RPC Error:", error);
-                            }
-                        });
-                        
-                    // Fetch dev_note dari Supabase agar terjamin update-nya
-                    supabase.from('sessions').select('id, dev_note').in('id', sessionIds)
-                        .then(({ data: notesData, error: notesError }) => {
-                            if (!notesError && notesData) {
-                                setSessions(prev => prev.map(s => {
-                                    const noteObj = notesData.find(n => n.id === s.id);
-                                    return { ...s, dev_note: noteObj?.dev_note || s.dev_note || null };
-                                }));
-                            }
-                        });
-                }
-                setLoading(false);
-            })
-            .catch((err: any) => {
-                console.error("Failed to load sessions data", err);
-                setLoading(false);
-            });
+                    
+                supabase.from('sessions').select('id, dev_note').in('id', sessionIds)
+                    .then(({ data: notesData, error: notesError }) => {
+                        if (!notesError && notesData) {
+                            setSessions(fetchedSessions.map((s: any) => {
+                                const noteObj = notesData.find(n => n.id === s.id);
+                                return { ...s, dev_note: noteObj?.dev_note || s.dev_note || null };
+                            }));
+                        } else {
+                            setSessions(fetchedSessions);
+                        }
+                    });
+            } else {
+                setSessions([]);
+            }
         }
-    }, [viewMode, currentPageSessions, currentPagePatients]);
+    }, [viewMode, currentPageSessions, currentPagePatients, allSessionsResponse]);
+
+    useEffect(() => {
+        setLoading(viewMode === 'all' ? loadingSessions : loadingPatients);
+    }, [viewMode, loadingSessions, loadingPatients]);
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
@@ -528,7 +475,7 @@ export const AdminSessionsPage: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/50">
-                        {paginatedPatients.map((patient) => (
+                        {paginatedPatients.map((patient: any) => (
                             <React.Fragment key={patient.id}>
                                 <tr className="hover:bg-surface-container-lowest/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-charcoal">

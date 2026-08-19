@@ -5,6 +5,7 @@ import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { supabase } from '../../../config/supabaseClient';
 
 interface PatientProfile {
@@ -31,15 +32,66 @@ export const PatientDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { connectedDoctor, setConnectedDoctor, disconnectAll } = useConnection();
   const { t, tArray } = useTranslation();
-  const [profile, setProfile] = useState<PatientProfile | null>(null);
-  const [sessions, setSessions] = useState<any[]>([]);
+  
+  const userId = localStorage.getItem('user_id') || '1';
+  const { data: profileData, mutate: mutateProfile, error: profileError } = useCachedFetch(`/api/patients/${userId}`);
+  const { data: sessionsResponse } = useCachedFetch(`/api/patients/${userId}/sessions`);
+  const { data: doctorData } = useCachedFetch(profileData?.patient?.primary_doctor_id ? `/api/doctors/${profileData.patient.primary_doctor_id}` : null);
+
+  const profile: PatientProfile | null = profileData || null;
+  const sessions = sessionsResponse?.data || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUnsyncModal, setShowUnsyncModal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(profileError?.message || null);
   
   const [syncedDeviceId, setSyncedDeviceId] = useState<string | null>(localStorage.getItem('synced_device_id'));
   const [localRecordingStopped, setLocalRecordingStopped] = useState(localStorage.getItem('web_recording_stopped') === 'true');
+
+  useEffect(() => {
+    if (profile?.patient?.device_id) {
+        localStorage.setItem('synced_device_id', profile.patient.device_id);
+        setSyncedDeviceId(profile.patient.device_id);
+    } else if (profile) {
+        localStorage.removeItem('synced_device_id');
+        setSyncedDeviceId(null);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    const handleUpdate = () => mutateProfile();
+    window.addEventListener('patient_profile_updated', handleUpdate);
+    return () => window.removeEventListener('patient_profile_updated', handleUpdate);
+  }, [mutateProfile]);
+
+  const activeSession = sessions.find((s: any) => !s.ended_at);
+  const isRecording = !!activeSession && !localRecordingStopped;
+
+  useEffect(() => {
+    if (doctorData) {
+      const newName = `Dr. ${doctorData.first_name} ${doctorData.last_name}`;
+      const newPhoto = doctorData.profile_photo || undefined;
+      const docIdToFetch = doctorData.id;
+      if (connectedDoctor) {
+        if (newName !== connectedDoctor.name || newPhoto !== connectedDoctor.photo || docIdToFetch !== connectedDoctor.id) {
+          setConnectedDoctor({
+            id: docIdToFetch.toString(),
+            name: newName,
+            hospital: "",
+            photo: newPhoto
+          });
+        }
+      } else {
+        setConnectedDoctor({
+          id: docIdToFetch.toString(),
+          name: newName,
+          hospital: "",
+          photo: newPhoto
+        });
+      }
+    }
+  }, [doctorData, connectedDoctor, setConnectedDoctor]);
 
   const greetings = tArray('dashboard.greetingsArray');
   const healthTips = tArray('dashboard.healthTipsListArray');
@@ -66,106 +118,6 @@ export const PatientDashboardPage: React.FC = () => {
     if (!firstName && !lastName) return '';
     return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
   };
-
-  useEffect(() => {
-    const fetchDashboardProfile = () => {
-      const userId = localStorage.getItem('user_id') || '1';
-      fetchWithAuth(`/api/patients/${userId}`)
-        .then(res => {
-          if (!res.ok) throw new Error('API offline');
-          return res.json();
-        })
-        .then(data => {
-            setProfile(data);
-            if (data.patient.device_id) {
-                localStorage.setItem('synced_device_id', data.patient.device_id);
-                setSyncedDeviceId(data.patient.device_id);
-            } else {
-                localStorage.removeItem('synced_device_id');
-                setSyncedDeviceId(null);
-            }
-            setError(null);
-        })
-        .catch(err => {
-          console.error("Error fetching patient profile:", err);
-          setError("Gagal mengambil data profil.");
-          const savedMock = localStorage.getItem('mock_patient_profile');
-          if (savedMock) {
-            setProfile(JSON.parse(savedMock));
-          }
-        });
-
-      fetchWithAuth(`/api/patients/${userId}/sessions`)
-        .then(res => res.json())
-        .then(data => {
-            if (data && data.data) {
-                setSessions(data.data);
-            } else if (Array.isArray(data)) {
-                setSessions(data);
-            } else {
-                setSessions([]);
-            }
-        })
-        .catch(err => console.error("Error fetching sessions:", err));
-    };
-
-    fetchDashboardProfile();
-
-    const handleUpdate = () => {
-      fetchDashboardProfile();
-    };
-
-    window.addEventListener('patient_profile_updated', handleUpdate);
-    return () => window.removeEventListener('patient_profile_updated', handleUpdate);
-  }, []);
-
-  const activeSession = sessions.find(s => !s.ended_at);
-  const isRecording = !!activeSession && !localRecordingStopped;
-
-  useEffect(() => {
-    const fetchDoctorProfile = () => {
-      const docIdToFetch = (connectedDoctor && connectedDoctor.id) || (activeSession && activeSession.doctor_id);
-      if (docIdToFetch) {
-        fetchWithAuth(`/api/doctors/${docIdToFetch}`)
-          .then(res => {
-            if (!res.ok) throw new Error('Doctor API offline');
-            return res.json();
-          })
-          .then(data => {
-            if (data) {
-              const newName = `Dr. ${data.first_name} ${data.last_name}`;
-              const newPhoto = data.profile_photo || undefined;
-              if (connectedDoctor) {
-                if (newName !== connectedDoctor.name || newPhoto !== connectedDoctor.photo || docIdToFetch !== connectedDoctor.id) {
-                  setConnectedDoctor({
-                    ...connectedDoctor,
-                    id: docIdToFetch,
-                    name: newName,
-                    photo: newPhoto
-                  });
-                }
-              } else {
-                 setConnectedDoctor({
-                    id: docIdToFetch,
-                    name: newName,
-                    hospital: "",
-                    photo: newPhoto
-                 });
-              }
-            }
-          })
-          .catch(err => {
-            console.error("Gagal me-refresh data dokter dari database:", err);
-          });
-      }
-    };
-
-    fetchDoctorProfile();
-
-    window.addEventListener('doctor_profile_updated', fetchDoctorProfile);
-    return () => window.removeEventListener('doctor_profile_updated', fetchDoctorProfile);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectedDoctor?.id, activeSession?.doctor_id]);
 
   const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
 

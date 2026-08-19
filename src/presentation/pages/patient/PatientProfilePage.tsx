@@ -5,6 +5,7 @@ import { PatientHeader } from '../../components/layout/PatientHeader';
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 export const PatientProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -12,9 +13,10 @@ export const PatientProfilePage: React.FC = () => {
     const { t } = useTranslation();
 
     // Profile data state
-    const [profile, setProfile] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
+    const userId = localStorage.getItem('user_id') || '1';
+    const { data: profileResponse, isLoading, error: swrError, mutate: mutateProfile } = useCachedFetch(`/api/patients/${userId}`);
+    const profile = profileResponse || null;
+    const [error, setError] = useState(swrError?.message || '');
 
     // Edit mode state
     const [isEditing, setIsEditing] = useState(false);
@@ -28,66 +30,15 @@ export const PatientProfilePage: React.FC = () => {
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
     useEffect(() => {
-        const userId = localStorage.getItem('user_id') || '1'; // Default to 1 if not logged in for testing
-        fetchProfile(userId);
-    }, []);
-
-    const fetchProfile = async (userId: string) => {
-        setIsLoading(true);
-        setError('');
-        try {
-            const response = await fetchWithAuth(`/api/patients/${userId}`);
-            if (!response.ok) throw new Error(t('profile.fetchError'));
-            const data = await response.json();
-            setProfile(data);
-
-            // Populate form data
-            if (data && data.patient) {
-                setFormData({
-                    first_name: data.patient.first_name || '',
-                    last_name: data.patient.last_name || '',
-                    age: data.patient.age || 0,
-                    profile_photo: data.patient.profile_photo || ''
-                });
-            }
-        } catch (err: any) {
-            console.error("Error fetching patient profile:", err);
-            setError(err.message || t('profile.fetchError'));
-
-            // Fallback for UI visualization if server is off
-            const savedMock = localStorage.getItem('mock_patient_profile');
-            let mockData;
-            if (savedMock) {
-                mockData = JSON.parse(savedMock);
-            } else {
-                mockData = {
-                    patient: {
-                        id: parseInt(userId),
-                        first_name: 'Budi',
-                        last_name: 'Santoso',
-                        age: 56,
-                        profile_photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCQ0uEsAKEJ35lYFco-uP_vXQ6H-pXYfl4gMz5Tu4x5cIRXy_OUpMD68BU_iIYd2zfCcdMordvK3mPI_DkqchZifxr3BV9omv2qzSipTCs8WkY-x0uudqBJ54VzaA9W6_NyVAUJ_Rb8rYSodpiC7L-91vz0MrYpI3F6yZ32er1x6AlM-P02VbBkAatansWqbncKJzLpfQJIcOUvsJwkzQ_3nDbpYi1yC8uox5YF6IV5AgVX3uwbngpSkxuR4-InIetFQiCUP9yI5yBf'
-                    },
-                    doctor: {
-                        id: 2,
-                        first_name: 'Fikri',
-                        last_name: 'Ahmad',
-                        hospital: 'Klinik Jantung Sehat',
-                        profile_photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9y3H1x3YF-j_V7K-gXpYt9o_4jA1vXhX5Lz_11WnKxV2pZ9jC99xR6_0B6xO9H5k332PqD8Q_kM4b8xK6jH0wQ6C2pP6aG2O3Y0L4lR6L2N3c2lQ2g_qL6bY9hA8sJ6I6v6t6_hG4P3j6xO3yI_4n_s_tI8mD7K_kH2sK4X6_tV0lZ3gB9a_tP5O0_2k4m_y1'
-                    }
-                };
-            }
-            setProfile(mockData);
+        if (profile && profile.patient && !isEditing) {
             setFormData({
-                first_name: mockData.patient.first_name,
-                last_name: mockData.patient.last_name,
-                age: mockData.patient.age,
-                profile_photo: mockData.patient.profile_photo
+                first_name: profile.patient.first_name || '',
+                last_name: profile.patient.last_name || '',
+                age: profile.patient.age || 0,
+                profile_photo: profile.patient.profile_photo || ''
             });
-        } finally {
-            setIsLoading(false);
         }
-    };
+    }, [profile, isEditing]);
 
     const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -115,7 +66,7 @@ export const PatientProfilePage: React.FC = () => {
             const data = await response.json();
             if (data.success) {
                 setIsEditing(false);
-                fetchProfile(userId); // Refresh data
+                mutateProfile(); // Refresh SWR data
                 window.dispatchEvent(new Event('patient_profile_updated')); // Notify other components
                 setShowSuccessPopup(true);
                 setTimeout(() => setShowSuccessPopup(false), 3000);

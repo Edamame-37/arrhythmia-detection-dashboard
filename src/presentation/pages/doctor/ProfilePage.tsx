@@ -6,6 +6,7 @@ import { LogoutModal } from '../../components/shared/LogoutModal';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 interface DoctorProfile {
     id: string;
     first_name: string;
@@ -19,9 +20,11 @@ export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { isOpen, toggleSidebar } = useSidebar();
   const { connectedDoctor, setConnectedDoctor } = useConnection();
-  const [profile, setProfile] = useState<DoctorProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  
+  const userId = localStorage.getItem('user_id');
+  const { data: profile, isLoading, error: swrError, mutate } = useCachedFetch<DoctorProfile>(userId ? `/api/doctors/${userId}` : null);
+  
+  const [error, setError] = useState(swrError?.message || '');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   
   // Edit State
@@ -33,42 +36,29 @@ export const ProfilePage: React.FC = () => {
       profile_photo: ''
   });
 
-  const fetchProfile = () => {
-    const userId = localStorage.getItem('user_id');
+  useEffect(() => {
     if (!userId) {
         navigate('/auth/login');
-        return;
     }
-    fetchWithAuth(`/api/doctors/${userId}`)
-        .then(res => {
-            if (!res.ok) throw new Error('Gagal mengambil profil dokter');
-            return res.json();
-        })
-        .then(data => {
-            setProfile(data);
-            setEditForm({
-                first_name: data.first_name || '',
-                last_name: data.last_name || '',
-                profile_photo: data.profile_photo || ''
-            });
-            setIsLoading(false);
-            if (connectedDoctor) {
-                setConnectedDoctor({
-                    ...connectedDoctor,
-                    name: `Dr. ${data.first_name} ${data.last_name}`,
-                    photo: data.profile_photo || undefined
-                });
-            }
-        })
-        .catch(err => {
-            setError(err.message);
-            setIsLoading(false);
-        });
-  };
+  }, [userId, navigate]);
 
   useEffect(() => {
-      fetchProfile();
-  }, [navigate]);
+      if (profile && !isEditing) {
+          setEditForm({
+              first_name: profile.first_name || '',
+              last_name: profile.last_name || '',
+              profile_photo: profile.profile_photo || ''
+          });
+          
+          if (connectedDoctor && (connectedDoctor.name !== `Dr. ${profile.first_name} ${profile.last_name}` || connectedDoctor.photo !== profile.profile_photo)) {
+              setConnectedDoctor({
+                  ...connectedDoctor,
+                  name: `Dr. ${profile.first_name} ${profile.last_name}`,
+                  photo: profile.profile_photo || undefined
+              });
+          }
+      }
+  }, [profile, isEditing, connectedDoctor, setConnectedDoctor]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -105,7 +95,7 @@ export const ProfilePage: React.FC = () => {
           const data = await response.json();
           if (data.success) {
               setIsEditing(false);
-              fetchProfile(); // Refresh data
+              mutate(); // Refresh SWR data
           } else {
               setError(data.message || 'Gagal menyimpan profil');
           }

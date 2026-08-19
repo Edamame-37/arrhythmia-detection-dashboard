@@ -5,6 +5,7 @@ import { useSidebar } from '../../../application/context/SidebarContext';
 import { useConnection } from '../../../application/context/ConnectionContext';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 export interface SessionRecord {
     id: string;
@@ -23,8 +24,6 @@ export interface DeviceRecord {
 
 export const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
-    const [sessions, setSessions] = useState<SessionRecord[]>([]);
-    const [devices, setDevices] = useState<DeviceRecord[]>([]);
     const { isOpen, toggleSidebar } = useSidebar();
     const { connectedPatients, removeConnectedPatient, disconnectAll } = useConnection();
     const [showDisconnectModal, setShowDisconnectModal] = useState(false);
@@ -50,39 +49,17 @@ export const DashboardPage: React.FC = () => {
             const docId = localStorage.getItem('doctor_user_id');
             if (docId) localStorage.setItem('user_id', docId);
         }
-
-        const role = localStorage.getItem('user_role');
-        const userId = localStorage.getItem('user_id');
-        const url = role === 'dokter' ? `/api/sessions?doctor_id=${userId}` : `/api/sessions`;
-
-        fetchWithAuth(url)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.data) {
-                    setSessions(data.data);
-                } else if (data && Array.isArray(data.sessions)) {
-                    setSessions(data.sessions);
-                } else if (Array.isArray(data)) {
-                    setSessions(data);
-                } else {
-                    setSessions([]);
-                }
-            })
-            .catch(err => console.error("Error fetching sessions:", err));
-
-        fetchWithAuth(`/api/devices`)
-            .then(res => res.json())
-            .then(data => {
-                if (data && Array.isArray(data.devices)) {
-                    setDevices(data.devices);
-                } else if (Array.isArray(data)) {
-                    setDevices(data);
-                } else {
-                    setDevices([]);
-                }
-            })
-            .catch(err => console.error("Error fetching devices:", err));
     }, []);
+
+    const role = localStorage.getItem('user_role');
+    const userId = localStorage.getItem('user_id');
+    const sessionsUrl = role === 'dokter' ? `/api/sessions?doctor_id=${userId}` : `/api/sessions`;
+
+    const { data: sessionsResponse } = useCachedFetch(sessionsUrl);
+    const { data: devicesResponse } = useCachedFetch(`/api/devices`);
+
+    const sessions: SessionRecord[] = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+    const devices: DeviceRecord[] = devicesResponse?.devices || (Array.isArray(devicesResponse) ? devicesResponse : []);
 
     const activeSessions = sessions.filter(session => !session.ended_at);
 
