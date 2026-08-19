@@ -70,24 +70,25 @@ export const AdminDevicesPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full min-h-screen relative font-sans">
+            <div className="absolute inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
             <AdminSidebar />
             
-            <main id="main-content" className={`pb-24 md:pb-12 transition-all duration-300 min-h-screen flex flex-col ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
-                <header className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-outline-variant/30 z-40 px-6 py-4 flex items-center gap-4 max-w-container-max mx-auto w-full">
-                    <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
+            <main id="main-content" className={`pb-24 md:pb-12 transition-all duration-300 min-h-screen flex flex-col relative z-10 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
+                <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex items-center gap-4 max-w-container-max mx-auto w-full transition-all duration-300">
+                    <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
                         <span className="material-symbols-outlined">menu</span>
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-charcoal">Armada Perangkat (IoT Devices)</h1>
-                        <p className="text-xs text-on-surface-variant mt-0.5">Pemantauan armada perangkat keras yang terhubung ke jaringan.</p>
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-clinical-charcoal">Armada Perangkat (IoT Devices)</h1>
+                        <p className="text-xs md:text-sm font-medium text-clinical-charcoal/60 mt-0.5">Pemantauan armada perangkat keras yang terhubung ke jaringan.</p>
                     </div>
                 </header>
 
-                <div className="px-6 max-w-container-max mx-auto mt-6">
-                    <div className="bg-surface border border-outline-variant/60 rounded-xl shadow-sm overflow-hidden">
-                        <div className="p-4 border-b border-outline-variant/60 flex justify-between items-center bg-surface-container-lowest">
-                            <h2 className="font-bold text-charcoal">Daftar Perangkat</h2>
+                <div className="px-4 md:px-6 max-w-container-max mx-auto mt-6 w-full flex-1 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+                    <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-500">
+                        <div className="p-6 border-b border-clinical-charcoal/5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/50 backdrop-blur-sm">
+                            <h2 className="font-bold text-clinical-charcoal text-lg">Daftar Perangkat</h2>
                             <button onClick={() => {
                                 setEditingDeviceId(null);
                                 setFormData({
@@ -95,20 +96,20 @@ export const AdminDevicesPage: React.FC = () => {
                                     mqtt_topic: '', mqtt_username: '', mqtt_password: ''
                                 });
                                 setIsRegisterModalOpen(true);
-                            }} className="bg-medical-teal text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2">
+                            }} className="bg-clinical-blue text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2">
                                 <span className="material-symbols-outlined text-[18px]">add</span> Register Alat Baru
                             </button>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                        <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead>
-                                    <tr className="bg-surface-container-low text-on-surface-variant text-xs uppercase tracking-wider">
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">Device ID</th>
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">Device Name</th>
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">MQTT Broker</th>
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">MQTT Topic</th>
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">Assigned To</th>
-                                        <th className="p-4 font-bold border-b border-outline-variant/60">Aksi</th>
+                                    <tr className="bg-clinical-surface/50 text-clinical-charcoal/60 text-[10px] uppercase tracking-wider font-bold">
+                                        <th className="p-4 border-b border-clinical-charcoal/5">Device ID</th>
+                                        <th className="p-4 border-b border-clinical-charcoal/5">Device Name</th>
+                                        <th className="p-4 border-b border-clinical-charcoal/5">MQTT Broker</th>
+                                        <th className="p-4 border-b border-clinical-charcoal/5">MQTT Topic</th>
+                                        <th className="p-4 border-b border-clinical-charcoal/5">Assigned To</th>
+                                        <th className="p-4 border-b border-clinical-charcoal/5">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -117,19 +118,19 @@ export const AdminDevicesPage: React.FC = () => {
                                     ) : (() => {
                                         const paginatedDevices = devices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
                                         return paginatedDevices.map(d => (
-                                        <tr key={d.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
-                                            <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{d.id}</td>
-                                            <td className="p-4 font-bold text-sm text-charcoal">{d.name}</td>
-                                            <td className="p-4 font-mono-data text-xs text-on-surface-variant">{d.mqtt_broker}:{d.mqtt_port}</td>
-                                            <td className="p-4 font-mono-data text-xs text-on-surface-variant bg-surface-container-lowest rounded">{d.mqtt_topic}</td>
-                                            <td className="p-4 text-xs font-mono-data text-on-surface-variant">{d.assigned_to || 'Unassigned'}</td>
-                                            <td className="p-4 flex gap-2">
-                                                <button onClick={() => setSelectedDeviceQr(d.name || d.id)} className="text-medical-teal hover:underline text-xs font-bold flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[16px]">qr_code</span> Tampilkan QR
+                                        <tr key={d.id} className="hover:bg-clinical-surface/50 transition-colors border-b border-clinical-charcoal/5 last:border-0 group">
+                                            <td className="p-4 font-mono text-xs text-clinical-blue font-bold">{d.id}</td>
+                                            <td className="p-4 font-bold text-sm text-clinical-charcoal">{d.name}</td>
+                                            <td className="p-4 font-mono text-xs text-clinical-charcoal/70">{d.mqtt_broker}:{d.mqtt_port}</td>
+                                            <td className="p-4 font-mono text-xs text-clinical-charcoal/70"><span className="bg-clinical-surface px-2 py-1 rounded-md">{d.mqtt_topic}</span></td>
+                                            <td className="p-4 text-xs font-mono text-clinical-charcoal/70">{d.assigned_to || 'Unassigned'}</td>
+                                            <td className="p-4 flex gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <button onClick={() => setSelectedDeviceQr(d.name || d.id)} className="text-clinical-blue hover:text-clinical-charcoal text-xs font-bold flex items-center gap-1 transition-colors" title="Tampilkan QR">
+                                                    <span className="material-symbols-outlined text-[18px]">qr_code</span>
                                                 </button>
-                                                <span className="text-outline">|</span>
-                                                <button className="text-primary hover:underline text-xs font-bold">Ping</button>
-                                                <span className="text-outline">|</span>
+                                                <button className="text-clinical-charcoal hover:text-clinical-blue text-xs font-bold transition-colors" title="Ping">
+                                                    <span className="material-symbols-outlined text-[18px]">wifi</span>
+                                                </button>
                                                 <button onClick={() => {
                                                     setEditingDeviceId(d.id);
                                                     setFormData({
@@ -141,7 +142,9 @@ export const AdminDevicesPage: React.FC = () => {
                                                         mqtt_password: ''
                                                     });
                                                     setIsRegisterModalOpen(true);
-                                                }} className="text-medical-teal hover:underline text-xs font-bold flex items-center gap-1">Edit</button>
+                                                }} className="text-clinical-charcoal hover:text-clinical-blue text-xs font-bold flex items-center gap-1 transition-colors" title="Edit">
+                                                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                </button>
                                             </td>
                                         </tr>
                                         ));
