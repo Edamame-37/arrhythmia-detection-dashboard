@@ -340,12 +340,13 @@ export const AdminAnalyticsPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen">
+        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden min-h-screen relative font-sans">
+            <div className="absolute inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
             <AdminSidebar />
             
-            <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
+            <main className={`flex flex-col transition-all duration-300 min-h-screen pb-12 w-full relative z-10 ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
             {/* --- HEADER KOMPONEN --- */}
-            <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full">
+            <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex justify-between items-center max-w-container-max mx-auto w-full transition-all duration-300">
                 
                 <div className="flex items-center gap-3">
                     <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
@@ -360,8 +361,8 @@ export const AdminAnalyticsPage: React.FC = () => {
             </header>
 
             {/* --- TOOLBAR INFORMASI --- */}
-            <div className="bg-white border-b border-clinical-blue/20/30 w-full shadow-sm z-30 relative">
-                <div className="max-w-container-max mx-auto px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="max-w-container-max mx-auto px-4 md:px-6 pt-4 w-full z-30 relative animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+                <div className="bg-white/80 backdrop-blur-md rounded-[1.5rem] border border-clinical-charcoal/5 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-700 hover:shadow-md">
                 <div className="flex items-center gap-3">
                     <div className="bg-clinical-blue/10 p-2 rounded-lg text-clinical-blue">
                         <span className="material-symbols-outlined text-[20px]">folder_managed</span>
@@ -409,8 +410,8 @@ export const AdminAnalyticsPage: React.FC = () => {
                 }
 
                 return (
-                <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
-                    <div className="space-y-3">
+                <div className="mt-4 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 ease-out fill-mode-both">
+                    <div className="space-y-4">
                         {allSessions.length === 0 ? (
                             <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
                                 <p className="text-sm font-body-sm text-clinical-charcoal/70">
@@ -434,7 +435,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                             }
 
                             return (
-                                <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-shadow interactive-card cursor-pointer" onClick={() => navigate(`/admin/analytics?sessionId=${session.id}`)}>
+                                <div key={session.id} className="bg-white border border-clinical-charcoal/5 p-4 md:p-5 rounded-[1.5rem] flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-lg hover:border-clinical-blue/20 transition-all duration-500 cursor-pointer group" onClick={() => navigate(`/admin/analytics?sessionId=${session.id}`)}>
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden flex-shrink-0">
                                             {session.patient_id && patientPhotos[session.patient_id] ? (
