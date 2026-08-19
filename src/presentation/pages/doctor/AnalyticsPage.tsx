@@ -72,15 +72,22 @@ export const AnalyticsPage: React.FC = () => {
     const userId = localStorage.getItem('user_id');
     const sessionsUrl = selectedPatientFilter === 'ALL'
         ? (role === 'dokter' ? `/api/sessions?doctor_id=${userId}&page=${currentPage}&limit=${itemsPerPage}` : `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`)
-        : `/api/patients/${selectedPatientFilter}/sessions`;
+        : `/api/patients/${selectedPatientFilter}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
 
-    const { data: sessionsResponse, isLoading: loadingSessions } = useCachedFetch(sessionId ? null : sessionsUrl);
+    const { data: sessionsResponse, isLoading: loadingSessions } = useCachedFetch(sessionId ? null : sessionsUrl, { keepPreviousData: true });
     
     // Derived state
     const allSessionsFetched = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
     const totalSessions = sessionsResponse?.pagination?.total || sessionsResponse?.total_sessions || allSessionsFetched.length;
+    const totalPages = Math.ceil(totalSessions / itemsPerPage) || 1;
     // Paginasi manual (client-side) jika selectedPatientFilter !== 'ALL'
-    const allSessions = selectedPatientFilter === 'ALL' ? allSessionsFetched : allSessionsFetched.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const allSessions = allSessionsFetched;
+
+    useEffect(() => {
+        if (!loadingSessions && totalPages > 0 && currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage, setCurrentPage, loadingSessions]);
 
     useEffect(() => {
         if (allSessions.length > 0) {
@@ -353,7 +360,7 @@ export const AnalyticsPage: React.FC = () => {
                         >
                             <option value="ALL">Semua Pasien</option>
                             {connectedPatients.map(p => (
-                                <option key={p.id || p.raw_id} value={p.id || p.raw_id}>{p.name}</option>
+                                <option key={p.id || p.raw_id} value={p.raw_id || p.id}>{p.name}</option>
                             ))}
                         </select>
                     )}

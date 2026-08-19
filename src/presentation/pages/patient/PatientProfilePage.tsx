@@ -6,6 +6,7 @@ import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
+import { ActionModal } from '../../components/shared/ActionModal';
 
 export const PatientProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -27,7 +28,23 @@ export const PatientProfilePage: React.FC = () => {
         profile_photo: ''
     });
     const [isSaving, setIsSaving] = useState(false);
-    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+    
+    const [actionModal, setActionModal] = useState<{
+        isOpen: boolean;
+        type: 'confirm' | 'success' | 'error' | 'warning';
+        title: string;
+        message: React.ReactNode;
+        onConfirm?: () => void;
+    }>({
+        isOpen: false,
+        type: 'confirm',
+        title: '',
+        message: ''
+    });
+
+    const closeActionModal = () => {
+        if (!isSaving) setActionModal(prev => ({ ...prev, isOpen: false }));
+    };
 
     useEffect(() => {
         if (profile && profile.patient && !isEditing) {
@@ -40,8 +57,18 @@ export const PatientProfilePage: React.FC = () => {
         }
     }, [profile, isEditing]);
 
-    const handleSaveProfile = async (e: React.FormEvent) => {
+    const handleSaveProfile = (e: React.FormEvent) => {
         e.preventDefault();
+        setActionModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Konfirmasi Simpan',
+            message: 'Apakah Anda yakin ingin menyimpan perubahan profil ini?',
+            onConfirm: executeSaveProfile
+        });
+    };
+
+    const executeSaveProfile = async () => {
         setIsSaving(true);
         setError('');
         const userId = localStorage.getItem('user_id') || '1';
@@ -68,13 +95,30 @@ export const PatientProfilePage: React.FC = () => {
                 setIsEditing(false);
                 mutateProfile(); // Refresh SWR data
                 window.dispatchEvent(new Event('patient_profile_updated')); // Notify other components
-                setShowSuccessPopup(true);
-                setTimeout(() => setShowSuccessPopup(false), 3000);
+                setActionModal({
+                    isOpen: true,
+                    type: 'success',
+                    title: 'Berhasil',
+                    message: 'Profil berhasil diperbarui.',
+                    onConfirm: closeActionModal
+                });
             } else {
-                setError(data.message || t('profile.saveFailed'));
+                setActionModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Gagal',
+                    message: data.message || t('profile.saveFailed'),
+                    onConfirm: closeActionModal
+                });
             }
         } catch (err: any) {
-            setError(err.message || t('profile.serverError'));
+            setActionModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Error',
+                message: err.message || t('profile.serverError'),
+                onConfirm: closeActionModal
+            });
         } finally {
             setIsSaving(false);
         }
@@ -318,13 +362,15 @@ export const PatientProfilePage: React.FC = () => {
 
             <LogoutModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} />
 
-            {/* Success Popup */}
-            {showSuccessPopup && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white border border-clinical-charcoal/10 shadow-[0px_20px_40px_rgba(0,0,0,0.08)] p-4 rounded-xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-top-5 duration-300 pointer-events-none">
-                    <span className="material-symbols-outlined text-status-green text-[28px]">check_circle</span>
-                    <p className="font-bold text-clinical-charcoal text-sm md:text-base pr-2">{t('profile.saveSuccess')}</p>
-                </div>
-            )}
+            <ActionModal 
+                isOpen={actionModal.isOpen}
+                type={actionModal.type}
+                title={actionModal.title}
+                message={actionModal.message}
+                onConfirm={actionModal.onConfirm}
+                onClose={closeActionModal}
+                isLoading={isSaving}
+            />
         </div>
     );
 };

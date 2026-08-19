@@ -63,33 +63,7 @@ export const AdminDashboardPage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* System Health Overview */}
-                    <div className="bg-surface border border-outline-variant/60 rounded-xl p-6 shadow-sm">
-                        <h2 className="text-lg font-bold text-charcoal mb-4">Backend System Health</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <p className="text-sm font-bold text-on-surface-variant">API Server</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="w-3 h-3 bg-status-green rounded-full"></span>
-                                    <span className="text-sm font-mono-data font-bold text-charcoal">ONLINE (99.9% Uptime)</span>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-on-surface-variant">MQTT Broker</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="w-3 h-3 bg-status-green rounded-full"></span>
-                                    <span className="text-sm font-mono-data font-bold text-charcoal">CONNECTED</span>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-on-surface-variant">Database</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="w-3 h-3 bg-status-green rounded-full"></span>
-                                    <span className="text-sm font-mono-data font-bold text-charcoal">SYNCED</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
 
                     {/* Security Settings */}
                     <div className="bg-surface border border-outline-variant/60 rounded-xl p-6 shadow-sm">

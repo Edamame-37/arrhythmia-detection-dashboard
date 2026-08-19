@@ -8,6 +8,7 @@ import { Pagination } from '../../components/shared/Pagination';
 import { useStickyState } from '../../../application/hooks/useStickyState';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { fetchWithAuth } from '../../../config/api';
+import { ActionModal } from '../../components/shared/ActionModal';
 
 interface AdminUser {
     id: string;
@@ -57,8 +58,14 @@ export const AdminUsersPage: React.FC = () => {
     const totalPages = usersResponse?.pagination?.total_pages || Math.ceil(totalUsers / itemsPerPage);
     const devices = Array.isArray(devicesResponse) ? devicesResponse : (devicesResponse?.data || []);
     const allDoctors = doctorsResponse?.data || (Array.isArray(doctorsResponse) ? doctorsResponse : []);
+    const { data: allPatientsResponse } = useCachedFetch(tokenRestored ? `/api/admin/users?role=pasien&limit=1000` : null);
+    const allPatients = allPatientsResponse?.data || (Array.isArray(allPatientsResponse) ? allPatientsResponse : []);
     
     const loading = loadingUsers;
+    
+    const testUser = activeTab === 'pasien' 
+        ? allPatients.find((u: any) => u.name === 'Patient Test') 
+        : allDoctors.find((u: any) => u.name === 'Doctor Test');
 
     // Add Modal State
     const [showAddModal, setShowAddModal] = useState(false);
@@ -81,6 +88,25 @@ export const AdminUsersPage: React.FC = () => {
     // Sync states
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+
+    // Action Modal States
+    const [actionModal, setActionModal] = useState<{
+        isOpen: boolean;
+        type: 'confirm' | 'success' | 'error' | 'warning';
+        title: string;
+        message: React.ReactNode;
+        onConfirm?: () => void;
+    }>({
+        isOpen: false,
+        type: 'confirm',
+        title: '',
+        message: ''
+    });
+    const [actionLoading, setActionLoading] = useState(false);
+
+    const closeActionModal = () => {
+        if (!actionLoading) setActionModal(prev => ({ ...prev, isOpen: false }));
+    };
 
     // Cleanup old useEffect that was restoring tokens too late
     
@@ -155,28 +181,82 @@ export const AdminUsersPage: React.FC = () => {
         setUserDetail(null);
     };
 
-    const handleSyncDoctor = async () => {
+    const handleSyncDoctor = () => {
         if (!selectedUser) return;
+        setActionModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Konfirmasi Tautkan Dokter',
+            message: `Tautkan pasien ${selectedUser.name} dengan dokter yang dipilih?`,
+            onConfirm: executeSyncDoctor
+        });
+    };
+
+    const executeSyncDoctor = async () => {
+        if (!selectedUser) return;
+        setActionLoading(true);
         try {
-            if (selectedDoctorId) {
-                await fetchWithAuth(`/api/patients/${selectedUser.id}/connect`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ doctor_id: selectedDoctorId })
-                });
-            } else {
-                await fetchWithAuth(`/api/patients/${selectedUser.id}/disconnect`, { method: 'POST' });
+            const res = await fetchWithAuth(`/api/patients/${selectedUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ primary_doctor_id: selectedDoctorId || null })
+            });
+            
+            if (!res.ok) {
+                const text = await res.text();
+                try {
+                    const errorData = JSON.parse(text);
+                    throw new Error(errorData.message || 'Gagal sinkronisasi');
+                } catch (e) {
+                    throw new Error(text || 'Gagal sinkronisasi');
+                }
             }
             setSelectedUser({ ...selectedUser, connected_doctor_id: selectedDoctorId || null });
             fetchUsersAndDevices();
-        } catch (err) {
+            setActionModal({
+                isOpen: true,
+                type: 'success',
+                title: 'Berhasil',
+                message: 'Berhasil mengupdate dokter utama pasien.',
+                onConfirm: closeActionModal
+            });
+        } catch (err: any) {
             console.error("Failed to sync doctor", err);
+            setActionModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Gagal',
+                message: `Error: ${err.message}`,
+                onConfirm: closeActionModal
+            });
+        } finally {
+            setActionLoading(false);
         }
     };
 
-    const handleSyncDevice = async () => {
+    const handleSyncDevice = () => {
         if (!selectedUser) return;
+        setActionModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Konfirmasi Tautkan Perangkat',
+            message: `Tautkan pasien ${selectedUser.name} dengan perangkat yang dipilih?`,
+            onConfirm: executeSyncDevice
+        });
+    };
+
+    const executeSyncDevice = async () => {
+        if (!selectedUser) return;
+        setActionLoading(true);
         try {
+            if (selectedUser.connected_device_id && selectedUser.connected_device_id !== selectedDeviceId) {
+                await fetchWithAuth(`/api/devices/${selectedUser.connected_device_id}/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: null })
+                });
+            }
+            
             if (selectedDeviceId) {
                 const response = await fetchWithAuth(`/api/devices/${selectedDeviceId}/assign`, {
                     method: 'POST',
@@ -184,26 +264,42 @@ export const AdminUsersPage: React.FC = () => {
                     body: JSON.stringify({ patient_id: selectedUser.id })
                 });
                 if (!response.ok) throw new Error(await response.text());
-            } else {
-                const assignedDevice = devices.find((d: any) => d.assigned_to === selectedUser.id);
-                if (assignedDevice) {
-                    const response = await fetchWithAuth(`/api/devices/${assignedDevice.id}/assign`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ patient_id: null })
-                    });
-                    if (!response.ok) throw new Error(await response.text());
-                }
             }
             setSelectedUser({ ...selectedUser, connected_device_id: selectedDeviceId || null });
             fetchUsersAndDevices();
+            setActionModal({
+                isOpen: true,
+                type: 'success',
+                title: 'Berhasil',
+                message: 'Berhasil menautkan perangkat ke pasien.',
+                onConfirm: closeActionModal
+            });
         } catch (err: any) {
             console.error("Failed to sync device", err);
-            alert("Error: " + err.message);
+            setActionModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Gagal',
+                message: `Error: ${err.message}`,
+                onConfirm: closeActionModal
+            });
+        } finally {
+            setActionLoading(false);
         }
     };
 
-    const handleImpersonate = async (user: AdminUser) => {
+    const handleImpersonate = (user: AdminUser) => {
+        setActionModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Konfirmasi Login',
+            message: `Apakah Anda yakin ingin login ke dasbor ${user.name}? Anda akan dialihkan.`,
+            onConfirm: () => executeImpersonate(user)
+        });
+    };
+
+    const executeImpersonate = async (user: AdminUser) => {
+        setActionLoading(true);
         try {
             const token = localStorage.getItem('auth_token');
             const res = await fetchWithAuth(`/api/admin/impersonate/${user.account_id}`, {
@@ -216,7 +312,6 @@ export const AdminUsersPage: React.FC = () => {
             const data = await res.json();
 
             if (data.success && data.user_id) {
-                // Backup admin credentials sebelum impersonate
                 const currentRole = localStorage.getItem('user_role');
                 if (currentRole === 'admin') {
                     localStorage.setItem('admin_auth_token', token || '');
@@ -224,38 +319,53 @@ export const AdminUsersPage: React.FC = () => {
                     localStorage.setItem('original_role', 'admin');
                 }
                 sessionStorage.setItem('is_impersonating', 'true');
-
-                // Clear old connected state
                 localStorage.removeItem('connectedPatients');
                 localStorage.removeItem('connectedDoctor');
                 localStorage.removeItem('mock_patient_profile');
-
-                // Set new credentials
                 localStorage.setItem('user_id', data.user_id.toString());
                 localStorage.setItem('user_role', data.role);
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }
-
-                // Store return URL
                 sessionStorage.setItem('return_url', '/admin/users');
-
-                // Navigate
-                if (data.role === 'pasien') {
-                    navigate('/patient/dashboard');
-                } else if (data.role === 'dokter') {
-                    navigate('/doctor/dashboard');
-                }
+                
+                setActionModal({
+                    isOpen: true,
+                    type: 'success',
+                    title: 'Berhasil',
+                    message: `Berhasil login sebagai ${user.name}. Mengalihkan...`,
+                    onConfirm: () => {
+                        if (data.role === 'pasien') {
+                            navigate('/patient/dashboard');
+                        } else {
+                            navigate('/doctor/dashboard');
+                        }
+                    }
+                });
             } else {
-                alert(data.message || 'Gagal melakukan impersonate.');
+                setActionModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Gagal',
+                    message: data.message || 'Gagal melakukan impersonate.',
+                    onConfirm: closeActionModal
+                });
             }
         } catch (err) {
             console.error("Gagal impersonate", err);
-            alert("Koneksi ke server gagal.");
+            setActionModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Gagal',
+                message: 'Koneksi ke server gagal.',
+                onConfirm: closeActionModal
+            });
+        } finally {
+            setActionLoading(false);
         }
     };
 
-    const paginatedUsers = users;
+    const paginatedUsers = [...users].sort((a, b) => new Date(b.registered_at || 0).getTime() - new Date(a.registered_at || 0).getTime());
     const doctorsList = allDoctors;
 
     const formatDate = (dateString?: string) => {
@@ -268,6 +378,47 @@ export const AdminUsersPage: React.FC = () => {
         const min = String(d.getMinutes()).padStart(2, '0');
         return `${dd}-${mm}-${yy} ${hh}:${min}`;
     };
+
+    const renderUserRow = (u: any) => (
+        <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0 bg-white">
+            <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id.substring(0, 9)}</td>
+            <td className="p-4 text-sm font-bold text-charcoal">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/50 shadow-sm overflow-hidden flex items-center justify-center text-on-surface-variant shrink-0">
+                        {u.profile_photo ? (
+                            <img src={u.profile_photo} alt={u.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="material-symbols-outlined text-[18px]">person</span>
+                        )}
+                    </div>
+                    {u.name}
+                </div>
+            </td>
+            {activeTab === 'pasien' && (
+                <td className="p-4 text-xs font-mono-data font-bold text-medical-teal">
+                    {u.connected_doctor_id ? (allDoctors.find((d: any) => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
+                </td>
+            )}
+            {activeTab === 'pasien' && (
+                <td className="p-4 text-xs font-mono-data font-bold text-primary">
+                    {u.connected_device_id ? u.connected_device_id : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
+                </td>
+            )}
+            <td className="p-4 text-xs text-on-surface-variant">{formatDate(u.registered_at)}</td>
+            <td className="p-4">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => handleViewDetail(u)} className="text-primary hover:underline text-xs font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                        Detail & Sync
+                    </button>
+                    <button onClick={() => handleImpersonate(u)} className="text-medical-teal hover:underline text-xs font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">login</span>
+                        Login
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
 
     return (
         <div className="bg-background text-on-surface antialiased overflow-x-hidden w-full min-h-screen">
@@ -302,6 +453,43 @@ export const AdminUsersPage: React.FC = () => {
                         </button>
                     </div>
 
+                    <div className="mb-6 bg-medical-teal/5 border border-medical-teal/20 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                        <div className="p-4 bg-medical-teal/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-sm font-bold text-medical-teal flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">account_circle</span>
+                                    Akses Cepat Akun Uji Coba ({activeTab === 'pasien' ? 'Pasien' : 'Dokter'})
+                                </h3>
+                                <p className="text-xs text-on-surface-variant mt-1">
+                                    Gunakan profil di bawah ini untuk menguji sistem dengan menekan tombol <strong className="text-medical-teal">Login</strong>.
+                                </p>
+                            </div>
+                        </div>
+                        {testUser ? (
+                            <div className="overflow-x-auto bg-white border-t border-medical-teal/20">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-surface-container-lowest text-on-surface-variant text-xs uppercase tracking-wider">
+                                            <th className="p-4 font-bold border-b border-outline-variant/60">User ID</th>
+                                            <th className="p-4 font-bold border-b border-outline-variant/60">Nama Lengkap</th>
+                                            {activeTab === 'pasien' && <th className="p-4 font-bold border-b border-outline-variant/60">Dokter Terhubung</th>}
+                                            {activeTab === 'pasien' && <th className="p-4 font-bold border-b border-outline-variant/60">Device Terhubung</th>}
+                                            <th className="p-4 font-bold border-b border-outline-variant/60">Tanggal Daftar</th>
+                                            <th className="p-4 font-bold border-b border-outline-variant/60">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {renderUserRow(testUser)}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="p-4 text-xs font-bold text-on-surface-variant bg-white border-t border-medical-teal/20">
+                                Memuat akun uji coba...
+                            </div>
+                        )}
+                    </div>
+
                     <div className="bg-surface border border-outline-variant/60 rounded-xl shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
@@ -320,46 +508,7 @@ export const AdminUsersPage: React.FC = () => {
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm">Memuat data...</td></tr>
                                     ) : users.length === 0 ? (
                                         <tr><td colSpan={activeTab === 'pasien' ? 6 : 4} className="p-4 text-center text-sm text-on-surface-variant">Tidak ada data.</td></tr>
-                                    ) : paginatedUsers.map((u: any) => (
-                                        <tr key={u.id} className="hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30 last:border-0">
-                                            <td className="p-4 font-mono-data text-xs text-medical-teal font-bold">{u.id.substring(0, 9)}</td>
-                                            <td className="p-4 text-sm font-bold text-charcoal">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/50 shadow-sm overflow-hidden flex items-center justify-center text-on-surface-variant shrink-0">
-                                                        {u.profile_photo ? (
-                                                            <img src={u.profile_photo} alt={u.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span className="material-symbols-outlined text-[18px]">person</span>
-                                                        )}
-                                                    </div>
-                                                    {u.name}
-                                                </div>
-                                            </td>
-                                            {activeTab === 'pasien' && (
-                                                <td className="p-4 text-xs font-mono-data font-bold text-medical-teal">
-                                                    {u.connected_doctor_id ? (allDoctors.find((d: any) => d.id === u.connected_doctor_id)?.name || u.connected_doctor_id) : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
-                                                </td>
-                                            )}
-                                            {activeTab === 'pasien' && (
-                                                <td className="p-4 text-xs font-mono-data font-bold text-primary">
-                                                    {u.connected_device_id ? u.connected_device_id : <span className="text-on-surface-variant italic font-normal">Kosong</span>}
-                                                </td>
-                                            )}
-                                            <td className="p-4 text-xs text-on-surface-variant">{formatDate(u.registered_at)}</td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-4">
-                                                    <button onClick={() => handleViewDetail(u)} className="text-primary hover:underline text-xs font-bold flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                                        Detail & Sync
-                                                    </button>
-                                                    <button onClick={() => handleImpersonate(u)} className="text-medical-teal hover:underline text-xs font-bold flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-[16px]">login</span>
-                                                        Login
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    ) : paginatedUsers.map((u: any) => renderUserRow(u))}
                                 </tbody>
                             </table>
                         </div>
@@ -537,6 +686,18 @@ export const AdminUsersPage: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Detail & Sync Modal */}
+            {/* ... other modals ... */}
+
+            <ActionModal 
+                isOpen={actionModal.isOpen}
+                type={actionModal.type}
+                title={actionModal.title}
+                message={actionModal.message}
+                onConfirm={actionModal.onConfirm}
+                onClose={closeActionModal}
+                isLoading={actionLoading}
+            />
         </div>
     );
 };

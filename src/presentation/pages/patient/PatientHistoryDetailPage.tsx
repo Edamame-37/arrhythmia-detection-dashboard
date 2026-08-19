@@ -114,7 +114,36 @@ export const PatientHistoryDetailPage: React.FC = () => {
                     const TOTAL_POINTS = 2500;
                     const X_STEP = 2000 / TOTAL_POINTS;
                     const samples = payload.ecg?.samples || payload.raw?.ch1 || [];
-                        const calculatedHR = payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--");
+                    const ch2 = payload.raw?.ch2 || [];
+                    const ch3 = payload.raw?.ch3 || [];
+
+                    const rrIntervals: number[] = [];
+                    for (let j = 0; j < samples.length; j++) {
+                        let finalI, finalII, finalIII;
+                        if (Array.isArray(samples[j])) {
+                            finalI = samples[j][0] || 0;
+                            finalII = samples[j][1] || 0;
+                            finalIII = samples[j][2] || 0;
+                        } else {
+                            finalI = samples[j] || 0;
+                            finalII = ch2[j] || 0;
+                            finalIII = ch3[j] || 0;
+                        }
+
+                        // JALUR MATEMATIS (KONTINU): Hitung DC Blocker kontinu lalu umpankan ke PanTompkins
+                        const mathCleaned = globalDcBlocker.process(finalI, finalII);
+                        let absoluteJ = absoluteIndexOffset + j;
+                        if (pt.detectRealTime(mathCleaned.cleanII, absoluteJ)) {
+                            if (lastPeakIndex !== -1) {
+                                rrIntervals.push((absoluteJ - lastPeakIndex) / 250);
+                            }
+                            lastPeakIndex = absoluteJ;
+                        }
+                    }
+                    absoluteIndexOffset += samples.length;
+
+                    const evalResult = evaluateIrregularity(rrIntervals);
+                    const calculatedHR = evalResult.hr > 0 ? evalResult.hr : (payload.validation?.hr || payload.heart_rate || (i > 0 ? loadedSegments[i-1].heartRate : "--"));
 
                         loadedSegments[i] = {
                             payload, // Store the raw payload so EcgViewer can parse it lazily

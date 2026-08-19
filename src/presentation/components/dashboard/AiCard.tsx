@@ -239,20 +239,6 @@ export const AiCard: React.FC<AiCardProps> = ({
                             Klasifikasi AI
                         </h4>
                     </div>
-                    {onViewEcgPaper ? (
-                        <button 
-                            onClick={onViewEcgPaper}
-                            className="absolute right-0 top-0 border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-white hover:bg-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1 shadow-sm"
-                        >
-                            <span className="material-symbols-outlined text-[14px]">image</span>
-                            Lihat Foto EKG
-                        </button>
-                    ) : (
-                        <div className="absolute right-0 top-0 px-3 py-1.5 text-[10px] text-clinical-charcoal/40 italic font-body-sm flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">image_not_supported</span>
-                            Foto ECG belum diupload
-                        </div>
-                    )}
                 </div>
 
                 <div className="text-center w-full px-2">

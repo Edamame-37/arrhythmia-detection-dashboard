@@ -32,10 +32,10 @@ export const PatientHistoryPage: React.FC = () => {
     const itemsPerPage = 10;
 
     const { data: profile } = useCachedFetch(`/api/patients/${userId}`);
-    const { data: sessionsResponse, mutate: mutateSessions } = useCachedFetch(`/api/patients/${userId}/sessions`);
+    const { data: sessionsResponse, mutate: mutateSessions, isLoading } = useCachedFetch(`/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`, { keepPreviousData: true });
 
     const sessionsData = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
-    const totalPages = Math.ceil(sessionsData.length / itemsPerPage) || 1;
+    const totalPages = sessionsResponse?.pagination?.total_pages || Math.ceil(sessionsData.length / itemsPerPage) || 1;
 
     // Default internal state for optimistic UI updates (e.g. after uploading a photo)
     const [localSessions, setLocalSessions] = useState<SessionRecord[]>([]);
@@ -44,7 +44,13 @@ export const PatientHistoryPage: React.FC = () => {
         if (sessionsData) setLocalSessions(sessionsData);
     }, [sessionsData]);
 
-    const sessions = localSessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    useEffect(() => {
+        if (!isLoading && totalPages > 0 && currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage, setCurrentPage, isLoading]);
+
+    const sessions = localSessions;
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);

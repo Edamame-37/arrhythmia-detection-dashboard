@@ -7,6 +7,8 @@ import { useConnection } from '../../../application/context/ConnectionContext';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
+import { ActionModal } from '../../components/shared/ActionModal';
+
 interface DoctorProfile {
     id: string;
     first_name: string;
@@ -35,6 +37,23 @@ export const ProfilePage: React.FC = () => {
       last_name: '',
       profile_photo: ''
   });
+
+  const [actionModal, setActionModal] = useState<{
+      isOpen: boolean;
+      type: 'confirm' | 'success' | 'error' | 'warning';
+      title: string;
+      message: React.ReactNode;
+      onConfirm?: () => void;
+  }>({
+      isOpen: false,
+      type: 'confirm',
+      title: '',
+      message: ''
+  });
+
+  const closeActionModal = () => {
+      if (!isSaving) setActionModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -71,8 +90,19 @@ export const ProfilePage: React.FC = () => {
       }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
       e.preventDefault();
+      if (!profile) return;
+      setActionModal({
+          isOpen: true,
+          type: 'confirm',
+          title: 'Konfirmasi Simpan',
+          message: 'Apakah Anda yakin ingin menyimpan perubahan profil ini?',
+          onConfirm: executeSave
+      });
+  };
+
+  const executeSave = async () => {
       if (!profile) return;
       setIsSaving(true);
       setError('');
@@ -96,11 +126,30 @@ export const ProfilePage: React.FC = () => {
           if (data.success) {
               setIsEditing(false);
               mutate(); // Refresh SWR data
+              setActionModal({
+                  isOpen: true,
+                  type: 'success',
+                  title: 'Berhasil',
+                  message: 'Profil berhasil diperbarui.',
+                  onConfirm: closeActionModal
+              });
           } else {
-              setError(data.message || 'Gagal menyimpan profil');
+              setActionModal({
+                  isOpen: true,
+                  type: 'error',
+                  title: 'Gagal',
+                  message: data.message || 'Gagal menyimpan profil',
+                  onConfirm: closeActionModal
+              });
           }
       } catch (err: any) {
-          setError(err.message || 'Koneksi ke server gagal saat menyimpan profil');
+          setActionModal({
+              isOpen: true,
+              type: 'error',
+              title: 'Error',
+              message: err.message || 'Koneksi ke server gagal saat menyimpan profil',
+              onConfirm: closeActionModal
+          });
       } finally {
           setIsSaving(false);
       }
@@ -288,6 +337,16 @@ export const ProfilePage: React.FC = () => {
 
 
         <LogoutModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} />
+      
+      <ActionModal 
+          isOpen={actionModal.isOpen}
+          type={actionModal.type}
+          title={actionModal.title}
+          message={actionModal.message}
+          onConfirm={actionModal.onConfirm}
+          onClose={closeActionModal}
+          isLoading={isSaving}
+      />
     </div>
   );
 };

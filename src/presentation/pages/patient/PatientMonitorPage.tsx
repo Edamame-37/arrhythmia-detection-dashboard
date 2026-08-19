@@ -18,6 +18,7 @@ import { AiCard } from '../../components/dashboard/AiCard';
 import { DeviceCard } from '../../components/dashboard/DeviceCard';
 import { API_URL, WS_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
+import { ActionModal } from '../../components/shared/ActionModal';
 
 interface DeviceRecord {
     id: string;
@@ -100,12 +101,43 @@ export const PatientMonitorPage: React.FC = () => {
 
     const [isCommandLoading, setIsCommandLoading] = useState(false);
 
-    const handleToggleRecord = async () => {
+    const [actionModal, setActionModal] = useState<{
+        isOpen: boolean;
+        type: 'confirm' | 'success' | 'error' | 'warning';
+        title: string;
+        message: React.ReactNode;
+        onConfirm?: () => void;
+    }>({
+        isOpen: false,
+        type: 'confirm',
+        title: '',
+        message: ''
+    });
+
+    const closeActionModal = () => {
+        if (!isCommandLoading) setActionModal(prev => ({ ...prev, isOpen: false }));
+    };
+
+    const handleToggleRecord = () => {
         if (!isRecording && !selectedPatientId) {
             alert("Harap pilih pasien terlebih dahulu sebelum memulai perekaman.");
             return;
         }
 
+        if (isRecording) {
+            setActionModal({
+                isOpen: true,
+                type: 'warning',
+                title: 'Akhiri Rekaman?',
+                message: 'Apakah Anda yakin ingin mengakhiri sesi pemantauan ini? Sistem akan mulai memproses data.',
+                onConfirm: executeToggleRecord
+            });
+        } else {
+            executeToggleRecord();
+        }
+    };
+
+    const executeToggleRecord = async () => {
         const command = isRecording ? "STOP" : "START";
 
         // Optimistic UI update: Langsung ubah state saat diklik
@@ -140,8 +172,29 @@ export const PatientMonitorPage: React.FC = () => {
                     body: JSON.stringify({ command, patient_id: selectedPatientId })
                 });
             }
-        } catch (e) {
-            console.error("Error toggle record:", e);
+
+            if (command === 'STOP') {
+                setActionModal({
+                    isOpen: true,
+                    type: 'success',
+                    title: 'Sesi Diakhiri',
+                    message: 'Berhasil mengakhiri rekaman.',
+                    onConfirm: closeActionModal
+                });
+            }
+        } catch (error: any) {
+            console.error("Gagal mengirim command", error);
+            if (command === 'STOP') {
+                setActionModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Gagal Mengakhiri Sesi',
+                    message: error.message || 'Koneksi ke server gagal.',
+                    onConfirm: closeActionModal
+                });
+            } else {
+                alert("Gagal memulai perekaman: " + (error.message || 'Server error'));
+            }
         } finally {
             setIsCommandLoading(false);
         }
@@ -259,6 +312,16 @@ export const PatientMonitorPage: React.FC = () => {
                     </aside>
                 </main>
             </div>
+            
+            <ActionModal 
+                isOpen={actionModal.isOpen}
+                type={actionModal.type}
+                title={actionModal.title}
+                message={actionModal.message}
+                onConfirm={actionModal.onConfirm}
+                onClose={closeActionModal}
+                isLoading={isCommandLoading}
+            />
         </div>
     );
 };

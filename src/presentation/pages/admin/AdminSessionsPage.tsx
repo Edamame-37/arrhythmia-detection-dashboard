@@ -217,7 +217,9 @@ export const AdminSessionsPage: React.FC = () => {
 
     // Grouping by Patient
     const patientsMap = new Map<string, { id: string, name: string, totalSessions: number, lastSessionDate: string }>();
-    sessions.forEach(session => {
+    const sortedSessions = [...sessions].sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+    
+    sortedSessions.forEach(session => {
         const pId = session.patient_id;
         if (!patientsMap.has(pId)) {
             patientsMap.set(pId, {
@@ -229,11 +231,11 @@ export const AdminSessionsPage: React.FC = () => {
         }
         const pData = patientsMap.get(pId)!;
         pData.totalSessions++;
-        // Karena sudah di-sort DESC, session pertama untuk pasien ini adalah yang terakhir
     });
-    const patientsList = Array.from(patientsMap.values());
+    
+    const patientsList = Array.from(patientsMap.values()).sort((a, b) => new Date(b.lastSessionDate).getTime() - new Date(a.lastSessionDate).getTime());
 
-    const displayedSessions = sessions;
+    const displayedSessions = sortedSessions;
 
     const renderSessionsTable = (sessionList: any[], isMiniTable: boolean = false) => {
         const totalItems = totalSessions;
