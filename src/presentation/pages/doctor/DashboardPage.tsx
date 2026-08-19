@@ -113,9 +113,10 @@ export const DashboardPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full">
+        <div className="bg-clinical-surface/30 text-clinical-charcoal antialiased overflow-x-hidden w-full relative">
+            <div className="absolute inset-0 ecg-grid opacity-[0.15] pointer-events-none z-0"></div>
             <DoctorSidebar />
-            <main id="main-content" className={`min-h-screen pb-24 md:pb-12 transition-all duration-300 w-full ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
+            <main id="main-content" className={`min-h-screen pb-24 md:pb-12 transition-all duration-300 w-full relative z-10 ${isOpen ? 'md:ml-[260px] md:w-[calc(100%-260px)]' : 'ml-0'}`}>
 
                 <header className="sticky top-0 bg-clinical-surface/90 backdrop-blur-md border-b border-clinical-blue/20/30 z-40 px-6 py-4 flex justify-between items-center max-w-container-max mx-auto">
                     <div className="flex items-center gap-3">
@@ -130,7 +131,7 @@ export const DashboardPage: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => navigate('/doctor/qr-scanner')} className="bg-clinical-blue hover:brightness-110 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm text-sm font-body-sm">
+                        <button onClick={() => navigate('/doctor/qr-scanner')} className="bg-clinical-blue hover:brightness-110 text-white px-6 py-2.5 rounded-[2rem] flex items-center gap-2 transition-all duration-700 active:scale-95 shadow-md hover:shadow-lg text-sm font-bold">
                             <span className="material-symbols-outlined text-[20px]">add</span>
                             <span className="hidden sm:inline">Pasien Baru</span>
                         </button>
@@ -140,27 +141,27 @@ export const DashboardPage: React.FC = () => {
                 <div className="px-6 max-w-container-max mx-auto mt-6">
                     {activeSessions.length > 0 && (
                         <section className="mb-6">
-                            <div className="bg-clinical-blue/10 border-2 border-clinical-blue/30 rounded-xl p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
-                                <div className="flex gap-4 relative z-10">
-                                    <div className="bg-clinical-blue text-white p-3 rounded-lg h-fit flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-[28px] animate-pulse">monitor_heart</span>
+                            <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden group">
+                                <div className="flex gap-5 relative z-10 items-center">
+                                    <div className="bg-clinical-surface text-clinical-blue p-4 rounded-[1.5rem] h-fit flex items-center justify-center group-hover:bg-clinical-blue group-hover:text-white transition-colors duration-700">
+                                        <span className="material-symbols-outlined text-[32px] animate-pulse shadow-[0_0_15px_rgba(23,107,206,0.5)] rounded-full">monitor_heart</span>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-body-sm uppercase tracking-widest text-clinical-blue font-headline-md mb-1">SESI PEREKAMAN AKTIF</p>
-                                        <h2 className="text-xl font-headline-md text-clinical-charcoal">{activeSessions[0].patient_name || 'Tidak Diketahui'}</h2>
-                                        <p className="text-sm font-body-sm text-clinical-charcoal/70 flex items-center gap-1.5 mt-1">
-                                            <span className="material-symbols-outlined text-[14px]">router</span> Alat: {activeSessions[0].device_id}
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-clinical-blue mb-1">Sesi Perekaman Aktif</p>
+                                        <h2 className="text-2xl font-bold text-clinical-charcoal">{activeSessions[0].patient_name || 'Tidak Diketahui'}</h2>
+                                        <p className="text-sm font-medium text-clinical-charcoal/60 flex items-center gap-1.5 mt-1">
+                                            <span className="material-symbols-outlined text-[16px]">router</span> Alat: {activeSessions[0].device_id}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 w-full lg:w-auto relative z-10">
-                                    <button onClick={() => navigate('/doctor/monitor')} className="w-full lg:w-auto bg-clinical-blue text-white px-6 py-3 rounded-lg font-headline-md hover:brightness-110 shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <div className="flex items-center gap-3 w-full lg:w-auto relative z-10 mt-4 lg:mt-0">
+                                    <button onClick={() => navigate('/doctor/monitor')} className="w-full lg:w-auto bg-clinical-charcoal text-white px-8 py-3.5 rounded-[2rem] font-bold hover:brightness-110 shadow-md transition-all duration-700 active:scale-95 flex items-center justify-center gap-2">
                                         <span>Buka Live Monitor</span>
-                                        <span className="material-symbols-outlined text-sm font-body-sm">arrow_forward</span>
+                                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                                     </button>
                                 </div>
-                                <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none z-0">
-                                    <span className="material-symbols-outlined text-[150px]">monitor_heart</span>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-blue">
+                                    <span className="material-symbols-outlined text-[160px] translate-x-1/4">monitor_heart</span>
                                 </div>
                             </div>
                         </section>
@@ -180,9 +181,9 @@ export const DashboardPage: React.FC = () => {
                         <div className="space-y-3">
                             {connectedPatients.length > 0 ? (
                                 connectedPatients.map(patient => (
-                                    <div key={patient.id} className="bg-gradient-to-r from-surface to-medical-teal/5 border border-clinical-blue/30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-clinical-blue/10 flex items-center justify-center text-base font-body-md font-headline-md text-clinical-blue uppercase border border-clinical-blue/20 overflow-hidden">
+                                    <div key={patient.id} className="bg-white border border-clinical-charcoal/5 p-6 rounded-[2rem] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group">
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-14 h-14 rounded-full bg-clinical-surface group-hover:bg-clinical-blue/10 transition-colors duration-700 flex items-center justify-center text-lg font-bold text-clinical-blue uppercase border border-clinical-charcoal/5 overflow-hidden">
                                                 {patient.profile_photo ? (
                                                     <img src={patient.profile_photo} alt={patient.name} className="w-full h-full object-cover" />
                                                 ) : (
@@ -190,32 +191,33 @@ export const DashboardPage: React.FC = () => {
                                                 )}
                                             </div>
                                             <div>
-                                                <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal">{patient.name}</h4>
-                                                <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5 mb-1.5">ID: {patient.id}</p>
-                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-clinical-blue/10 text-clinical-blue text-[10px] font-headline-md uppercase tracking-wider border border-clinical-blue/20">
+                                                <h4 className="font-bold text-lg text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">{patient.name}</h4>
+                                                <p className="text-xs font-medium text-clinical-charcoal/60 mt-0.5 mb-2">ID: {patient.id}</p>
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-clinical-surface text-clinical-blue text-[10px] font-bold uppercase tracking-widest border border-clinical-charcoal/5">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-clinical-blue animate-pulse"></div>
                                                     Terkoneksi & Siap
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 w-full sm:w-auto mt-3 sm:mt-0">
-                                            <button onClick={() => navigate('/doctor/analytics')} className="flex-1 sm:flex-none border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md bg-white transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
-                                                <span className="material-symbols-outlined text-[16px]">history</span>
-                                                Lihat Riwayat
+                                        <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+                                            <button onClick={() => navigate('/doctor/analytics')} className="flex-1 sm:flex-none border border-clinical-charcoal/10 text-clinical-charcoal hover:bg-clinical-surface px-6 py-2.5 rounded-[2rem] text-sm font-bold bg-white transition-all duration-700 flex items-center justify-center gap-2 active:scale-95">
+                                                <span className="material-symbols-outlined text-[18px]">history</span>
+                                                Riwayat
                                             </button>
                                             <button onClick={() => {
                                                 setPatientToDisconnect(patient.id);
                                                 setShowDisconnectModal(true);
-                                            }} className="flex-1 sm:flex-none bg-error text-white hover:bg-red-600 px-4 py-2 rounded-lg text-xs font-body-sm font-headline-md transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
-                                                <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                                            }} className="flex-1 sm:flex-none bg-white border border-clinical-red/20 text-clinical-red hover:bg-red-50 hover:border-clinical-red/40 px-6 py-2.5 rounded-[2rem] text-sm font-bold transition-all duration-700 flex items-center justify-center gap-2 active:scale-95 shadow-sm hover:shadow-md">
+                                                <span className="material-symbols-outlined text-[18px]">person_remove</span>
                                                 Putuskan
                                             </button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
-                                    <p className="text-sm font-body-sm text-clinical-charcoal/70">Tidak ada pasien yang menunggu saat ini.</p>
+                                <div className="bg-white border border-clinical-charcoal/5 p-8 rounded-[2rem] flex flex-col items-center justify-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] text-center">
+                                    <span className="material-symbols-outlined text-4xl text-clinical-charcoal/20 mb-3">group_off</span>
+                                    <p className="text-sm font-medium text-clinical-charcoal/60">Tidak ada pasien yang menunggu saat ini.</p>
                                 </div>
                             )}
                         </div>
@@ -235,35 +237,40 @@ export const DashboardPage: React.FC = () => {
 
                         <div className="space-y-3">
                             {connectedPatients.length === 0 ? (
-                                <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
-                                    <p className="text-sm font-body-sm text-clinical-charcoal/70">Sambungkan ke pasien untuk melihat riwayat rekaman.</p>
+                                <div className="bg-white border border-clinical-charcoal/5 p-8 rounded-[2rem] flex flex-col items-center justify-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] text-center">
+                                    <span className="material-symbols-outlined text-4xl text-clinical-charcoal/20 mb-3">link_off</span>
+                                    <p className="text-sm font-medium text-clinical-charcoal/60">Sambungkan ke pasien untuk melihat riwayat rekaman.</p>
                                 </div>
                             ) : filteredHistorySessions.length === 0 ? (
-                                <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
-                                    <p className="text-sm font-body-sm text-clinical-charcoal/70">Belum ada riwayat sesi yang tersimpan.</p>
+                                <div className="bg-white border border-clinical-charcoal/5 p-8 rounded-[2rem] flex flex-col items-center justify-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] text-center">
+                                    <span className="material-symbols-outlined text-4xl text-clinical-charcoal/20 mb-3">folder_off</span>
+                                    <p className="text-sm font-medium text-clinical-charcoal/60">Belum ada riwayat sesi yang tersimpan.</p>
                                 </div>
                             ) : (
                                 <>
                                     {filteredHistorySessions.slice(0, 3).map(session => (
-                                        <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex items-center justify-between gap-4 opacity-80 interactive-card">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden">
+                                        <div key={session.id} className="bg-white border border-clinical-charcoal/5 p-6 rounded-[2rem] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group relative overflow-hidden">
+                                            <div className="flex items-center gap-5 relative z-10">
+                                                <div className="w-12 h-12 rounded-full bg-clinical-surface group-hover:bg-clinical-blue/10 transition-colors duration-700 flex items-center justify-center text-base font-bold text-clinical-charcoal/40 uppercase overflow-hidden">
                                                     {session.patient_name ? session.patient_name.substring(0, 2).toUpperCase() : 'UK'}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal truncate max-w-[150px] sm:max-w-[200px]">{session.patient_name || 'Pasien Anonim'}</h4>
-                                                    <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
-                                                    <div className="flex items-center gap-1 mt-1 text-[10px] text-clinical-charcoal/70 font-headline-md uppercase tracking-wide">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-clinical-blue/20"></div>
-                                                        Status: Putus (Tersimpan)
+                                                    <h4 className="font-bold text-base text-clinical-charcoal truncate max-w-[150px] sm:max-w-[200px] group-hover:text-clinical-blue transition-colors duration-700">{session.patient_name || 'Pasien Anonim'}</h4>
+                                                    <p className="text-xs font-medium text-clinical-charcoal/60 mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
+                                                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-clinical-charcoal/60 font-bold uppercase tracking-widest">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-clinical-charcoal/20"></div>
+                                                        Tersimpan
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <button onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)} className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[14px]">history</span>
+                                            <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0 relative z-10">
+                                                <button onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)} className="border border-clinical-charcoal/10 text-clinical-charcoal hover:bg-clinical-surface px-6 py-2.5 rounded-[2rem] text-sm font-bold bg-white transition-all duration-700 flex items-center gap-2 active:scale-95 w-full justify-center sm:w-auto">
+                                                    <span className="material-symbols-outlined text-[18px]">history</span>
                                                     Lihat Arsip
                                                 </button>
+                                            </div>
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-charcoal">
+                                                <span className="material-symbols-outlined text-[120px] translate-x-1/4">folder</span>
                                             </div>
                                         </div>
                                     ))}

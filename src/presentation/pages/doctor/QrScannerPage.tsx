@@ -191,9 +191,12 @@ export const QrScannerPage: React.FC = () => {
           </div>
         </header>
 
-        <div className="p-4 md:p-6 max-w-4xl mx-auto">
-          <div className="bg-white-container-lowest rounded-3xl border border-clinical-blue/20 shadow-sm overflow-hidden p-4 md:p-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
+        <div className="p-4 md:p-6 max-w-4xl mx-auto mt-6">
+          <div className="bg-white rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden p-6 md:p-12 transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0">
+                <span className="material-symbols-outlined text-[300px]">qr_code_scanner</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center relative z-10">
 
               <div className="flex flex-col gap-4">
                 <div className="w-full aspect-square bg-white-container-lowest border border-clinical-blue/20/50 rounded-3xl relative shadow-sm overflow-hidden group">
@@ -216,9 +219,9 @@ export const QrScannerPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-center mt-2">
-                  <button className="flex items-center gap-2 text-sm font-body-sm text-clinical-charcoal/70 hover:text-clinical-blue font-medium transition-colors bg-white-container px-4 py-2 rounded-full">
-                    <span className="material-symbols-outlined text-[18px]">{cameraError || !isCameraActive ? 'videocam_off' : 'videocam'}</span>
+                <div className="flex justify-center mt-4">
+                  <button className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-clinical-charcoal/60 hover:text-clinical-blue font-bold transition-all duration-700 bg-clinical-surface px-5 py-2.5 rounded-full border border-clinical-charcoal/5 hover:border-clinical-blue/20">
+                    <span className="material-symbols-outlined text-[16px]">{cameraError || !isCameraActive ? 'videocam_off' : 'videocam'}</span>
                     {cameraError ? 'Kamera Gagal Akses' : (isCameraActive ? 'Status Kamera Aktif' : 'Status Kamera Tidak Aktif')}
                   </button>
                 </div>
@@ -236,20 +239,20 @@ export const QrScannerPage: React.FC = () => {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                       placeholder="Contoh: PAT-0001-XYZ"
-                      className="w-full bg-white border border-clinical-blue/20 rounded-2xl p-4 pl-12 text-lg focus:ring-2 focus:ring-medical-teal focus:border-clinical-blue outline-none font-mono uppercase tracking-widest shadow-sm transition-shadow hover:shadow-md"
+                      className="w-full bg-clinical-surface/50 border border-clinical-charcoal/10 rounded-[1.5rem] p-5 pl-14 text-lg focus:ring-2 focus:ring-clinical-blue/20 focus:border-clinical-blue outline-none font-mono uppercase tracking-widest shadow-sm transition-all duration-700 hover:shadow-md text-clinical-charcoal"
                     />
-                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant">badge</span>
+                    <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-clinical-charcoal/40 text-[24px]">badge</span>
                   </div>
                 </div>
                 <button
                   onClick={handleSearch}
                   disabled={isLoading}
-                  className="w-full bg-clinical-blue text-white py-4 rounded-2xl font-headline-md text-base font-body-md hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-clinical-blue text-white py-4 rounded-[2rem] font-bold text-base hover:brightness-110 active:scale-95 transition-all duration-700 shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
                 >
                   {isLoading ? (
                     <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
                   ) : (
-                    <span className="material-symbols-outlined text-[20px]">search</span>
+                    <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform duration-700">search</span>
                   )}
                   {isLoading ? 'Mencari...' : 'Hubungkan Pasien'}
                 </button>

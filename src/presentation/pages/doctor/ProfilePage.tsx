@@ -181,33 +181,35 @@ export const ProfilePage: React.FC = () => {
             </header>
 
             <main className="flex-1 overflow-y-auto custom-scrollbar bg-white-container-lowest">
-                {/* Premium Banner */}
-                <div className="w-full h-48 bg-gradient-to-r from-medical-teal to-primary relative overflow-hidden">
-                    <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                {/* Clinical Banner */}
+                <div className="w-full h-48 bg-clinical-blue relative overflow-hidden">
+                    <div className="absolute inset-0 ecg-grid opacity-20 pointer-events-none"></div>
                 </div>
 
                 <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 -mt-20 relative z-10">
-                    <div className="bg-white rounded-2xl shadow-xl border border-clinical-blue/20/40 overflow-hidden flex flex-col lg:flex-row">
+                    <div className="bg-white rounded-[2rem] shadow-[0px_20px_40px_rgba(0,0,0,0.04)] border border-clinical-charcoal/5 overflow-hidden flex flex-col lg:flex-row transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)]">
                         
                         {/* Profile Info Section */}
-                        <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-clinical-blue/20/30 bg-white-container-lowest flex flex-col items-center text-center">
-                            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white-container flex items-center justify-center mb-6 ring-4 ring-medical-teal/20">
+                        <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-clinical-charcoal/5 bg-clinical-surface/30 flex flex-col items-center text-center relative overflow-hidden group">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-blue">
+                                <span className="material-symbols-outlined text-[200px]">manage_accounts</span>
+                            </div>
+                            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-clinical-surface flex items-center justify-center mb-6 ring-4 ring-clinical-blue/10 z-10">
                                 {profile?.profile_photo ? (
                                     <img alt="Profile" className="w-full h-full object-cover" src={profile.profile_photo} />
                                 ) : (
                                     <span className="material-symbols-outlined text-6xl text-clinical-charcoal/70">person</span>
                                 )}
                             </div>
-                            <h2 className="text-2xl font-headline-lg text-clinical-charcoal tracking-tight mb-1">
+                            <h2 className="text-2xl font-bold text-clinical-charcoal tracking-tight mb-1 relative z-10 group-hover:text-clinical-blue transition-colors duration-700">
                                 {isLoading ? 'Memuat...' : (profile ? `${profile.first_name} ${profile.last_name}` : 'Tidak Ditemukan')}
                             </h2>
-                            <p className="text-xs font-body-sm font-headline-md text-clinical-blue uppercase tracking-[0.2em] mb-6">
+                            <p className="text-[10px] font-bold text-clinical-blue uppercase tracking-[0.2em] mb-6 relative z-10">
                                 {profile?.role === 'doctor' ? 'Kardiolog Utama' : profile?.role}
                             </p>
                             
                             {!isEditing && (
-                                <button onClick={() => setIsEditing(true)} disabled={isLoading || !profile} className="w-full bg-charcoal text-white hover:bg-black font-headline-md py-3 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2">
+                                <button onClick={() => setIsEditing(true)} disabled={isLoading || !profile} className="w-full bg-clinical-charcoal text-white hover:bg-black font-bold py-3.5 rounded-[2rem] transition-all duration-700 shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50 flex justify-center items-center gap-2 relative z-10">
                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                     Edit Profil
                                 </button>
@@ -215,9 +217,9 @@ export const ProfilePage: React.FC = () => {
                         </div>
 
                         {/* Details & Form Section */}
-                        <div className="p-8 lg:p-12 lg:w-2/3 bg-white">
-                            <h3 className="text-lg font-headline-md text-clinical-charcoal mb-6 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-clinical-blue">manage_accounts</span>
+                        <div className="p-8 lg:p-12 lg:w-2/3 bg-white z-10">
+                            <h3 className="text-xl font-bold text-clinical-charcoal mb-8 flex items-center gap-3">
+                                <span className="material-symbols-outlined text-clinical-blue text-3xl">manage_accounts</span>
                                 {isEditing ? 'Perbarui Informasi' : 'Detail Akun'}
                             </h3>
 
@@ -231,27 +233,27 @@ export const ProfilePage: React.FC = () => {
                             {!isEditing ? (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-white-container-low/30 p-5 rounded-xl border border-clinical-blue/20/50 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-outline uppercase font-headline-md tracking-widest mb-1">Nama Depan</p>
-                                            <p className="text-base font-body-md font-headline-md text-clinical-charcoal">{isLoading ? '---' : profile?.first_name}</p>
+                                        <div className="bg-clinical-surface/30 p-6 rounded-[1.5rem] border border-clinical-charcoal/5 transition-all duration-700 hover:border-clinical-blue/30 hover:shadow-md group">
+                                            <p className="text-[10px] text-clinical-charcoal/50 uppercase font-bold tracking-widest mb-1 group-hover:text-clinical-blue transition-colors duration-700">Nama Depan</p>
+                                            <p className="text-lg font-bold text-clinical-charcoal">{isLoading ? '---' : profile?.first_name}</p>
                                         </div>
-                                        <div className="bg-white-container-low/30 p-5 rounded-xl border border-clinical-blue/20/50 transition-all hover:border-clinical-blue/30 hover:shadow-sm">
-                                            <p className="text-[10px] text-outline uppercase font-headline-md tracking-widest mb-1">Nama Belakang</p>
-                                            <p className="text-base font-body-md font-headline-md text-clinical-charcoal">{isLoading ? '---' : profile?.last_name}</p>
+                                        <div className="bg-clinical-surface/30 p-6 rounded-[1.5rem] border border-clinical-charcoal/5 transition-all duration-700 hover:border-clinical-blue/30 hover:shadow-md group">
+                                            <p className="text-[10px] text-clinical-charcoal/50 uppercase font-bold tracking-widest mb-1 group-hover:text-clinical-blue transition-colors duration-700">Nama Belakang</p>
+                                            <p className="text-lg font-bold text-clinical-charcoal">{isLoading ? '---' : profile?.last_name}</p>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-white-container-low/30 p-5 rounded-xl border border-clinical-blue/20/50">
-                                        <p className="text-[10px] text-outline uppercase font-headline-md tracking-widest mb-1">Email Registrasi (Read-only)</p>
+                                    <div className="bg-clinical-surface/30 p-6 rounded-[1.5rem] border border-clinical-charcoal/5 transition-all duration-700 hover:border-clinical-blue/30 hover:shadow-md group">
+                                        <p className="text-[10px] text-clinical-charcoal/50 uppercase font-bold tracking-widest mb-1 group-hover:text-clinical-blue transition-colors duration-700">Email Registrasi (Read-only)</p>
                                         <div className="flex items-center justify-between">
-                                            <p className="text-base font-body-md font-headline-md text-clinical-charcoal">{isLoading ? '---' : profile?.email}</p>
-                                            <span className="material-symbols-outlined text-green-500" title="Email Terverifikasi">verified</span>
+                                            <p className="text-lg font-bold text-clinical-charcoal">{isLoading ? '---' : profile?.email}</p>
+                                            <span className="material-symbols-outlined text-clinical-blue" title="Email Terverifikasi">verified</span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white-container-low/30 p-5 rounded-xl border border-clinical-blue/20/50">
-                                        <p className="text-[10px] text-outline uppercase font-headline-md tracking-widest mb-1">ID Pengguna (Read-only)</p>
-                                        <p className="text-sm font-body-sm font-mono text-clinical-charcoal/70 font-headline-md">{isLoading ? '---' : profile?.id}</p>
+                                    <div className="bg-clinical-surface/30 p-6 rounded-[1.5rem] border border-clinical-charcoal/5 transition-all duration-700 hover:border-clinical-blue/30 hover:shadow-md group">
+                                        <p className="text-[10px] text-clinical-charcoal/50 uppercase font-bold tracking-widest mb-1 group-hover:text-clinical-blue transition-colors duration-700">ID Pengguna (Read-only)</p>
+                                        <p className="text-sm font-mono text-clinical-charcoal/70 font-bold">{isLoading ? '---' : profile?.id}</p>
                                     </div>
                                 </div>
                             ) : (
@@ -264,7 +266,7 @@ export const ProfilePage: React.FC = () => {
                                                 required
                                                 value={editForm.first_name}
                                                 onChange={e => setEditForm({...editForm, first_name: e.target.value})}
-                                                className="w-full px-4 py-3 bg-white-container-low border border-clinical-blue/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-teal focus:border-transparent text-clinical-charcoal font-medium transition-all"
+                                                className="w-full px-5 py-4 bg-clinical-surface/50 border border-clinical-charcoal/10 rounded-[1.5rem] focus:outline-none focus:ring-2 focus:ring-clinical-blue/20 focus:border-clinical-blue text-clinical-charcoal font-medium transition-all duration-700"
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -274,7 +276,7 @@ export const ProfilePage: React.FC = () => {
                                                 required
                                                 value={editForm.last_name}
                                                 onChange={e => setEditForm({...editForm, last_name: e.target.value})}
-                                                className="w-full px-4 py-3 bg-white-container-low border border-clinical-blue/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-teal focus:border-transparent text-clinical-charcoal font-medium transition-all"
+                                                className="w-full px-5 py-4 bg-clinical-surface/50 border border-clinical-charcoal/10 rounded-[1.5rem] focus:outline-none focus:ring-2 focus:ring-clinical-blue/20 focus:border-clinical-blue text-clinical-charcoal font-medium transition-all duration-700"
                                             />
                                         </div>
                                     </div>
@@ -311,14 +313,14 @@ export const ProfilePage: React.FC = () => {
                                                     });
                                                 }
                                             }}
-                                            className="flex-1 px-6 py-3 border-2 border-clinical-blue/20 text-clinical-charcoal font-headline-md rounded-xl hover:bg-white-container transition-all"
+                                            className="flex-1 px-6 py-3.5 border border-clinical-charcoal/10 text-clinical-charcoal font-bold rounded-[2rem] hover:bg-clinical-surface transition-all duration-700"
                                         >
                                             Batal
                                         </button>
                                         <button 
                                             type="submit" 
                                             disabled={isSaving}
-                                            className="flex-1 px-6 py-3 bg-clinical-blue text-white font-headline-md rounded-xl hover:bg-teal-700 transition-all shadow-md active:scale-95 disabled:opacity-70 flex justify-center items-center gap-2"
+                                            className="flex-1 px-6 py-3.5 bg-clinical-blue text-white font-bold rounded-[2rem] hover:brightness-110 transition-all duration-700 shadow-md hover:shadow-lg active:scale-95 disabled:opacity-70 flex justify-center items-center gap-2"
                                         >
                                             {isSaving ? (
                                                 <><span className="material-symbols-outlined animate-spin text-[18px]">sync</span> Menyimpan...</>

@@ -376,8 +376,9 @@ export const AnalyticsPage: React.FC = () => {
                 if (connectedPatients.length === 0) {
                     return (
                         <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
-                            <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
-                                <p className="text-sm font-body-sm text-clinical-charcoal/70">
+                            <div className="bg-white border border-clinical-charcoal/5 p-8 rounded-[2rem] flex flex-col items-center justify-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] text-center">
+                                <span className="material-symbols-outlined text-4xl text-clinical-charcoal/20 mb-3">link_off</span>
+                                <p className="text-sm font-medium text-clinical-charcoal/60">
                                     Sambungkan ke pasien untuk melihat riwayat rekaman.
                                 </p>
                             </div>
@@ -389,8 +390,9 @@ export const AnalyticsPage: React.FC = () => {
                 <div className="mt-6 mx-auto w-full max-w-container-max px-4 md:px-6 flex-1">
                     <div className="space-y-3">
                         {allSessions.length === 0 ? (
-                            <div className="bg-white border border-clinical-blue/20/60 p-5 rounded-xl flex items-center justify-center shadow-sm">
-                                <p className="text-sm font-body-sm text-clinical-charcoal/70">
+                            <div className="bg-white border border-clinical-charcoal/5 p-8 rounded-[2rem] flex flex-col items-center justify-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] text-center">
+                                <span className="material-symbols-outlined text-4xl text-clinical-charcoal/20 mb-3">folder_off</span>
+                                <p className="text-sm font-medium text-clinical-charcoal/60">
                                     {totalSessions === 0 ? 'Belum ada riwayat sesi yang tersimpan.' : 'Tidak ada sesi untuk pasien yang dipilih.'}
                                 </p>
                             </div>
@@ -411,43 +413,46 @@ export const AnalyticsPage: React.FC = () => {
                             }
 
                             return (
-                                <div key={session.id} className="bg-white border border-clinical-blue/20/60 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-shadow interactive-card cursor-pointer" onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)}>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden flex-shrink-0">
+                                <div key={session.id} className="bg-white border border-clinical-charcoal/5 p-6 rounded-[2rem] flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group cursor-pointer overflow-hidden relative" onClick={() => navigate(`/doctor/analytics?sessionId=${session.id}`)}>
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-14 h-14 rounded-full bg-clinical-surface group-hover:bg-clinical-blue/10 transition-colors duration-700 flex items-center justify-center text-lg font-bold text-clinical-blue uppercase overflow-hidden flex-shrink-0 relative z-10">
                                             {session.patient_id ? (
                                                 <SessionPatientAvatar patientId={session.patient_id} patientName={session.patient_name || ''} />
                                             ) : (
                                                 session.patient_name ? session.patient_name.substring(0, 2) : 'UK'
                                             )}
                                         </div>
-                                        <div>
-                                            <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal truncate max-w-[200px]">{session.patient_name || 'Pasien Anonim'}</h4>
-                                            <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
-                                            <p className="text-[10px] text-clinical-charcoal/70 mt-1 font-headline-md">{new Date(session.started_at).toLocaleString('id-ID')}</p>
+                                        <div className="relative z-10">
+                                            <h4 className="font-bold text-lg text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700 truncate max-w-[200px]">{session.patient_name || 'Pasien Anonim'}</h4>
+                                            <p className="text-xs font-medium text-clinical-charcoal/60 mt-0.5">Sesi: {session.id.substring(0, 8)}... • SN: {session.device_id}</p>
+                                            <p className="text-[10px] text-clinical-charcoal/60 mt-1.5 font-bold uppercase tracking-widest">{new Date(session.started_at).toLocaleString('id-ID')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${validationClass}`}>
+                                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider relative z-10 ${validationClass}`}>
                                             {validationStatus}
                                         </div>
                                         {session.ecg_paper ? (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); setPreviewImage(API_URL + session.ecg_paper); }} 
-                                                className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-white hover:bg-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1"
+                                                className="border border-clinical-charcoal/10 text-clinical-charcoal hover:bg-clinical-surface px-5 py-2 rounded-[2rem] text-xs font-bold bg-white transition-all duration-700 flex items-center gap-1.5 relative z-10 active:scale-95"
                                             >
-                                                <span className="material-symbols-outlined text-[14px]">image</span>
-                                                Lihat Foto
+                                                <span className="material-symbols-outlined text-[16px]">image</span>
+                                                Foto
                                             </button>
                                         ) : (
-                                            <div className="px-3 py-1.5 text-[10px] text-clinical-charcoal/40 italic font-body-sm flex items-center gap-1">
+                                            <div className="px-3 py-1.5 text-[10px] text-clinical-charcoal/40 italic font-medium flex items-center gap-1 relative z-10">
                                                 <span className="material-symbols-outlined text-[14px]">image_not_supported</span>
-                                                Foto ECG belum diupload
+                                                Tidak Ada Foto
                                             </div>
                                         )}
-                                        <button className="border border-clinical-blue/20 text-clinical-charcoal/70 hover:text-clinical-blue hover:border-clinical-blue px-3 py-1.5 rounded-lg text-xs font-body-sm font-label-md bg-white transition-all flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">history</span>
-                                            Buka Detail
+                                        <button className="bg-clinical-blue text-white hover:brightness-110 px-5 py-2 rounded-[2rem] text-xs font-bold transition-all duration-700 flex items-center gap-1.5 relative z-10 shadow-md hover:shadow-lg active:scale-95">
+                                            <span className="material-symbols-outlined text-[16px]">history</span>
+                                            Detail
                                         </button>
+                                    </div>
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-charcoal">
+                                        <span className="material-symbols-outlined text-[120px] translate-x-1/4">folder_open</span>
                                     </div>
                                 </div>
                             );
@@ -471,7 +476,7 @@ export const AnalyticsPage: React.FC = () => {
                 <section className="w-full lg:w-9/12 flex flex-col gap-4">
                     
                     {/* Control Bar (Speed & Info Segmen) */}
-                    <div className="bg-white border border-clinical-blue/20 rounded-xl p-3 flex flex-wrap justify-between items-center shadow-sm gap-3">
+                    <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] p-5 flex flex-wrap justify-between items-center shadow-[0px_20px_40px_rgba(0,0,0,0.04)] gap-4">
                         <div className="flex items-center gap-4">
                             <span className="material-symbols-outlined text-clinical-blue hidden sm:block">history</span>
                             <span className="text-sm font-body-sm font-headline-md text-clinical-charcoal flex items-center gap-2">
@@ -483,20 +488,20 @@ export const AnalyticsPage: React.FC = () => {
                             {currentSessionMeta?.ecg_paper && (
                                 <button 
                                     onClick={() => setPreviewImage(API_URL + currentSessionMeta.ecg_paper)} 
-                                    className="ml-2 flex items-center gap-1 px-3 py-1.5 bg-clinical-blue text-white rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-sm"
+                                    className="ml-2 flex items-center gap-1.5 px-5 py-2.5 bg-clinical-blue text-white rounded-[2rem] text-xs font-bold hover:brightness-110 active:scale-95 transition-all duration-700 shadow-md hover:shadow-lg"
                                 >
-                                    <span className="material-symbols-outlined text-[14px]">image</span>
+                                    <span className="material-symbols-outlined text-[16px]">image</span>
                                     Lihat Foto EKG
                                 </button>
                             )}
                         </div>
                         <div className="ml-auto flex items-center">
                             {currentSegment?.confirmation !== null && currentSegment?.confirmation !== undefined ? (
-                                <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-signal-green/10 text-signal-green border border-signal-green/20">
+                                <div className="px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-signal-green/10 text-signal-green border border-signal-green/20">
                                     Sudah Divalidasi
                                 </div>
                             ) : (
-                                <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-clinical-surface text-clinical-charcoal/60 border border-outline-variant">
+                                <div className="px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-clinical-surface text-clinical-charcoal/60 border border-clinical-charcoal/10">
                                     Belum Divalidasi
                                 </div>
                             )}
@@ -505,7 +510,7 @@ export const AnalyticsPage: React.FC = () => {
 
                             {/* Pembungkus Kanvas 7-Lead */}
                             <div className="relative flex-1 min-h-[400px]">
-                                <div className="absolute inset-0 z-0 bg-white-container-lowest border border-clinical-blue/20 rounded-xl overflow-y-auto overflow-x-hidden shadow-sm flex flex-col">
+                                <div className="absolute inset-0 z-0 bg-white border border-clinical-charcoal/5 rounded-[2rem] overflow-y-auto overflow-x-hidden shadow-[0px_20px_40px_rgba(0,0,0,0.04)] flex flex-col">
                                     <EcgViewer 
                                         segment={currentSegment}
                                         speed={speed} 
