@@ -55,7 +55,8 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
         if (role === 'dokter') {
           const res = await fetchWithAuth(`/api/doctors/${userId}/patients`);
           if (res.ok) {
-            const data = await res.json();
+            const responseData = await res.json();
+            const data = responseData.data || (Array.isArray(responseData.patients) ? responseData.patients : (Array.isArray(responseData) ? responseData : []));
             const mapped = data.map((p: any) => {
               const numStr = p.id.replace(/[^0-9]/g, '');
               const displayId = `PAT-${numStr.padStart(4, '0')}-XYZ`;
