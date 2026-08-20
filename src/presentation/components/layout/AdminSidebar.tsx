@@ -11,12 +11,6 @@ export const AdminSidebar: React.FC = () => {
 
     const isActive = (path: string) => location.pathname === path;
 
-    const handleLinkClick = () => {
-        if (window.innerWidth < 768) {
-            closeSidebar();
-        }
-    };
-
     return (
         <>
             {/* Mobile Overlay */}
@@ -32,7 +26,7 @@ export const AdminSidebar: React.FC = () => {
                 fixed top-[72px] left-0 right-0 w-full bg-white/95 backdrop-blur-xl rounded-b-[2rem] shadow-2xl border-b border-clinical-charcoal/5 overflow-hidden pb-6 md:pb-0
                 ${isOpen ? 'translate-y-0 opacity-100 flex md:translate-x-0 md:opacity-100' : '-translate-y-[150%] opacity-0 pointer-events-none flex md:-translate-x-full md:opacity-0 md:translate-y-0'}
             `}>
-                <div className="hidden md:flex p-6 items-center gap-3 border-b border-clinical-charcoal/5 cursor-pointer" onClick={() => { navigate('/admin/dashboard'); }}>
+                <div className="hidden md:flex p-6 items-center gap-3 border-b border-clinical-charcoal/5 cursor-pointer" onClick={() => { navigate('/admin/dashboard'); closeSidebar(); }}>
                     <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJfACqMSzy6S1S81otlvrhfNIHr526OT9XlgCl04PJNewQysO-szQBYwNy1CAVfF851GuVn5qSOMjNWQdVGWANcLFnC4v9hdbnEGw6a6zjZHiO-z3KrczLQUpmNPbJBK3DPcvSUNAMyxXlVaN3XK5XqDW2MwFfclgdHRXsKHmF-u3QnVmzkBpw6dRTGNCyHk4YD526zmZNozyix_CMqEgOacA2M9LUFTaMDhBfigT5e7htUaxvw6bZCKeoVwqQgtQxho0qkC32iy0g"
                         alt="ecgrhythmia logo" className="w-8 h-8 object-contain" />
                     <div className="text-xl font-headline-lg tracking-tight select-none flex">
@@ -45,19 +39,19 @@ export const AdminSidebar: React.FC = () => {
                 </div>
 
                 <nav className="flex-1 px-4 mt-6 space-y-1 overflow-y-auto custom-scrollbar">
-                    <Link onClick={handleLinkClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/dashboard') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/dashboard">
+                    <Link onClick={closeSidebar} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/dashboard') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/dashboard">
                         <span className={`material-symbols-outlined ${isActive('/admin/dashboard') ? '' : 'text-clinical-charcoal/40 group-hover:text-clinical-blue'}`}>dashboard</span>
                         <span className="text-sm">Dashboard</span>
                     </Link>
-                    <Link onClick={handleLinkClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/users') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/users">
+                    <Link onClick={closeSidebar} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/users') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/users">
                         <span className={`material-symbols-outlined ${isActive('/admin/users') ? '' : 'text-clinical-charcoal/40 group-hover:text-clinical-blue'}`}>manage_accounts</span>
                         <span className="text-sm">Manajemen Pengguna</span>
                     </Link>
-                    <Link onClick={handleLinkClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/devices') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/devices">
+                    <Link onClick={closeSidebar} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/devices') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/devices">
                         <span className={`material-symbols-outlined ${isActive('/admin/devices') ? '' : 'text-clinical-charcoal/40 group-hover:text-clinical-blue'}`}>router</span>
                         <span className="text-sm">Armada Perangkat</span>
                     </Link>
-                    <Link onClick={handleLinkClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/sessions') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/sessions">
+                    <Link onClick={closeSidebar} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold shadow-sm transition-all ${isActive('/admin/sessions') ? 'bg-clinical-blue text-white' : 'text-clinical-charcoal/70 hover:bg-clinical-surface hover:text-clinical-charcoal group'}`} to="/admin/sessions">
                         <span className={`material-symbols-outlined ${isActive('/admin/sessions') ? '' : 'text-clinical-charcoal/40 group-hover:text-clinical-blue'}`}>history</span>
                         <span className="text-sm">Manajemen Sesi</span>
                     </Link>
@@ -74,7 +68,7 @@ export const AdminSidebar: React.FC = () => {
                         </div>
                         <button onClick={(e) => {
                             e.stopPropagation();
-                            if (window.innerWidth < 768) closeSidebar();
+                            closeSidebar();
                             setIsLogoutModalOpen(true);
                         }}>
                             <span className="material-symbols-outlined text-clinical-charcoal/40 text-lg hover:text-clinical-red transition-colors outline-none">logout</span>

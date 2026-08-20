@@ -36,7 +36,7 @@ export const QrScannerPage: React.FC = () => {
           },
           (decodedText) => {
             if (isProcessing.current) return;
-
+            
             if (decodedText.includes('/sync/patient/')) {
               isProcessing.current = true;
               const parts = decodedText.split('/');
@@ -65,14 +65,14 @@ export const QrScannerPage: React.FC = () => {
 
     let isMounted = true;
     startScanner().then(() => {
-      if (!isMounted) {
-        // If it unmounted while starting, stop it immediately.
-        try {
-          html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => html5QrCode.clear());
-        } catch (e) {
-          html5QrCode.clear();
+        if (!isMounted) {
+            // If it unmounted while starting, stop it immediately.
+            try {
+                html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => html5QrCode.clear());
+            } catch (e) {
+                html5QrCode.clear();
+            }
         }
-      }
     });
 
     return () => {
@@ -82,7 +82,7 @@ export const QrScannerPage: React.FC = () => {
           .then(() => html5QrCode.clear())
           .catch(() => html5QrCode.clear());
       } catch (e) {
-        try { html5QrCode.clear(); } catch (err) { }
+        try { html5QrCode.clear(); } catch(err) {}
       }
     };
   }, []);
@@ -110,7 +110,7 @@ export const QrScannerPage: React.FC = () => {
         id: `PAT-${shortCode}-XYZ`,
         name: `${patientData.first_name} ${patientData.last_name}`
       };
-
+      
       setFoundPatient(patientDisplay);
       await addConnectedPatient({
         id: patientDisplay.id,
@@ -119,7 +119,7 @@ export const QrScannerPage: React.FC = () => {
         profile_photo: patientData.profile_photo || undefined,
         connectedAt: new Date().toISOString()
       });
-
+      
       // Also register the current doctor to the connection context
       const docId = localStorage.getItem('user_id') || '1';
       try {
@@ -136,12 +136,12 @@ export const QrScannerPage: React.FC = () => {
       } catch (e) {
         console.warn("Failed to fetch doctor profile during sync", e);
         setConnectedDoctor({
-          id: docId,
-          name: "Dokter (Sesi Aktif)",
-          hospital: ""
+            id: docId,
+            name: "Dokter (Sesi Aktif)",
+            hospital: ""
         });
       }
-
+      
       setShowSuccessModal(true);
     } catch (err) {
       setModalErrorMsg('Gagal terhubung! Pasien tidak ditemukan di dalam sistem atau ID tidak valid.');
@@ -275,10 +275,10 @@ export const QrScannerPage: React.FC = () => {
             </div>
             <h3 className="text-2xl font-headline-md text-clinical-charcoal mb-2">Pasien Terhubung!</h3>
 
-            <div className="bg-surface-container-lowest rounded-2xl p-4 my-6 border border-outline-variant/50">
-              <p className="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-1">Identitas Pasien</p>
-              <p className="font-bold font-mono text-lg text-charcoal mb-1">{foundPatient?.id}</p>
-              <p className="text-on-surface font-medium">{foundPatient?.name}</p>
+            <div className="bg-white-container-lowest rounded-xl p-4 my-6 border border-clinical-blue/20/50">
+              <p className="text-xs font-body-sm text-clinical-charcoal/70 uppercase tracking-widest font-headline-md mb-1">Identitas Pasien</p>
+              <p className="font-headline-md font-mono text-lg text-clinical-charcoal mb-1">{foundPatient?.id}</p>
+              <p className="text-clinical-charcoal font-medium">{foundPatient?.name}</p>
             </div>
 
             <div className="flex gap-3 mt-8">

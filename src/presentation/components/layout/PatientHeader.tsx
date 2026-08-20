@@ -48,7 +48,7 @@ export const PatientHeader: React.FC = () => {
     const { data: profileData } = useCachedFetch<PatientProfile>(`/api/patients/${userId}`);
     const profile = profileData || null;
 
-    const patientName = profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
+    const patientName = profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
 
     const getInitials = (firstName: string, lastName: string) => {
         if (!firstName && !lastName) return '';
@@ -89,10 +89,10 @@ export const PatientHeader: React.FC = () => {
                             <span className="text-[11px] font-bold uppercase tracking-wider text-clinical-charcoal/60">{t('dashboard.patientRole')}</span>
                         </div>
                         <div className="w-10 h-10 rounded-full border border-clinical-charcoal/10 overflow-hidden bg-clinical-surface flex items-center justify-center font-bold text-clinical-blue text-sm shrink-0">
-                            {profile?.patient?.profile_photo ? (
+                            {profile?.patient.profile_photo ? (
                                 <img className="w-full h-full object-cover" data-alt="Patient Profile" src={profile.patient.profile_photo} />
                             ) : (
-                                <span>{profile?.patient ? getInitials(profile.patient.first_name, profile.patient.last_name) : ''}</span>
+                                <span>{profile ? getInitials(profile.patient.first_name, profile.patient.last_name) : ''}</span>
                             )}
                         </div>
                     </div>

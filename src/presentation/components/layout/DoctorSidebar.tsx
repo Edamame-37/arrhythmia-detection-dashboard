@@ -43,8 +43,8 @@ export const DoctorSidebar: React.FC = () => {
         <>
             {/* Mobile Overlay */}
             {isOpen && (
-                <div
-                    className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
+                <div 
+                    className="fixed inset-0 bg-charcoal/40 backdrop-blur-sm z-40 md:hidden transition-opacity" 
                     onClick={closeSidebar}
                 />
             )}

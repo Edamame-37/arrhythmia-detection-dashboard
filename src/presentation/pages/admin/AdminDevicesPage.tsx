@@ -61,11 +61,11 @@ export const AdminDevicesPage: React.FC = () => {
                 setIsRegisterModalOpen(false);
                 mutateDevices();
             } else {
-                alert(data.message || "Terjadi kesalahan.");
+                alert("Gagal: " + (data.message || data.error || JSON.stringify(data)));
             }
         } catch (err) {
             console.error(err);
-            alert("Terjadi kesalahan.");
+            alert("Terjadi kesalahan jaringan.");
         }
     };
 
@@ -73,6 +73,7 @@ export const AdminDevicesPage: React.FC = () => {
         <div className="bg-clinical-surface text-clinical-charcoal antialiased overflow-x-hidden w-full min-h-screen relative font-sans">
             <div className="absolute inset-0 ecg-grid opacity-10 pointer-events-none z-0"></div>
             <AdminSidebar />
+            
             <main id="main-content" className={`pb-24 md:pb-12 transition-all duration-300 min-h-screen flex flex-col relative z-10 ${isOpen ? 'md:ml-[260px]' : 'ml-0'}`}>
                 <header className="sticky top-0 bg-clinical-surface/80 backdrop-blur-xl border-b border-clinical-charcoal/5 z-40 px-4 md:px-6 py-4 flex items-center gap-4 max-w-container-max mx-auto w-full transition-all duration-300">
                     <button onClick={toggleSidebar} className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-white-container text-clinical-charcoal/70 transition-colors outline-none" title="Sembunyikan / Tampilkan Menu Utama">
@@ -169,10 +170,10 @@ export const AdminDevicesPage: React.FC = () => {
                     <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 text-center shadow-2xl flex flex-col items-center">
                         <h3 className="text-2xl font-bold text-charcoal mb-2">QR Code Alat</h3>
                         <p className="text-sm text-on-surface-variant mb-6">Minta pasien memindai QR Code ini untuk terhubung dengan alat.</p>
-
+                        
                         <div className="bg-white p-4 rounded-xl border-4 border-medical-teal/20 mb-6">
-                            <QRCode
-                                value={JSON.stringify({ type: 'device_sync', deviceId: selectedDeviceQr })}
+                            <QRCode 
+                                value={JSON.stringify({ type: 'device_sync', deviceId: selectedDeviceQr })} 
                                 size={200}
                                 level="H"
                             />
@@ -198,30 +199,30 @@ export const AdminDevicesPage: React.FC = () => {
                         <form onSubmit={handleRegister} className="flex flex-col gap-4">
                             <div>
                                 <label className="block text-sm font-bold text-charcoal mb-1">Nama Perangkat (ID)*</label>
-                                <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="Contoh: device02" />
+                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="Contoh: device02" />
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-charcoal mb-1">MQTT Broker*</label>
-                                    <input required type="text" value={formData.mqtt_broker} onChange={e => setFormData({ ...formData, mqtt_broker: e.target.value })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="contoh.hivemq.cloud" />
+                                    <input required type="text" value={formData.mqtt_broker} onChange={e => setFormData({...formData, mqtt_broker: e.target.value})} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="contoh.hivemq.cloud" />
                                 </div>
                                 <div className="w-24">
                                     <label className="block text-sm font-bold text-charcoal mb-1">Port*</label>
-                                    <input required type="number" value={formData.mqtt_port} onChange={e => setFormData({ ...formData, mqtt_port: parseInt(e.target.value) })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="8883" />
+                                    <input required type="number" value={formData.mqtt_port} onChange={e => setFormData({...formData, mqtt_port: parseInt(e.target.value)})} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="8883" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-charcoal mb-1">MQTT Topic*</label>
-                                <input required type="text" value={formData.mqtt_topic} onChange={e => setFormData({ ...formData, mqtt_topic: e.target.value })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="Contoh: ecgrhythmia/#" />
+                                <input required type="text" value={formData.mqtt_topic} onChange={e => setFormData({...formData, mqtt_topic: e.target.value})} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="Contoh: ecgrhythmia/#" />
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-charcoal mb-1">Username*</label>
-                                    <input required type="text" value={formData.mqtt_username} onChange={e => setFormData({ ...formData, mqtt_username: e.target.value })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" />
+                                    <input required type="text" value={formData.mqtt_username} onChange={e => setFormData({...formData, mqtt_username: e.target.value})} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" />
                                 </div>
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-charcoal mb-1">Password*</label>
-                                    <input required type="password" value={formData.mqtt_password} onChange={e => setFormData({ ...formData, mqtt_password: e.target.value })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" />
+                                    <input required type="password" value={formData.mqtt_password} onChange={e => setFormData({...formData, mqtt_password: e.target.value})} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" />
                                 </div>
                             </div>
                             <div className="flex gap-3 mt-4">

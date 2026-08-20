@@ -59,6 +59,7 @@ export const processAllLeadEcgData = (
   
   return { bpm };
 };
+
 export const processECGSamples = (
   rawChunk: { ch1: number[]; ch2: number[]; ch3: number[] },
   state: PipelineState,

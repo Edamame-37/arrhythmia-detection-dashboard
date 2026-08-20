@@ -35,9 +35,6 @@ export const AdminUsersPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useStickyState(1, 'adminUsersPage');
     const itemsPerPage = 10;
     
-    // Sync states
-    const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
-    const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [tokenRestored, setTokenRestored] = useState(false);
 
     useEffect(() => {
@@ -88,7 +85,9 @@ export const AdminUsersPage: React.FC = () => {
     const [userDetail, setUserDetail] = useState<any>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
-
+    // Sync states
+    const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
     // Action Modal States
     const [actionModal, setActionModal] = useState<{
