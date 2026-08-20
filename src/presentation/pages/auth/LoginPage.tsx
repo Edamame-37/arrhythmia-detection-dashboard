@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { API_URL } from '../../../config/env';
+import { supabase } from '../../../config/supabaseClient';
+import { fetchWithAuth } from '../../../config/api';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,13 +14,16 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
-    const userRole = localStorage.getItem('user_role');
-    if (userId) {
-      if (userRole === 'pasien') navigate('/patient/dashboard');
-      else if (userRole === 'dokter') navigate('/doctor/dashboard');
-      else navigate('/admin/dashboard');
-    }
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userRole = localStorage.getItem('user_role');
+      if (session && userRole) {
+        if (userRole === 'pasien') navigate('/patient/dashboard');
+        else if (userRole === 'dokter') navigate('/doctor/dashboard');
+        else navigate('/admin/dashboard');
+      }
+    };
+    checkSession();
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -27,39 +31,61 @@ export const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role })
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      const data = await response.json();
-      
-      if (data.success && data.user_id) {
-        // Hapus data koneksi lama sebelum login baru
-        localStorage.removeItem('connectedPatients');
-        localStorage.removeItem('connectedDoctor');
-        localStorage.removeItem('mock_patient_profile');
 
-        // Save user ID to localStorage
-        localStorage.setItem('user_id', data.user_id.toString());
-        localStorage.setItem('user_role', data.role || role);
-        if (data.token) {
-          localStorage.setItem('auth_token', data.token);
+
+      if (authError) {
+        setError(authError.message || 'Gagal login. Periksa email atau password.');
+        return;
+      }
+
+      if (authData.user && authData.session) {
+        // Ambil role dari Backend Rust
+        try {
+            // Kita HARUS mendaftarkan sesi access token agar fetchWithAuth berfungsi
+            localStorage.setItem('auth_token', authData.session.access_token);
+            
+            const response = await fetchWithAuth('/api/auth/me');
+            const data = await response.json();
+            
+            if (response.ok && data.success && data.role) {
+                // Hapus data koneksi lama sebelum login baru berhasil
+                localStorage.removeItem('connectedPatients');
+                localStorage.removeItem('connectedDoctor');
+                localStorage.removeItem('mock_patient_profile');
+
+                // Simpan data auth ke localStorage
+                localStorage.setItem('user_id', authData.user.id);
+                localStorage.setItem('user_role', data.role);
+                
+                // Navigasi jika berhasil
+                if (data.role === 'pasien') {
+                  navigate('/patient/dashboard');
+                } else if (data.role === 'dokter') {
+                  navigate('/doctor/dashboard');
+                } else {
+                  navigate('/admin/dashboard');
+                }
+            } else {
+                console.warn("Gagal mengambil role dari backend:", data.message);
+                setError("Gagal memverifikasi akun Anda dengan server. Pastikan API menyala.");
+                await supabase.auth.signOut();
+                localStorage.clear();
+            }
+        } catch (err) {
+            console.error("Kesalahan jaringan saat mengambil profil:", err);
+            setError("Koneksi ke server terputus. Pastikan backend Rust berjalan.");
+            await supabase.auth.signOut();
+            localStorage.clear();
+>>>>>>> poli-scheme-adaptation
         }
 
-        // Navigasi jika berhasil
-        if (data.role === 'pasien') {
-          navigate('/patient/dashboard');
-        } else if (data.role === 'dokter') {
-          navigate('/doctor/dashboard');
-        } else {
-          navigate('/admin/dashboard');
-        }
-      } else {
-        setError(data.message || 'Gagal login. Periksa email atau password.');
       }
     } catch (err) {
-      setError('Koneksi ke server gagal');
+      setError('Terjadi kesalahan saat login.');
     }
   };
 

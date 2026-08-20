@@ -1,7 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+
+const handleReturnToOriginalProfile = (navigate: any) => {
+    const adminToken = localStorage.getItem('admin_auth_token');
+    const docToken = localStorage.getItem('doctor_auth_token');
+    const originalRole = localStorage.getItem('original_role');
+
+    if (adminToken && originalRole === 'admin') {
+        localStorage.setItem('auth_token', adminToken);
+        localStorage.setItem('user_id', localStorage.getItem('admin_user_id') || '');
+        localStorage.setItem('user_role', 'admin');
+        localStorage.removeItem('admin_auth_token');
+        localStorage.removeItem('admin_user_id');
+        localStorage.removeItem('original_role');
+        sessionStorage.removeItem('is_impersonating');
+        navigate('/admin/dashboard');
+    } else if (docToken && originalRole === 'dokter') {
+        localStorage.setItem('auth_token', docToken);
+        localStorage.setItem('user_id', localStorage.getItem('doctor_user_id') || '');
+        localStorage.setItem('user_role', 'dokter');
+        localStorage.removeItem('doctor_auth_token');
+        localStorage.removeItem('doctor_user_id');
+        localStorage.removeItem('original_role');
+        sessionStorage.removeItem('is_impersonating');
+        navigate('/doctor/dashboard');
+    }
+};
 import { useTranslation } from '../../../application/hooks/useTranslation';
 import { API_URL } from '../../../config/env';
+import { fetchWithAuth } from '../../../config/api';
+import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 
 interface PatientProfile {
     patient: {
@@ -16,37 +44,9 @@ export const PatientHeader: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
-    const [profile, setProfile] = useState<PatientProfile | null>(null);
-
-    useEffect(() => {
-        const fetchHeaderProfile = () => {
-            const role = localStorage.getItem('user_role');
-            if (role !== 'pasien') return;
-            const userId = localStorage.getItem('user_id') || '1';
-            fetch(`${API_URL}/api/patients/${userId}`)
-                .then(res => {
-                    if (!res.ok) throw new Error('API offline');
-                    return res.json();
-                })
-                .then(data => setProfile(data))
-                .catch(err => {
-                    console.error("Error fetching patient profile:", err);
-                    const savedMock = localStorage.getItem('mock_patient_profile');
-                    if (savedMock) {
-                        setProfile(JSON.parse(savedMock));
-                    }
-                });
-        };
-
-        fetchHeaderProfile();
-
-        const handleUpdate = () => {
-            fetchHeaderProfile();
-        };
-
-        window.addEventListener('patient_profile_updated', handleUpdate);
-        return () => window.removeEventListener('patient_profile_updated', handleUpdate);
-    }, []);
+    const userId = localStorage.getItem('user_id') || '1';
+    const { data: profileData } = useCachedFetch<PatientProfile>(`/api/patients/${userId}`);
+    const profile = profileData || null;
 
     const patientName = profile?.patient ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('dashboard.loading');
 
@@ -72,6 +72,17 @@ export const PatientHeader: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
+                    {(localStorage.getItem('admin_auth_token') || localStorage.getItem('doctor_auth_token')) && (
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-red-100 border border-red-200 rounded-full">
+                            <span className="material-symbols-outlined text-red-600 text-sm">admin_panel_settings</span>
+                            <span className="text-xs font-bold text-red-700">
+                                {localStorage.getItem('admin_auth_token') ? 'Admin Login' : 'Dokter Login'}
+                            </span>
+                            <button onClick={() => handleReturnToOriginalProfile(navigate)} className="ml-2 text-[10px] bg-red-600 text-white px-2 py-0.5 rounded hover:bg-red-700 transition-colors">
+                                KEMBALI
+                            </button>
+                        </div>
+                    )}
                     <div onClick={() => navigate('/patient/profile')} className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                         <div className="hidden md:flex flex-col items-end">
                             <span className="text-sm font-bold text-clinical-charcoal">{patientName}</span>

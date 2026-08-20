@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_URL } from '../../../config/env';
+import { supabase } from '../../../config/supabaseClient';
+
+import { fetchWithAuth } from '../../../config/api';
 
 export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
@@ -29,20 +31,45 @@ export const RegisterPage: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role, email, password, first_name: firstName, last_name: lastName, date_of_birth: dob, gender })
+            // 1. Sign up di Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
             });
-            const data = await response.json();
-            if (data.success) {
+
+            if (authError) {
+                setError(authError.message || 'Gagal mendaftar auth');
+                return;
+            }
+
+            if (authData.user) {
+                // 2. Simpan profil lewat Backend Rust
+                const payload = {
+                    role,
+                    first_name: firstName,
+                    last_name: lastName,
+                    email,
+                    date_of_birth: role === 'pasien' ? dob : null,
+                    gender: role === 'pasien' ? gender : null,
+                };
+
+                const response = await fetchWithAuth('/api/auth/register_profile', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    setError(data.message || 'Gagal menyimpan profil ke sistem medis');
+                    return;
+                }
+
                 alert('Registrasi berhasil! Silakan login.');
                 navigate('/auth/login');
-            } else {
-                setError(data.message || 'Gagal mendaftar');
             }
         } catch (err) {
-            setError('Koneksi ke server gagal');
+            setError('Terjadi kesalahan saat pendaftaran');
         }
     };
 

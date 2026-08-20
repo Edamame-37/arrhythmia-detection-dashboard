@@ -18,10 +18,12 @@ import { SecurityProvider } from './application/context/SecurityContext';
 import { DevToolsBlocker } from './presentation/components/DevToolsBlocker';
 
 // Admin Pages
+import { ErrorBoundary } from './presentation/components/ErrorBoundary';
 import { AdminDashboardPage } from './presentation/pages/admin/AdminDashboardPage';
-import { AdminMonitorPage } from './presentation/pages/admin/AdminMonitorPage';
 import { AdminUsersPage } from './presentation/pages/admin/AdminUsersPage';
 import { AdminDevicesPage } from './presentation/pages/admin/AdminDevicesPage';
+import { AdminSessionsPage } from './presentation/pages/admin/AdminSessionsPage';
+import { AdminAnalyticsPage } from './presentation/pages/admin/AdminAnalyticsPage';
 
 // Doctor Pages
 import { DashboardPage } from './presentation/pages/doctor/DashboardPage';
@@ -55,6 +57,8 @@ const TitleSetter: React.FC = () => {
       '/admin/monitor': 'Live Stream Monitor',
       '/admin/users': 'User Management',
       '/admin/devices': 'Device Fleet',
+      '/admin/sessions': 'Session Management',
+      '/admin/analytics': 'Admin Analytics',
       '/doctor/dashboard': 'Doctor Dashboard',
       '/doctor/analytics': 'Analytics',
       '/doctor/qr-scanner': 'QR Scanner',
@@ -75,6 +79,7 @@ const TitleSetter: React.FC = () => {
   return null;
 };
 
+<<<<<<< HEAD
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles: ('pasien' | 'dokter' | 'admin')[];
@@ -170,6 +175,36 @@ const ImpersonationBanner: React.FC = () => {
       </button>
     </div>
   );
+=======
+const SessionRestorer: React.FC = () => {
+  useEffect(() => {
+    const isImpersonating = sessionStorage.getItem('is_impersonating');
+    if (!isImpersonating) {
+      const adminToken = localStorage.getItem('admin_auth_token');
+      const adminId = localStorage.getItem('admin_user_id');
+      const docToken = localStorage.getItem('doctor_auth_token');
+      const docId = localStorage.getItem('doctor_user_id');
+      const originalRole = localStorage.getItem('original_role');
+
+      if (adminToken && adminId && originalRole === 'admin') {
+        localStorage.setItem('auth_token', adminToken);
+        localStorage.setItem('user_id', adminId);
+        localStorage.setItem('user_role', 'admin');
+        localStorage.removeItem('admin_auth_token');
+        localStorage.removeItem('admin_user_id');
+        localStorage.removeItem('original_role');
+      } else if (docToken && docId && originalRole === 'dokter') {
+        localStorage.setItem('auth_token', docToken);
+        localStorage.setItem('user_id', docId);
+        localStorage.setItem('user_role', 'dokter');
+        localStorage.removeItem('doctor_auth_token');
+        localStorage.removeItem('doctor_user_id');
+        localStorage.removeItem('original_role');
+      }
+    }
+  }, []);
+  return null;
+>>>>>>> poli-scheme-adaptation
 };
 
 export const App: React.FC = () => {
@@ -181,24 +216,27 @@ export const App: React.FC = () => {
           <ConnectionProvider>
             <SidebarProvider>
               <TitleSetter />
+              <SessionRestorer />
               <DevToolsBlocker />
-              <ImpersonationBanner />
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<HomePage />} />
-                <Route path="/how-it-works" element={<HowItWorksPage />} />
-                <Route path="/faq" element={<FaqPage />} />
+              <ErrorBoundary>
+                <ImpersonationBanner />
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/how-it-works" element={<HowItWorksPage />} />
+                  <Route path="/faq" element={<FaqPage />} />
 
-                {/* Auth Routes */}
-                <Route path="/auth" element={<SplashPage />} />
-                <Route path="/auth/login" element={<LoginPage />} />
-                <Route path="/auth/register" element={<RegisterPage />} />
+                  {/* Auth Routes */}
+                  <Route path="/auth" element={<SplashPage />} />
+                  <Route path="/auth/login" element={<LoginPage />} />
+                  <Route path="/auth/register" element={<RegisterPage />} />
 
-                {/* Admin Routes */}
-                <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
-                <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
-                <Route path="/admin/devices" element={<ProtectedRoute allowedRoles={['admin']}><AdminDevicesPage /></ProtectedRoute>} />
-                <Route path="/admin/monitor" element={<ProtectedRoute allowedRoles={['admin']}><AdminMonitorPage /></ProtectedRoute>} />
+                  {/* Admin Routes */}
+                  <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
+                  <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
+                  <Route path="/admin/devices" element={<ProtectedRoute allowedRoles={['admin']}><AdminDevicesPage /></ProtectedRoute>} />
+                  <Route path="/admin/sessions" element={<ProtectedRoute allowedRoles={['admin']}><AdminSessionsPage /></ProtectedRoute>} />
+                  <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalyticsPage /></ProtectedRoute>} />
 
                 {/* Doctor Routes */}
                 <Route path="/doctor/dashboard" element={<ProtectedRoute allowedRoles={['dokter']}><DashboardPage /></ProtectedRoute>} />
@@ -207,16 +245,17 @@ export const App: React.FC = () => {
                 <Route path="/doctor/qr-scanner" element={<ProtectedRoute allowedRoles={['dokter']}><QrScannerPage /></ProtectedRoute>} />
                 <Route path="/doctor/profile" element={<ProtectedRoute allowedRoles={['dokter']}><ProfilePage /></ProtectedRoute>} />
 
-                {/* Patient Routes */}
-                <Route path="/patient/dashboard" element={<ProtectedRoute allowedRoles={['pasien']}><PatientDashboardPage /></ProtectedRoute>} />
-                <Route path="/patient/qr-sync" element={<ProtectedRoute allowedRoles={['pasien']}><PatientQrSyncPage /></ProtectedRoute>} />
-                <Route path="/patient/device-scanner" element={<ProtectedRoute allowedRoles={['pasien']}><PatientDeviceScannerPage /></ProtectedRoute>} />
-                <Route path="/patient/history" element={<ProtectedRoute allowedRoles={['pasien']}><PatientHistoryPage /></ProtectedRoute>} />
-                <Route path="/patient/history/:sessionId" element={<ProtectedRoute allowedRoles={['pasien']}><PatientHistoryDetailPage /></ProtectedRoute>} />
-                <Route path="/patient/profile" element={<ProtectedRoute allowedRoles={['pasien']}><PatientProfilePage /></ProtectedRoute>} />
-                <Route path="/patient/settings" element={<ProtectedRoute allowedRoles={['pasien']}><PatientSettingsPage /></ProtectedRoute>} />
-                <Route path="/patient/monitor" element={<ProtectedRoute allowedRoles={['pasien']}><PatientMonitorPage /></ProtectedRoute>} />
-              </Routes>
+                  {/* Patient Routes */}
+                  <Route path="/patient/dashboard" element={<ProtectedRoute allowedRoles={['pasien']}><PatientDashboardPage /></ProtectedRoute>} />
+                  <Route path="/patient/qr-sync" element={<ProtectedRoute allowedRoles={['pasien']}><PatientQrSyncPage /></ProtectedRoute>} />
+                  <Route path="/patient/device-scanner" element={<ProtectedRoute allowedRoles={['pasien']}><PatientDeviceScannerPage /></ProtectedRoute>} />
+                  <Route path="/patient/history" element={<ProtectedRoute allowedRoles={['pasien']}><PatientHistoryPage /></ProtectedRoute>} />
+                  <Route path="/patient/history/:sessionId" element={<ProtectedRoute allowedRoles={['pasien']}><PatientHistoryDetailPage /></ProtectedRoute>} />
+                  <Route path="/patient/profile" element={<ProtectedRoute allowedRoles={['pasien']}><PatientProfilePage /></ProtectedRoute>} />
+                  <Route path="/patient/settings" element={<ProtectedRoute allowedRoles={['pasien']}><PatientSettingsPage /></ProtectedRoute>} />
+                  <Route path="/patient/monitor" element={<ProtectedRoute allowedRoles={['pasien']}><PatientMonitorPage /></ProtectedRoute>} />
+                </Routes>
+              </ErrorBoundary>
             </SidebarProvider>
           </ConnectionProvider>
         </PreferencesProvider>
