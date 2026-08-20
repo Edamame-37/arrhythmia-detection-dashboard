@@ -79,7 +79,7 @@ const TitleSetter: React.FC = () => {
   return null;
 };
 
-<<<<<<< HEAD
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles: ('pasien' | 'dokter' | 'admin')[];
@@ -175,7 +175,8 @@ const ImpersonationBanner: React.FC = () => {
       </button>
     </div>
   );
-=======
+};
+
 const SessionRestorer: React.FC = () => {
   useEffect(() => {
     const isImpersonating = sessionStorage.getItem('is_impersonating');
@@ -204,7 +205,7 @@ const SessionRestorer: React.FC = () => {
     }
   }, []);
   return null;
->>>>>>> poli-scheme-adaptation
+
 };
 
 export const App: React.FC = () => {

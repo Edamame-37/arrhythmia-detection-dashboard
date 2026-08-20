@@ -80,7 +80,6 @@ export const LoginPage: React.FC = () => {
             setError("Koneksi ke server terputus. Pastikan backend Rust berjalan.");
             await supabase.auth.signOut();
             localStorage.clear();
->>>>>>> poli-scheme-adaptation
         }
 
       }
