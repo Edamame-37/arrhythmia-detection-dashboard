@@ -559,8 +559,8 @@ export const AdminUsersPage: React.FC = () => {
                                     <input type="text" required value={addFirstName} onChange={e => setAddFirstName(e.target.value)} className="w-full bg-clinical-surface/50 border border-clinical-charcoal/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-clinical-blue focus:ring-1 focus:ring-clinical-blue transition-all" placeholder="John" />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-[11px] font-bold text-clinical-charcoal/60 uppercase tracking-widest mb-2">Nama Belakang</label>
-                                    <input type="text" required value={addLastName} onChange={e => setAddLastName(e.target.value)} className="w-full bg-clinical-surface/50 border border-clinical-charcoal/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-clinical-blue focus:ring-1 focus:ring-clinical-blue transition-all" placeholder="Doe" />
+                                    <label className="block text-[11px] font-bold text-clinical-charcoal/60 uppercase tracking-widest mb-2">Nama Belakang (Opsional)</label>
+                                    <input type="text" value={addLastName} onChange={e => setAddLastName(e.target.value)} className="w-full bg-clinical-surface/50 border border-clinical-charcoal/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-clinical-blue focus:ring-1 focus:ring-clinical-blue transition-all" placeholder="Doe" />
                                 </div>
                             </div>
                             {addRole === 'pasien' && (

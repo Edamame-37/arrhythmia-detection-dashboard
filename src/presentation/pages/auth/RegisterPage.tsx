@@ -120,9 +120,9 @@ export const RegisterPage: React.FC = () => {
                                 type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
                         </div>
                         <div className="space-y-2 flex-1">
-                            <label className="font-medium text-label-bold text-on-surface-variant" htmlFor="lastName">Nama Belakang</label>
+                            <label className="font-medium text-label-bold text-on-surface-variant" htmlFor="lastName">Nama Belakang (Opsional)</label>
                             <input className="w-full bg-white border border-outline-variant rounded-lg p-3 font-body-sm text-body-sm focus:ring-2 focus:ring-medical-teal focus:border-medical-teal transition-all outline-none border-outline" id="lastName" placeholder="Doe"
-                                type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                                type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                         </div>
                     </div>
                     {role === 'pasien' && (
