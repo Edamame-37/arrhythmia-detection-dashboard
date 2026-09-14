@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../../../application/context/SidebarContext';
 import { LogoutModal } from '../shared/LogoutModal';
+import { Avatar } from '../shared/Avatar';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth } from '../../../config/api';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
@@ -94,22 +95,12 @@ export const DoctorSidebar: React.FC = () => {
 
                 <div className="p-4 mt-4 md:mt-0 border-t border-clinical-blue/20/40 md:bg-white-container-low/50">
                     <div className="flex bg-white border border-clinical-blue/20/50 p-3 rounded-lg items-center gap-3 transition-all group hover:border-clinical-blue cursor-pointer" onClick={() => { navigate('/doctor/profile'); handleNavClick(); }}>
-                        <div className="w-9 h-9 rounded-full overflow-hidden border border-clinical-blue/20 flex items-center justify-center bg-white-container">
-                            {profile?.profile_photo ? (
-                                <img 
-                                    className="w-full h-full object-cover" 
-                                    alt="Profile" 
-                                    src={getPhotoUrl(profile.profile_photo)}
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.onerror = null;
-                                        target.outerHTML = '<div class="w-9 h-9 rounded-full bg-clinical-blue/10 flex items-center justify-center border border-clinical-blue/20 text-clinical-blue font-bold shrink-0">DR</div>';
-                                    }}
-                                />
-                            ) : (
-                                <span className="material-symbols-outlined text-clinical-charcoal/70 text-xl">person</span>
-                            )}
-                        </div>
+                        <Avatar 
+                            src={profile?.profile_photo}
+                            name={profile ? `Dr. ${profile.first_name} ${profile.last_name}` : ''}
+                            size="sm"
+                            className="border-clinical-blue/20 bg-white-container"
+                        />
                         <div className="flex-1 overflow-hidden">
                             <p className="font-headline-md text-xs font-body-sm text-clinical-charcoal truncate group-hover:text-clinical-blue transition-colors">
                                 {profile ? `Dr. ${profile.first_name} ${profile.last_name}` : 'Memuat...'}
