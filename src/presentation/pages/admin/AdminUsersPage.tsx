@@ -9,6 +9,7 @@ import { useStickyState } from '../../../application/hooks/useStickyState';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { fetchWithAuth, getPhotoUrl } from '../../../config/api';
 import { ActionModal } from '../../components/shared/ActionModal';
+import { Avatar } from '../../components/shared/Avatar';
 
 interface AdminUser {
     id: string;
@@ -389,22 +390,7 @@ export const AdminUsersPage: React.FC = () => {
             <td className="p-4 font-mono text-xs text-clinical-blue font-bold">{u.id.substring(0, 9)}</td>
             <td className="p-4 text-sm font-bold text-clinical-charcoal">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-clinical-surface border border-clinical-charcoal/5 shadow-sm overflow-hidden flex items-center justify-center text-clinical-charcoal/60 shrink-0">
-                        {u.profile_photo ? (
-                            <img 
-                                src={getPhotoUrl(u.profile_photo)} 
-                                alt={u.name} 
-                                className="w-full h-full object-cover" 
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.onerror = null;
-                                    target.outerHTML = '<span class="material-symbols-outlined text-[18px]">person</span>';
-                                }} 
-                            />
-                        ) : (
-                            <span className="material-symbols-outlined text-[18px]">person</span>
-                        )}
-                    </div>
+                    <Avatar src={u.profile_photo} name={u.name} size="sm" />
                     {u.name}
                 </div>
             </td>
@@ -623,22 +609,12 @@ export const AdminUsersPage: React.FC = () => {
                                 <div className="space-y-6">
                                     {/* Profile Header */}
                                     <div className="flex items-center gap-6">
-                                        <div className="w-24 h-24 rounded-[1.5rem] bg-clinical-surface border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-clinical-charcoal/50 shrink-0">
-                                            {userDetail.patient?.profile_photo || userDetail.profile_photo ? (
-                                                <img 
-                                                    src={getPhotoUrl(userDetail.patient?.profile_photo || userDetail.profile_photo)} 
-                                                    alt="Profile" 
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.onerror = null;
-                                                        target.outerHTML = '<span class="material-symbols-outlined text-[18px] text-clinical-charcoal/50">person</span>';
-                                                    }}
-                                                />
-                                            ) : (
-                                                <span className="material-symbols-outlined text-5xl">person</span>
-                                            )}
-                                        </div>
+                                        <Avatar 
+                                            src={userDetail.patient?.profile_photo || userDetail.profile_photo} 
+                                            name={userDetail.name || ''} 
+                                            size="xl" 
+                                            className="w-24 h-24 rounded-[1.5rem] border-4 border-white shadow-md text-2xl" 
+                                        />
                                         <div>
                                             <h4 className="text-2xl font-bold text-clinical-charcoal mb-1">
                                                 {selectedUser.name}
