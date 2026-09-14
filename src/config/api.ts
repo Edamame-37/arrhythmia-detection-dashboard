@@ -37,20 +37,32 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 }
 
 export const getPhotoUrl = (url: string | null | undefined) => {
-    if (!url) return undefined;
+    if (!url || typeof url !== 'string' || url.trim() === '') return undefined;
     
-    const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+    const normalizedUrl = url.trim().replace(/\\/g, '/');
     
-    const normalizedUrl = url.replace(/\\/g, '/');
-    
-    if (normalizedUrl.includes('/uploads/')) {
-        const parts = normalizedUrl.split('/uploads/');
-        return `${baseUrl}/uploads/${parts[1]}`;
-    }
-    
-    if (normalizedUrl.startsWith('http')) {
+    // Kembalikan langsung jika merupakan base64 data image
+    if (normalizedUrl.startsWith('data:image/')) {
         return normalizedUrl;
     }
     
-    return `${baseUrl}${normalizedUrl.startsWith('/') ? '' : '/'}${normalizedUrl}`;
+    // Tangani path yang memiliki /uploads/
+    if (normalizedUrl.includes('/uploads/')) {
+        const parts = normalizedUrl.split('/uploads/');
+        const subPath = parts[1].replace(/^\/+/, '');
+        
+        const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+        if (baseUrl.startsWith('http')) {
+            return `${baseUrl}/uploads/${subPath}`;
+        }
+        return `/uploads/${subPath}`;
+    }
+    
+    if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+        return normalizedUrl;
+    }
+    
+    const cleanPath = normalizedUrl.startsWith('/') ? normalizedUrl : `/${normalizedUrl}`;
+    const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+    return `${baseUrl}${cleanPath}`;
 };
