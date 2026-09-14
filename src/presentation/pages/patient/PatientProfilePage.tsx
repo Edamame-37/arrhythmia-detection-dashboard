@@ -8,6 +8,8 @@ import { fetchWithAuth, getPhotoUrl } from '../../../config/api';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { ActionModal } from '../../components/shared/ActionModal';
 import { FolderUploadModal } from '../../components/shared/FolderUploadModal';
+import { Avatar } from '../../components/shared/Avatar';
+import { supabase } from '../../../config/supabaseClient';
 
 export const PatientProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -15,7 +17,24 @@ export const PatientProfilePage: React.FC = () => {
     const { t } = useTranslation();
 
     // Profile data state
-    const userId = localStorage.getItem('user_id') || '1';
+    const [userId, setUserId] = useState<string>(() => localStorage.getItem('user_id') || '1');
+
+    useEffect(() => {
+        const syncUser = async () => {
+            const storedId = localStorage.getItem('user_id');
+            if (!storedId || storedId === '1') {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.id) {
+                    localStorage.setItem('user_id', session.user.id);
+                    setUserId(session.user.id);
+                }
+            } else if (storedId !== userId) {
+                setUserId(storedId);
+            }
+        };
+        syncUser();
+    }, [userId]);
+
     const { data: profileResponse, isLoading, error: swrError, mutate: mutateProfile } = useCachedFetch(`/api/patients/${userId}`);
     const profile = profileResponse || null;
     const [error, setError] = useState(swrError?.message || '');
@@ -163,22 +182,12 @@ export const PatientProfilePage: React.FC = () => {
 
                         {/* Profile Info Section */}
                         <div className="p-8 lg:p-12 lg:w-1/3 border-b lg:border-b-0 lg:border-r border-clinical-charcoal/10 flex flex-col items-center text-center">
-                            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-sm bg-clinical-surface flex items-center justify-center mb-6 ring-4 ring-clinical-blue/20">
-                                {profile?.patient?.profile_photo ? (
-                                    <img 
-                                        alt="Profile" 
-                                        className="w-full h-full object-cover" 
-                                        src={getPhotoUrl(profile.patient.profile_photo)}
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.onerror = null;
-                                            target.outerHTML = '<span class="material-symbols-outlined text-[64px] text-clinical-charcoal/20">person</span>';
-                                        }}
-                                    />
-                                ) : (
-                                    <span className="material-symbols-outlined text-6xl text-clinical-charcoal/30">person</span>
-                                )}
-                            </div>
+                            <Avatar
+                                src={profile?.patient?.profile_photo}
+                                name={profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : ''}
+                                size="2xl"
+                                className="border-4 border-white shadow-sm ring-4 ring-clinical-blue/20 mb-6"
+                            />
                             <h2 className="text-2xl font-extrabold text-clinical-charcoal tracking-tight mb-1">
                                 {isLoading ? t('profile.loading') : (profile ? `${profile.patient.first_name} ${profile.patient.last_name}` : t('profile.notFound'))}
                             </h2>
@@ -358,13 +367,12 @@ export const PatientProfilePage: React.FC = () => {
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="flex items-center gap-5">
                                         <div className="relative">
-                                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 p-0.5 bg-slate-50 border-clinical-blue">
-                                                {profile.doctor.profile_photo ? (
-                                                    <img className="w-full h-full rounded-full object-cover" src={getPhotoUrl(profile.doctor.profile_photo)} alt={`Dr. ${profile.doctor.first_name}`} />
-                                                ) : (
-                                                    <span className="material-symbols-outlined text-[32px] w-full h-full flex items-center justify-center text-clinical-charcoal/30 bg-slate-50">person</span>
-                                                )}
-                                            </div>
+                                            <Avatar
+                                                src={profile.doctor.profile_photo}
+                                                name={`Dr. ${profile.doctor.first_name} ${profile.doctor.last_name}`}
+                                                size="xl"
+                                                className="border-2 p-0.5 border-clinical-blue"
+                                            />
                                             <div className="absolute -bottom-1 -right-1 w-5 h-5 border-2 border-white rounded-full bg-status-green shadow-sm"></div>
                                         </div>
                                         <div>
