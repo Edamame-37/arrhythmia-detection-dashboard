@@ -6,6 +6,7 @@ import { useConnection } from '../../../application/context/ConnectionContext';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth, getPhotoUrl } from '../../../config/api';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
+import { Avatar } from '../../components/shared/Avatar';
 
 export interface SessionRecord {
     id: string;
@@ -183,13 +184,12 @@ export const DashboardPage: React.FC = () => {
                                 connectedPatients.map(patient => (
                                     <div key={patient.id} className="bg-white border border-clinical-charcoal/5 p-6 rounded-[2rem] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-[0px_20px_40px_rgba(0,0,0,0.04)] transition-all duration-700 hover:shadow-[0px_30px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1 group">
                                         <div className="flex items-center gap-5">
-                                            <div className="w-14 h-14 rounded-full bg-clinical-surface group-hover:bg-clinical-blue/10 transition-colors duration-700 flex items-center justify-center text-lg font-bold text-clinical-blue uppercase border border-clinical-charcoal/5 overflow-hidden">
-                                                {patient.profile_photo ? (
-                                                    <img src={getPhotoUrl(patient.profile_photo)} alt={patient.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    patient.name.substring(0, 2).toUpperCase()
-                                                )}
-                                            </div>
+                                            <Avatar
+                                                src={patient.profile_photo}
+                                                name={patient.name}
+                                                size="lg"
+                                                className="w-14 h-14 border border-clinical-charcoal/5 group-hover:border-clinical-blue/30"
+                                            />
                                             <div>
                                                 <h4 className="font-bold text-lg text-clinical-charcoal group-hover:text-clinical-blue transition-colors duration-700">{patient.name}</h4>
                                                 <p className="text-xs font-medium text-clinical-charcoal/60 mt-0.5 mb-2">ID: {patient.id}</p>
