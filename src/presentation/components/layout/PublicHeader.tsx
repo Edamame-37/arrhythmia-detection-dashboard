@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../../../config/env';
 import { fetchWithAuth, getPhotoUrl } from '../../../config/api';
+import { Avatar } from '../shared/Avatar';
 
 export const PublicHeader: React.FC = () => {
   const navigate = useNavigate();
@@ -111,14 +112,15 @@ export const PublicHeader: React.FC = () => {
           {userId ? (
             <div
               onClick={handleDashboardClick}
-              className="w-11 h-11 rounded-full border-2 border-clinical-blue/20 hover:border-clinical-blue overflow-hidden bg-clinical-surface flex items-center justify-center font-bold text-clinical-blue text-sm cursor-pointer transition-all shadow-sm hover:shadow-md shrink-0"
+              className="cursor-pointer hover:opacity-80 transition-all shrink-0"
               title="Go to Dashboard"
             >
-              {profilePhoto ? (
-                <img className="w-full h-full object-cover" src={getPhotoUrl(profilePhoto)} alt="Profile" />
-              ) : (
-                <span>{initials || <span className="material-symbols-outlined text-[20px]">person</span>}</span>
-              )}
+              <Avatar
+                src={profilePhoto}
+                name={initials}
+                size="md"
+                className="w-11 h-11 border-2 border-clinical-blue/20 hover:border-clinical-blue shadow-sm"
+              />
             </div>
           ) : (
             <button
