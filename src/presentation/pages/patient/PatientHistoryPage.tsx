@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PatientHeader } from "../../components/layout/PatientHeader";
 import { Pagination } from "../../components/shared/Pagination";
@@ -9,6 +9,7 @@ import { fetchWithAuth, getPhotoUrl } from "../../../config/api";
 import { useCachedFetch } from "../../../application/hooks/useCachedFetch";
 import { ScreenCalibrationModal } from "../../components/shared/ScreenCalibrationModal";
 import { RulerIcon } from "../../components/shared/RulerIcon";
+import { supabase } from "../../../config/supabaseClient";
 
 interface SessionRecord {
   id: string;
@@ -27,24 +28,47 @@ interface PatientProfile {
 
 export const PatientHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const userId = localStorage.getItem("user_id") || "1";
+  const [userId, setUserId] = useState<string>(() => localStorage.getItem("user_id") || "1");
+  const userRole = localStorage.getItem("user_role");
+
+  // Sinkronkan userId jika localStorage belum terisi tapi ada sesi Supabase aktif
+  useEffect(() => {
+    const syncUser = async () => {
+      const storedId = localStorage.getItem("user_id");
+      if (!storedId || storedId === "1") {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          localStorage.setItem("user_id", session.user.id);
+          setUserId(session.user.id);
+        }
+      } else if (storedId !== userId) {
+        setUserId(storedId);
+      }
+    };
+    syncUser();
+  }, [userId]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useStickyState(1, "patientHistoryPage");
   const itemsPerPage = 10;
 
+  // Jika role pengguna adalah admin, panggil endpoint /api/sessions agar admin dapat memantau seluruh sesi
+  const sessionsEndpoint = userRole === 'admin'
+    ? `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`
+    : `/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
+
   const { data: profile } = useCachedFetch(`/api/patients/${userId}`);
-  const { data: sessionsResponse, mutate: mutateSessions, isLoading } = useCachedFetch(`/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`, { keepPreviousData: true });
+  const { data: sessionsResponse, mutate: mutateSessions, isLoading, error: sessionsError } = useCachedFetch(sessionsEndpoint, { keepPreviousData: true });
 
-  const sessionsData = sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
-  const totalPages = sessionsResponse?.pagination?.total_pages || Math.ceil(sessionsData.length / itemsPerPage) || 1;
+  const apiSessions: SessionRecord[] = useMemo(() => {
+    return sessionsResponse?.data || sessionsResponse?.sessions || (Array.isArray(sessionsResponse) ? sessionsResponse : []);
+  }, [sessionsResponse]);
 
-  // Default internal state for optimistic UI updates (e.g. after uploading a photo)
-  const [localSessions, setLocalSessions] = useState<SessionRecord[]>([]);
+  const totalSessions = sessionsResponse?.pagination?.total ?? apiSessions.length;
+  const totalPages = sessionsResponse?.pagination?.total_pages || Math.ceil(totalSessions / itemsPerPage) || 1;
 
-  useEffect(() => {
-    if (sessionsData) setLocalSessions(sessionsData);
-  }, [sessionsData]);
+  // Optimistic overrides untuk pembaruan instan ecg_paper setelah upload/delete
+  const [sessionOverrides, setSessionOverrides] = useState<Record<string, { ecg_paper?: string | null }>>({});
 
   useEffect(() => {
     if (!isLoading && totalPages > 0 && currentPage > totalPages) {
@@ -52,7 +76,14 @@ export const PatientHistoryPage: React.FC = () => {
     }
   }, [totalPages, currentPage, setCurrentPage, isLoading]);
 
-  const sessions = localSessions;
+  const sessions = useMemo(() => {
+    return apiSessions.map((s) => {
+      if (sessionOverrides[s.id] !== undefined) {
+        return { ...s, ...sessionOverrides[s.id] };
+      }
+      return s;
+    });
+  }, [apiSessions, sessionOverrides]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null);
@@ -82,7 +113,7 @@ export const PatientHistoryPage: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setLocalSessions((prev) => prev.map((s) => (s.id === uploadingSessionId ? { ...s, ecg_paper: data.path } : s)));
+        setSessionOverrides((prev) => ({ ...prev, [uploadingSessionId]: { ecg_paper: data.path } }));
         mutateSessions();
         cancelUpload();
       } else {
@@ -112,7 +143,7 @@ export const PatientHistoryPage: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setLocalSessions((prev) => prev.map((s) => (s.id === uploadingSessionId ? { ...s, ecg_paper: null } : s)));
+        setSessionOverrides((prev) => ({ ...prev, [uploadingSessionId]: { ecg_paper: null } }));
         mutateSessions();
         cancelUpload();
       } else {
@@ -163,8 +194,25 @@ export const PatientHistoryPage: React.FC = () => {
             </button>
           </header>
           <div className="space-y-4 z-10">
-            {sessions.length === 0 ? (
-              <div className="text-center text-clinical-charcoal/60 p-8 bg-white rounded-2xl border border-clinical-charcoal/5 shadow-sm">{t("history.noHistory")}</div>
+            {isLoading && sessions.length === 0 ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white p-6 rounded-[2rem] border border-clinical-charcoal/5 animate-pulse flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="space-y-2 w-full md:w-1/2">
+                      <div className="h-3 w-28 bg-slate-200 rounded"></div>
+                      <div className="h-4 w-48 bg-slate-100 rounded"></div>
+                    </div>
+                    <div className="h-10 w-48 bg-slate-100 rounded-full"></div>
+                  </div>
+                ))}
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center text-clinical-charcoal/60 p-12 bg-white rounded-2xl border border-clinical-charcoal/5 shadow-sm flex flex-col items-center justify-center">
+                <span className="material-symbols-outlined text-5xl text-clinical-charcoal/20 mb-3">history</span>
+                <p className="font-bold text-base text-clinical-charcoal">{t("history.noHistory")}</p>
+                <p className="text-xs text-clinical-charcoal/50 mt-1">Belum ada sesi pemantauan EKG yang tercatat untuk akun ini.</p>
+                {sessionsError && <p className="text-xs text-alert-red mt-2 font-medium">Gagal memuat sesi: {sessionsError.message}</p>}
+              </div>
             ) : (
               (() => {
                 return sessions.map((session) => (
