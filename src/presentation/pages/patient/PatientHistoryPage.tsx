@@ -5,7 +5,7 @@ import { Pagination } from "../../components/shared/Pagination";
 import { useStickyState } from "../../../application/hooks/useStickyState";
 import { useTranslation } from "../../../application/hooks/useTranslation";
 import { API_URL } from "../../../config/env";
-import { fetchWithAuth } from "../../../config/api";
+import { fetchWithAuth, getPhotoUrl } from "../../../config/api";
 import { useCachedFetch } from "../../../application/hooks/useCachedFetch";
 import { ScreenCalibrationModal } from "../../components/shared/ScreenCalibrationModal";
 import { RulerIcon } from "../../components/shared/RulerIcon";
@@ -195,7 +195,7 @@ export const PatientHistoryPage: React.FC = () => {
                       {session.ecg_paper ? (
                         <div className="flex gap-2">
                           <button
-                            onClick={() => setPreviewImage(API_URL + session.ecg_paper)}
+                            onClick={() => setPreviewImage(getPhotoUrl(session.ecg_paper) || null)}
                             className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-4 rounded-full bg-clinical-blue text-white font-bold text-[11px] uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all outline-none"
                           >
                             Lihat Foto EKG
@@ -205,7 +205,7 @@ export const PatientHistoryPage: React.FC = () => {
                             onClick={() => {
                               setUploadingSessionId(session.id);
                               setIsEditMode(true);
-                              setPreviewUrl(API_URL + session.ecg_paper);
+                              setPreviewUrl(getPhotoUrl(session.ecg_paper) || null);
                             }}
                             className="flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-4 rounded-full bg-amber-500 text-white font-bold text-[11px] uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all outline-none"
                           >
@@ -250,7 +250,16 @@ export const PatientHistoryPage: React.FC = () => {
           <div className="bg-white rounded-3xl p-6 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col">
             <h3 className="font-bold font-display text-xl text-clinical-charcoal mb-4">Lihat Foto EKG</h3>
             <div className="flex-grow overflow-auto rounded-xl border border-clinical-charcoal/10 bg-clinical-surface/50 p-2 mb-6">
-              <img src={previewImage} alt="ECG Paper" className="w-full h-auto rounded-lg object-contain" />
+              <img 
+                src={previewImage} 
+                alt="ECG Paper" 
+                className="w-full h-auto rounded-lg object-contain" 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24'%3E%3Cpath fill='%2394a3b8' d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+                }}
+              />
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-end">
               <button
