@@ -9,6 +9,7 @@ import { fetchWithAuth } from "../../../config/api";
 import { useCachedFetch } from "../../../application/hooks/useCachedFetch";
 import { supabase } from "../../../config/supabaseClient";
 import { useRecordingStatus } from "../../../application/hooks/useRecordingStatus";
+import { Avatar } from "../../components/shared/Avatar";
 
 interface PatientProfile {
   patient: {
@@ -34,7 +35,24 @@ export const PatientDashboardPage: React.FC = () => {
   const { connectedDoctor, setConnectedDoctor, disconnectAll } = useConnection();
   const { t, tArray } = useTranslation();
 
-  const userId = localStorage.getItem("user_id") || "1";
+  const [userId, setUserId] = useState<string>(() => localStorage.getItem("user_id") || "1");
+
+  useEffect(() => {
+    const syncUser = async () => {
+      const storedId = localStorage.getItem("user_id");
+      if (!storedId || storedId === "1") {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          localStorage.setItem("user_id", session.user.id);
+          setUserId(session.user.id);
+        }
+      } else if (storedId !== userId) {
+        setUserId(storedId);
+      }
+    };
+    syncUser();
+  }, [userId]);
+
   const { data: profileData, mutate: mutateProfile, error: profileError } = useCachedFetch(`/api/patients/${userId}`);
   const { data: sessionsResponse } = useCachedFetch(`/api/patients/${userId}/sessions`);
   const { data: doctorData } = useCachedFetch(profileData?.patient?.primary_doctor_id ? `/api/doctors/${profileData.patient.primary_doctor_id}` : null);
@@ -331,9 +349,12 @@ export const PatientDashboardPage: React.FC = () => {
                 {displayDoctor ? (
                   <>
                     <div className="relative mb-4">
-                      <div className="w-24 h-24 rounded-full border-4 border-clinical-surface overflow-hidden shadow-sm flex items-center justify-center bg-slate-50 text-3xl font-bold text-clinical-charcoal/40">
-                        {displayDoctor.photo ? <img src={getPhotoUrl(displayDoctor.photo)} alt="Doctor" className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-5xl">person</span>}
-                      </div>
+                      <Avatar
+                        src={displayDoctor.photo}
+                        name={displayDoctor.name}
+                        size="xl"
+                        className="w-24 h-24 border-4 border-clinical-surface shadow-sm text-3xl"
+                      />
                       {displayDoctor.isLive && <div className="absolute bottom-1 right-1 bg-status-green w-5 h-5 rounded-full border-4 border-white"></div>}
                     </div>
                     <h5 className="text-lg font-bold font-display text-clinical-charcoal">{displayDoctor.name}</h5>
