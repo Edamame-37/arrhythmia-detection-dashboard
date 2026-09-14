@@ -28,8 +28,15 @@ interface PatientProfile {
 
 export const PatientHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const [userId, setUserId] = useState<string>(() => localStorage.getItem("user_id") || "1");
+  // Inisialisasi userId dari localStorage dengan nilai default kosong agar SWR tidak menembak endpoint '1' yang tidak valid
+  const [userId, setUserId] = useState<string>(() => {
+    const id = localStorage.getItem("user_id");
+    return id && id !== "1" ? id : "";
+  });
   const userRole = localStorage.getItem("user_role");
+
+  // State untuk melihat seluruh rekaman (berguna jika akun pasien baru belum memiliki sesi rekaman pribadi atau untuk demonstrasi/evaluasi)
+  const [viewAllSessions, setViewAllSessions] = useStickyState<boolean>(userRole === 'admin', "patientHistoryViewAll");
 
   // Sinkronkan userId jika localStorage belum terisi tapi ada sesi Supabase aktif
   useEffect(() => {
@@ -52,12 +59,19 @@ export const PatientHistoryPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useStickyState(1, "patientHistoryPage");
   const itemsPerPage = 10;
 
-  // Jika role pengguna adalah admin, panggil endpoint /api/sessions agar admin dapat memantau seluruh sesi
-  const sessionsEndpoint = userRole === 'admin'
-    ? `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`
-    : `/api/patients/${userId}/sessions?page=${currentPage}&limit=${itemsPerPage}`;
+  // Ambil data profil pasien untuk memastikan kita mendapatkan ID pasien resmi (profile.patient.id)
+  const { data: profile } = useCachedFetch(userId ? `/api/patients/${userId}` : null);
+  
+  // Prioritaskan ID resmi dari tabel patients jika tersedia, atau fallback ke userId dari session auth
+  const resolvedPatientId = profile?.patient?.id || (userId && userId !== "1" ? userId : null);
 
-  const { data: profile } = useCachedFetch(`/api/patients/${userId}`);
+  // Jika role admin atau dalam mode viewAllSessions, panggil endpoint /api/sessions
+  // Jika pasien dan resolvedPatientId tersedia, panggil /api/patients/${resolvedPatientId}/sessions
+  const isAllMode = userRole === 'admin' || viewAllSessions;
+  const sessionsEndpoint = isAllMode
+    ? `/api/sessions?page=${currentPage}&limit=${itemsPerPage}`
+    : (resolvedPatientId ? `/api/patients/${resolvedPatientId}/sessions?page=${currentPage}&limit=${itemsPerPage}` : null);
+
   const { data: sessionsResponse, mutate: mutateSessions, isLoading, error: sessionsError } = useCachedFetch(sessionsEndpoint, { keepPreviousData: true });
 
   const apiSessions: SessionRecord[] = useMemo(() => {
@@ -183,16 +197,70 @@ export const PatientHistoryPage: React.FC = () => {
               <h1 className="text-3xl font-extrabold font-display text-clinical-charcoal mb-2">{t("history.title")}</h1>
               <p className="text-sm font-medium text-clinical-charcoal/60">{t("history.desc")}</p>
             </div>
-            <button
-              onClick={() => setShowScreenCalibration(true)}
-              aria-label="Kalibrasi layar dengan penggaris"
-              title="Kalibrasi ukuran fisik layar"
-              className="flex items-center justify-center gap-2 bg-clinical-surface hover:bg-clinical-charcoal/5 border border-clinical-charcoal/10 px-4 py-2 rounded-full font-bold text-xs transition-all duration-300 outline-none hover:-translate-y-0.5 shadow-sm"
-            >
-              <RulerIcon size={18} />
-              Ruler
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Tab Selector: Rekaman Saya vs Data Sampel Demo */}
+              {userRole !== 'admin' && (
+                <div className="flex items-center gap-1.5 bg-clinical-surface p-1 rounded-full border border-clinical-charcoal/10 shadow-sm">
+                  <button
+                    onClick={() => {
+                      setViewAllSessions(false);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      !isAllMode 
+                        ? 'bg-white text-clinical-blue shadow-sm' 
+                        : 'text-clinical-charcoal/60 hover:text-clinical-charcoal'
+                    }`}
+                  >
+                    Rekaman Saya
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewAllSessions(true);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      isAllMode 
+                        ? 'bg-clinical-blue text-white shadow-sm' 
+                        : 'text-clinical-charcoal/60 hover:text-clinical-charcoal'
+                    }`}
+                  >
+                    <span>Data Sampel</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isAllMode ? 'bg-white/20 text-white' : 'bg-clinical-charcoal/10 text-clinical-charcoal/70'}`}>Demo</span>
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={() => setShowScreenCalibration(true)}
+                aria-label="Kalibrasi layar dengan penggaris"
+                title="Kalibrasi ukuran fisik layar"
+                className="flex items-center justify-center gap-2 bg-clinical-surface hover:bg-clinical-charcoal/5 border border-clinical-charcoal/10 px-4 py-2 rounded-full font-bold text-xs transition-all duration-300 outline-none hover:-translate-y-0.5 shadow-sm"
+              >
+                <RulerIcon size={18} />
+                Ruler
+              </button>
+            </div>
           </header>
+
+          {/* Banner Informasi Mode Demonstrasi */}
+          {isAllMode && userRole !== 'admin' && (
+            <div className="mb-6 bg-blue-50/70 border border-clinical-blue/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs z-10 animate-in fade-in duration-300">
+              <div className="flex items-center gap-2.5 text-clinical-blue font-medium">
+                <span className="material-symbols-outlined text-[20px]">info</span>
+                <span>Menampilkan rekaman EKG sampel dari sistem (Mode Demonstrasi & Evaluasi Medis).</span>
+              </div>
+              <button
+                onClick={() => {
+                  setViewAllSessions(false);
+                  setCurrentPage(1);
+                }}
+                className="font-bold text-clinical-blue hover:underline shrink-0"
+              >
+                Kembali ke Rekaman Saya
+              </button>
+            </div>
+          )}
+
           <div className="space-y-4 z-10">
             {isLoading && sessions.length === 0 ? (
               <div className="space-y-4">
@@ -207,11 +275,31 @@ export const PatientHistoryPage: React.FC = () => {
                 ))}
               </div>
             ) : sessions.length === 0 ? (
-              <div className="text-center text-clinical-charcoal/60 p-12 bg-white rounded-2xl border border-clinical-charcoal/5 shadow-sm flex flex-col items-center justify-center">
-                <span className="material-symbols-outlined text-5xl text-clinical-charcoal/20 mb-3">history</span>
-                <p className="font-bold text-base text-clinical-charcoal">{t("history.noHistory")}</p>
-                <p className="text-xs text-clinical-charcoal/50 mt-1">Belum ada sesi pemantauan EKG yang tercatat untuk akun ini.</p>
-                {sessionsError && <p className="text-xs text-alert-red mt-2 font-medium">Gagal memuat sesi: {sessionsError.message}</p>}
+              <div className="text-center text-clinical-charcoal/60 p-12 bg-white rounded-2xl border border-clinical-charcoal/5 shadow-sm flex flex-col items-center justify-center max-w-lg mx-auto">
+                <div className="w-16 h-16 rounded-full bg-slate-50 text-clinical-charcoal/30 flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-4xl">folder_off</span>
+                </div>
+                <p className="font-bold text-base text-clinical-charcoal mb-1">
+                  {!isAllMode ? "Belum Ada Rekaman Pribadi" : t("history.noHistory")}
+                </p>
+                <p className="text-xs text-clinical-charcoal/50 mb-6 leading-relaxed">
+                  {!isAllMode 
+                    ? "Akun Anda belum memiliki sesi rekaman EKG yang tersimpan di sistem. Anda dapat melihat rekaman sampel yang tersedia."
+                    : "Belum ada rekaman pemantauan EKG yang tercatat di database."}
+                </p>
+                {!isAllMode && (
+                  <button
+                    onClick={() => {
+                      setViewAllSessions(true);
+                      setCurrentPage(1);
+                    }}
+                    className="px-6 py-3 rounded-full bg-clinical-blue text-white font-bold text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 shadow-md shadow-clinical-blue/20"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">medical_services</span>
+                    Tampilkan Rekaman Sampel / Demo
+                  </button>
+                )}
+                {sessionsError && <p className="text-xs text-alert-red mt-3 font-medium">Gagal memuat sesi: {sessionsError.message}</p>}
               </div>
             ) : (
               (() => {
