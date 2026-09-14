@@ -34,20 +34,39 @@ export const LoginPage: React.FC = () => {
       });
 
       if (authError) {
-        setError(authError.message || 'Gagal login. Periksa email atau password.');
+        if (authError.message === 'Failed to fetch' || authError.message?.includes('fetch')) {
+          setError('Gagal menghubungi server autentikasi (Failed to fetch). Periksa koneksi jaringan atau pastikan backend dan proxy aktif.');
+        } else {
+          setError(authError.message || 'Gagal login. Periksa email atau password.');
+        }
         return;
       }
 
       if (authData.user && authData.session) {
-        // Ambil role dari Backend Rust
+        // Ambil role dari Backend Rust (dengan fallback ke user_metadata)
         try {
             // Kita HARUS mendaftarkan sesi access token agar fetchWithAuth berfungsi
             localStorage.setItem('auth_token', authData.session.access_token);
             
-            const response = await fetchWithAuth('/api/auth/me');
-            const data = await response.json();
-            
-            if (response.ok && data.success && data.role) {
+            let userRole: string | null = null;
+            try {
+                const response = await fetchWithAuth('/api/auth/me');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.role) {
+                        userRole = data.role;
+                    }
+                }
+            } catch (apiErr) {
+                console.warn("Backend API /api/auth/me tidak merespons, mencoba fallback metadata...", apiErr);
+            }
+
+            // Fallback role dari user_metadata jika backend API belum terjangkau
+            if (!userRole && authData.user.user_metadata?.role) {
+                userRole = authData.user.user_metadata.role;
+            }
+
+            if (userRole) {
                 // Hapus data koneksi lama sebelum login baru berhasil
                 localStorage.removeItem('connectedPatients');
                 localStorage.removeItem('connectedDoctor');
@@ -55,24 +74,23 @@ export const LoginPage: React.FC = () => {
 
                 // Simpan data auth ke localStorage
                 localStorage.setItem('user_id', authData.user.id);
-                localStorage.setItem('user_role', data.role);
+                localStorage.setItem('user_role', userRole);
                 
                 // Navigasi jika berhasil
-                if (data.role === 'pasien') {
+                if (userRole === 'pasien') {
                   navigate('/patient/dashboard');
-                } else if (data.role === 'dokter') {
+                } else if (userRole === 'dokter') {
                   navigate('/doctor/dashboard');
                 } else {
                   navigate('/admin/dashboard');
                 }
             } else {
-                console.warn("Gagal mengambil role dari backend:", data.message);
-                setError("Gagal memverifikasi akun Anda dengan server. Pastikan API menyala.");
+                setError("Gagal memverifikasi role akun Anda. Pastikan API backend Rust menyala.");
                 await supabase.auth.signOut();
                 localStorage.clear();
             }
         } catch (err) {
-            console.error("Kesalahan jaringan saat mengambil profil:", err);
+            console.error("Kesalahan jaringan saat memproses login:", err);
             setError("Koneksi ke server terputus. Pastikan backend Rust berjalan.");
             await supabase.auth.signOut();
             localStorage.clear();
