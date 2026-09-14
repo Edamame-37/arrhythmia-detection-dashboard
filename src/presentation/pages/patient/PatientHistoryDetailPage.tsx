@@ -152,7 +152,7 @@ export const PatientHistoryDetailPage: React.FC = () => {
 
     Promise.all([
       fetchWithAuth(`/api/records/${sessionId}`)
-        .then((res) => (res.ok ? res.json() : []))
+        .then((res) => (res.ok !== false ? res.json() : []))
         .catch((err) => {
           console.warn("Gagal memuat file rekaman sesi:", err);
           return [];
