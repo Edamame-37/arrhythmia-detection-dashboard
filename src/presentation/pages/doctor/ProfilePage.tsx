@@ -8,6 +8,7 @@ import { API_URL } from '../../../config/env';
 import { fetchWithAuth, getPhotoUrl } from '../../../config/api';
 import { useCachedFetch } from '../../../application/hooks/useCachedFetch';
 import { ActionModal } from '../../components/shared/ActionModal';
+import { Avatar } from '../../components/shared/Avatar';
 
 interface DoctorProfile {
     id: string;
@@ -195,13 +196,12 @@ export const ProfilePage: React.FC = () => {
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none z-0 group-hover:scale-110 transition-transform duration-700 text-clinical-blue">
                                     <span className="material-symbols-outlined text-[150px] md:text-[200px]">manage_accounts</span>
                                 </div>
-                                <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-white flex items-center justify-center mb-5 md:mb-6 z-10 group-hover:shadow-2xl transition-all duration-700">
-                                    {profile?.profile_photo ? (
-                                        <img alt="Profile" className="w-full h-full object-cover" src={getPhotoUrl(profile.profile_photo)} />
-                                    ) : (
-                                        <span className="material-symbols-outlined text-4xl md:text-6xl text-clinical-charcoal/70">person</span>
-                                    )}
-                                </div>
+                                <Avatar 
+                                    src={profile?.profile_photo}
+                                    name={profile ? `Dr. ${profile.first_name} ${profile.last_name}` : ''}
+                                    size="2xl"
+                                    className="border-4 border-white shadow-xl mb-5 md:mb-6 z-10 group-hover:shadow-2xl transition-all duration-700"
+                                />
                                 <h2 className="text-xl md:text-2xl font-bold text-clinical-charcoal tracking-tight mb-1 relative z-10 group-hover:text-clinical-blue transition-colors duration-700">
                                     {isLoading ? 'Memuat...' : (profile ? `${profile.first_name} ${profile.last_name}` : 'Tidak Ditemukan')}
                                 </h2>
