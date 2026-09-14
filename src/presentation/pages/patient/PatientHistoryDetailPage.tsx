@@ -142,25 +142,28 @@ export const PatientHistoryDetailPage: React.FC = () => {
 
     setIsLoading(true);
     setIsLoading(true);
-    const frameRecordsPromise = isSupabaseConfigured
-      ? supabase
-          .from("frame_records")
-          .select("start_time, label, hidden")
-          .eq("session_id", sessionId)
+    const frameRecordsPromise: Promise<any[]> = isSupabaseConfigured
+      ? Promise.resolve(
+          supabase
+            .from("frame_records")
+            .select("start_time, label, hidden")
+            .eq("session_id", sessionId)
+        )
           .then(({ data }) => data || [])
+          .catch((err: unknown) => {
+            console.warn("Gagal memuat catatan frame Supabase:", err);
+            return [];
+          })
       : Promise.resolve([]);
 
     Promise.all([
       fetchWithAuth(`/api/records/${sessionId}`)
         .then((res) => (res.ok !== false ? res.json() : []))
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.warn("Gagal memuat file rekaman sesi:", err);
           return [];
         }),
-      frameRecordsPromise.catch((err) => {
-        console.warn("Gagal memuat catatan frame Supabase:", err);
-        return [];
-      }),
+      frameRecordsPromise,
     ])
       .then(([rawData, frameRecords]) => {
         let data = Array.isArray(rawData) ? rawData : [];
@@ -178,7 +181,7 @@ export const PatientHistoryDetailPage: React.FC = () => {
         const labelMap = new Map();
         const hiddenMap = new Map();
         if (frameRecords) {
-          frameRecords.forEach((fr) => {
+          frameRecords.forEach((fr: any) => {
             labelMap.set(fr.start_time, fr.label);
             hiddenMap.set(fr.start_time, fr.hidden);
           });
