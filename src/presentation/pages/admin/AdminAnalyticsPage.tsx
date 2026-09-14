@@ -11,6 +11,7 @@ import useSWR from "swr";
 import { EcgViewer } from "../../components/dashboard/EcgViewer";
 import { useCachedFetch } from "../../../application/hooks/useCachedFetch";
 import { TimelineBar } from "../../components/shared/TimelineBar";
+import { Avatar } from "../../components/shared/Avatar";
 import type { ECGPaths, RPeakMarker, TimelineEvent } from "../../../core/types/ecgTypes";
 import { calculateFrameHeartRate, extractRawFromPayload, FILTERS_CLINICAL_DEFAULT } from "../../../core/algorithms/ecgFrameProcessor";
 import { AdminSidebar } from "../../components/layout/AdminSidebar";
@@ -183,11 +184,14 @@ export const AdminAnalyticsPage: React.FC = () => {
       const startTime = originalIndex * 10;
       const dbLabel = labelMap.get(startTime);
 
-      const isDbLabelAnomaly = dbLabel && dbLabel !== "Normal" && dbLabel !== "NORM" && dbLabel !== "NSR";
-      const isPayloadAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) || (payload.prediction?.label && payload.prediction.label !== "Normal" && payload.prediction.label !== "NORM") || false;
+      const isDbLabelAnomaly = dbLabel && dbLabel !== "Non Arrhythmia" && dbLabel !== "Normal" && dbLabel !== "NORM" && dbLabel !== "NSR";
+      const isPayloadAnomaly = (payload.anomaly_indices && payload.anomaly_indices.length > 0) || (payload.prediction?.label && payload.prediction.label !== "Non Arrhythmia" && payload.prediction.label !== "Normal" && payload.prediction.label !== "NORM") || false;
 
       const isAnomaly = dbLabel ? isDbLabelAnomaly : isPayloadAnomaly;
-      const classResult = dbLabel || payload.prediction?.label || payload.classification_result || "NORM";
+      let classResult = dbLabel || payload.prediction?.label || payload.classification_result || "NORM";
+      if (classResult === "Normal" || classResult === "NORM" || classResult === "NSR") {
+          classResult = "Non Arrhythmia";
+      }
 
       loadedEvents.push({
         index: i,
@@ -206,7 +210,7 @@ export const AdminAnalyticsPage: React.FC = () => {
         payload, // Store raw payload for lazy parsing
         rPeaks: [],
         isAnomaly,
-        diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Normal Sinus Rhythm. Variasi stabil.",
+        diagnosis: isAnomaly ? "Anomali Terdeteksi pada rekaman." : "Non Arrhythmia. Variasi stabil.",
         heartRate: calculatedHR,
         frameId: payload.message_id || payload.frame_id || "---",
         deviceId: payload.device_id || "---",
@@ -281,7 +285,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   const clinicalStatus: ClinicalExplanation | null = currentSegment
     ? {
         isAnomaly: currentSegment.isAnomaly,
-        fullExplanation: `${currentSegment.isAnomaly ? "Anomali Terdeteksi" : "Normal"} - ${currentEvent?.classResult}. ${currentSegment.diagnosis}`,
+        fullExplanation: `${currentSegment.isAnomaly ? "Anomali Terdeteksi" : "Non Arrhythmia"} - ${currentEvent?.classResult}. ${currentSegment.diagnosis}`,
         severity: currentSegment.isAnomaly ? "CRITICAL" : "NORMAL",
       }
     : null;
@@ -421,15 +425,12 @@ export const AdminAnalyticsPage: React.FC = () => {
                           onClick={() => navigate(`/admin/analytics?sessionId=${session.id}`)}
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-white-container-low flex items-center justify-center font-headline-md text-outline uppercase overflow-hidden flex-shrink-0">
-                              {session.patient_id && patientPhotos[session.patient_id] ? (
-                                <img src={getPhotoUrl(patientPhotos[session.patient_id])} alt={session.patient_name || ""} className="w-full h-full object-cover" />
-                              ) : session.patient_name ? (
-                                session.patient_name.substring(0, 2)
-                              ) : (
-                                "UK"
-                              )}
-                            </div>
+                              <Avatar
+                                src={session.patient_id ? patientPhotos[session.patient_id] : null}
+                                name={session.patient_name || 'UK'}
+                                size="md"
+                                className="w-10 h-10 bg-white-container-low text-outline flex-shrink-0"
+                              />
                             <div>
                               <h4 className="font-headline-md text-sm font-body-sm text-clinical-charcoal truncate max-w-[200px]">{session.patient_name || "Pasien Anonim"}</h4>
                               <p className="text-xs font-body-sm text-clinical-charcoal/70 font-mono-data mt-0.5">
