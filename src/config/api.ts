@@ -46,15 +46,11 @@ export const getPhotoUrl = (url: string | null | undefined) => {
         return normalizedUrl;
     }
     
-    // Tangani path yang memiliki /uploads/
+    // Tangani path yang memiliki /uploads/ (termasuk yang diawali http://127.0.0.1:8081/uploads/)
+    // Selalu kembalikan path relatif /uploads/... agar dilayani melalui Vite proxy secara same-origin
     if (normalizedUrl.includes('/uploads/')) {
         const parts = normalizedUrl.split('/uploads/');
-        const subPath = parts[1].replace(/^\/+/, '');
-        
-        const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
-        if (baseUrl.startsWith('http')) {
-            return `${baseUrl}/uploads/${subPath}`;
-        }
+        const subPath = parts[parts.length - 1].replace(/^\/+/, '');
         return `/uploads/${subPath}`;
     }
     
@@ -63,6 +59,10 @@ export const getPhotoUrl = (url: string | null | undefined) => {
     }
     
     const cleanPath = normalizedUrl.startsWith('/') ? normalizedUrl : `/${normalizedUrl}`;
+    // Jika path relatif mengarah ke uploads lokal
+    if (cleanPath.startsWith('/uploads/')) {
+        return cleanPath;
+    }
     const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
     return `${baseUrl}${cleanPath}`;
 };
