@@ -10,12 +10,12 @@ describe('Clinical Rule-Based Engine', () => {
       expect(result.isIrregular).toBe(false);
     });
 
-    it('should identify Normal Sinus Rhythm for steady 60 BPM (1s intervals)', () => {
+    it('should identify Non Arrhythmia for steady 60 BPM (1s intervals)', () => {
       const result = evaluateIrregularity([1.0, 1.0, 1.0]);
       expect(result.hr).toBe(60);
       expect(result.rrAvgMs).toBe(1000);
       expect(result.rmssdMs).toBe(0); // Constant interval
-      expect(result.events).toContain('Normal Sinus Rhythm');
+      expect(result.events).toContain('Non Arrhythmia');
       expect(result.isIrregular).toBe(false);
     });
 
@@ -42,13 +42,13 @@ describe('Clinical Rule-Based Engine', () => {
   });
 
   describe('generateClinicalExplanation', () => {
-    it('should synthesize a normal explanation when both AI and rules say normal', () => {
+    it('should synthesize a normal explanation when both AI and rules say Non Arrhythmia', () => {
       const ruleResult = evaluateIrregularity([1.0, 1.0, 1.0]); // 60 BPM
       const explanation = generateClinicalExplanation('NORM', false, ruleResult);
       
       expect(explanation.isAnomaly).toBe(false);
       expect(explanation.severity).toBe('NORMAL');
-      expect(explanation.fullExplanation).toContain('Normal');
+      expect(explanation.fullExplanation).toContain('Non Arrhythmia');
       expect(explanation.fullExplanation).toContain('NORM');
     });
 

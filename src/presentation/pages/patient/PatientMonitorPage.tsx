@@ -169,7 +169,7 @@ export const PatientMonitorPage: React.FC = () => {
   }, [rPeaks, visibleCount, paths.I.length]);
 
   useEffect(() => {
-    const isNormal = rawClassification?.toUpperCase() === "NORMAL" || rawClassification?.toUpperCase() === "NORM";
+    const isNormal = rawClassification?.toUpperCase() === "NON ARRHYTHMIA" || rawClassification?.toUpperCase() === "NORM";
     setShowAlert(clinicalStatus?.isAnomaly && !isNormal ? true : false);
   }, [clinicalStatus, rawClassification]);
 

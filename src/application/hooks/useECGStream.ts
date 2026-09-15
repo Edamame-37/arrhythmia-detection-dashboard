@@ -190,8 +190,11 @@ export const useECGStream = (endpoint: string, patientIdOrFilter: string | Strea
     liveRef.current.currentPaths = rendered.paths;
     calculateBpmInBackground(raw, filterConfigRef.current, (bpm, rrIntervals) => {
       setHeartRate(bpm > 0 ? bpm : "--");
-      const classification = payload.classification_result || payload.prediction_details?.label || "UNKNOWN";
-      const isNormal = classification.toUpperCase() === "NORMAL" || classification.toUpperCase() === "NORM";
+      let classification = payload.classification_result || payload.prediction_details?.label || "UNKNOWN";
+      const isNormal = classification.toUpperCase() === "NORMAL" || classification.toUpperCase() === "NORM" || classification.toUpperCase() === "NON ARRHYTHMIA";
+      if (isNormal) {
+          classification = "Non Arrhythmia";
+      }
       setClinicalStatus(generateClinicalExplanation(classification, !isNormal, evaluateIrregularity(rrIntervals)));
     });
   };
@@ -217,8 +220,11 @@ export const useECGStream = (endpoint: string, patientIdOrFilter: string | Strea
     const ch2 = payload.raw.ch2;
     const ch3 = payload.raw.ch3;
     const config = filterConfigRef.current;
-    const classification_result = payload.classification_result;
-    const isNormal = classification_result?.toUpperCase() === "NORMAL" || classification_result?.toUpperCase() === "NORM";
+    let classification_result = payload.classification_result;
+    const isNormal = classification_result?.toUpperCase() === "NORMAL" || classification_result?.toUpperCase() === "NORM" || classification_result?.toUpperCase() === "NON ARRHYTHMIA";
+    if (isNormal) {
+        classification_result = "Non Arrhythmia";
+    }
 
     for (let i = 0; i < ch1.length; i++) {
       if (xIndex >= TOTAL_POINTS) {
@@ -284,8 +290,11 @@ export const useECGStream = (endpoint: string, patientIdOrFilter: string | Strea
       clientRef.current.onMessage = (msg: ServerMessage) => {
         if (msg.type === "summary" && msg.data) {
           const summaries = msg.data.map((seg) => {
-            const classRes = (seg as any).class_result;
-            const isNormal = classRes?.toUpperCase() === "NORMAL" || classRes?.toUpperCase() === "NORM";
+            let classRes = (seg as any).class_result;
+            const isNormal = classRes?.toUpperCase() === "NORMAL" || classRes?.toUpperCase() === "NORM" || classRes?.toUpperCase() === "NON ARRHYTHMIA";
+            if (isNormal) {
+                classRes = "Non Arrhythmia";
+            }
             return { index: (seg as any).index, timeStr: formatTime((seg as any).index * 10), isAnomaly: !isNormal, classResult: classRes };
           });
           setTimeline(summaries);
