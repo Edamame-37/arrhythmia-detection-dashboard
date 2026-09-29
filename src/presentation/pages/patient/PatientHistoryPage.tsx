@@ -322,7 +322,8 @@ export const PatientHistoryPage: React.FC = () => {
                             fingerprint
                           </span>
                           <span className="uppercase font-mono-data text-xs">
-                            {t("history.id")}: {session.id.substring(0, 8)}
+                            {/* Menampilkan ID session secara penuh sesuai permintaan */}
+                            {t("history.id")}: {session.id}
                           </span>
                         </div>
                       </div>
