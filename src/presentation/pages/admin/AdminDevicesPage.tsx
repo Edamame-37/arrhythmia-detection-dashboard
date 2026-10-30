@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import QRCode from "react-qr-code";
 import { AdminSidebar } from "../../components/layout/AdminSidebar";
 import { useSidebar } from "../../../application/context/SidebarContext";
@@ -10,6 +10,8 @@ import { useCachedFetch } from "../../../application/hooks/useCachedFetch";
 interface DeviceRecord {
   id: string;
   name: string;
+  hardware_id: string | null;
+  mapping_status: "mapped" | "unmapped";
   mqtt_broker: string;
   mqtt_port: number;
   mqtt_topic: string;
@@ -22,32 +24,77 @@ export const AdminDevicesPage: React.FC = () => {
   const {
     data: devicesData,
     isLoading: loading,
+    error: devicesError,
     mutate: mutateDevices,
   } = useCachedFetch("/api/admin/devices");
-  const devices: DeviceRecord[] = devicesData || [];
+  const devices: DeviceRecord[] = Array.isArray(devicesData) ? devicesData : [];
   const [selectedDeviceQr, setSelectedDeviceQr] = useState<string | null>(null);
 
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
+    hardware_id: "",
     mqtt_broker: "",
-    mqtt_port: 8883,
+    mqtt_port: "8883",
     mqtt_topic: "",
     mqtt_username: "",
     mqtt_password: "",
   });
+  const savingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [connectionWarning, setConnectionWarning] = useState("");
+  const [refreshError, setRefreshError] = useState("");
+  const closeForm = () => {
+    if (!savingRef.current) setIsRegisterModalOpen(false);
+  };
 
   const [currentPage, setCurrentPage] = useStickyState(1, "adminDevicesPage");
   const itemsPerPage = 10;
 
-  // Fetching is handled by SWR
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingRef.current) return;
+    const fields = {
+      ...formData,
+      name: formData.name.trim(),
+      hardware_id: formData.hardware_id.trim(),
+      mqtt_broker: formData.mqtt_broker.trim(),
+      mqtt_port: Number(formData.mqtt_port),
+      mqtt_topic: formData.mqtt_topic.trim(),
+      mqtt_username: formData.mqtt_username.trim(),
+    };
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(fields.hardware_id)) {
+      setFormError("ID perangkat fisik harus berisi 1–128 huruf, angka, tanda hubung, atau garis bawah.");
+      return;
+    }
+    if (!fields.name || fields.name.length > 200) {
+      setFormError("Nama perangkat harus berisi 1–200 karakter.");
+      return;
+    }
+    if (!Number.isInteger(fields.mqtt_port) || fields.mqtt_port !== 8883) {
+      setFormError("Koneksi MQTT harus memakai TLS pada port 8883.");
+      return;
+    }
+    if (!fields.mqtt_topic || fields.mqtt_topic.length > 200 || /[#+]/.test(fields.mqtt_topic)) {
+      setFormError("Gunakan satu topik MQTT yang tepat tanpa wildcard # atau +.");
+      return;
+    }
+    if (!fields.mqtt_broker || !fields.mqtt_username || (!editingDeviceId && !fields.mqtt_password)) {
+      setFormError("Broker, username, dan password perangkat baru wajib diisi.");
+      return;
+    }
+    savingRef.current = true;
+    setIsSaving(true);
+    setFormError("");
+    setNotice("");
+    setConnectionWarning("");
+    setRefreshError("");
     try {
       const url = editingDeviceId
-        ? `/api/admin/devices/${editingDeviceId}`
+        ? `/api/admin/devices/${encodeURIComponent(editingDeviceId)}`
         : `/api/admin/devices`;
       const method = editingDeviceId ? "PUT" : "POST";
 
@@ -56,18 +103,26 @@ export const AdminDevicesPage: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(fields),
       });
-      const data = await res.json();
-      if (data.success) {
-        alert("Device registered successfully!");
-        setIsRegisterModalOpen(false);
-        mutateDevices();
-      } else {
-        alert("Gagal: " + (data.message || data.error || JSON.stringify(data)));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success !== true || data.saved !== true) {
+        throw new Error(data.message || data.error || `Konfigurasi gagal disimpan (${res.status}).`);
       }
+      setNotice(`Konfigurasi ${data.id || editingDeviceId || fields.hardware_id} tersimpan. Menunggu konfirmasi koneksi perangkat.`);
+      if (data.connection_status === "unavailable") {
+        setConnectionWarning(data.connection_message || "Konfigurasi tersimpan, tetapi koneksi perangkat belum tersedia. Periksa broker dan status perangkat.");
+      }
+      setIsRegisterModalOpen(false);
+      setCurrentPage(1);
+      void mutateDevices().catch(() => {
+        setRefreshError("Konfigurasi tersimpan, tetapi daftar perangkat belum berhasil diperbarui. Muat ulang halaman untuk mencoba lagi.");
+      });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Permintaan gagal.");
+      setFormError(err instanceof Error ? err.message : "Permintaan gagal.");
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -99,6 +154,9 @@ export const AdminDevicesPage: React.FC = () => {
         </header>
 
         <div className="px-4 md:px-6 w-full mt-6 w-full flex-1 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+          {notice && <p role="status" className="mb-4 rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
+          {connectionWarning && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{connectionWarning}</p>}
+          {refreshError && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{refreshError}</p>}
           <div className="bg-white border border-clinical-charcoal/5 rounded-[2rem] shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-500">
             <div className="p-6 border-b border-clinical-charcoal/5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/50 backdrop-blur-sm">
               <h2 className="font-bold text-clinical-charcoal text-lg">
@@ -109,12 +167,14 @@ export const AdminDevicesPage: React.FC = () => {
                   setEditingDeviceId(null);
                   setFormData({
                     name: "",
+                    hardware_id: "",
                     mqtt_broker: "",
-                    mqtt_port: 8883,
+                    mqtt_port: "8883",
                     mqtt_topic: "",
                     mqtt_username: "",
                     mqtt_password: "",
                   });
+                  setFormError("");
                   setIsRegisterModalOpen(true);
                 }}
                 className="bg-clinical-blue text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -130,10 +190,10 @@ export const AdminDevicesPage: React.FC = () => {
                 <thead>
                   <tr className="bg-clinical-surface/50 text-clinical-charcoal/60 text-[10px] uppercase tracking-wider font-bold">
                     <th className="p-4 border-b border-clinical-charcoal/5">
-                      Device ID
+                      ID Internal
                     </th>
                     <th className="p-4 border-b border-clinical-charcoal/5">
-                      Device Name
+                      Nama / ID Fisik
                     </th>
                     <th className="p-4 border-b border-clinical-charcoal/5">
                       MQTT Broker
@@ -156,6 +216,8 @@ export const AdminDevicesPage: React.FC = () => {
                         Loading...
                       </td>
                     </tr>
+                  ) : devicesError ? (
+                    <tr><td colSpan={6} className="p-4 text-center text-red-700" role="alert">Daftar perangkat gagal dimuat. Muat ulang halaman untuk mencoba lagi.</td></tr>
                   ) : (
                     (() => {
                       const paginatedDevices = devices.slice(
@@ -172,6 +234,7 @@ export const AdminDevicesPage: React.FC = () => {
                           </td>
                           <td className="p-4 font-bold text-sm text-clinical-charcoal">
                             {d.name}
+                            <span className="block font-mono text-xs font-normal text-clinical-charcoal/70">{d.hardware_id || "Belum dipetakan"}</span>
                           </td>
                           <td className="p-4 font-mono text-xs text-clinical-charcoal/70">
                             {d.mqtt_broker}:{d.mqtt_port}
@@ -221,12 +284,14 @@ export const AdminDevicesPage: React.FC = () => {
                                 setEditingDeviceId(d.id);
                                 setFormData({
                                   name: d.name,
+                                  hardware_id: d.hardware_id || "",
                                   mqtt_broker: d.mqtt_broker,
-                                  mqtt_port: d.mqtt_port,
+                                  mqtt_port: String(d.mqtt_port),
                                   mqtt_topic: d.mqtt_topic,
                                   mqtt_username: d.mqtt_username,
                                   mqtt_password: "",
                                 });
+                                setFormError("");
                                 setIsRegisterModalOpen(true);
                               }}
                               className="text-clinical-charcoal hover:text-clinical-blue text-xs font-bold flex items-center gap-1 transition-colors"
@@ -300,7 +365,7 @@ export const AdminDevicesPage: React.FC = () => {
       {isRegisterModalOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setIsRegisterModalOpen(false)}
+          onClick={closeForm}
         >
           <div
             className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl flex flex-col"
@@ -309,29 +374,39 @@ export const AdminDevicesPage: React.FC = () => {
             <h3 className="text-2xl font-bold text-charcoal mb-6 text-center">
               {editingDeviceId ? "Edit Alat" : "Registrasi Alat Baru"}
             </h3>
-            <form onSubmit={handleRegister} className="flex flex-col gap-4">
+            <form aria-label="Konfigurasi perangkat" onSubmit={handleRegister} className="flex flex-col gap-4">
+              {formError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{formError}</p>}
+              {editingDeviceId && <p className="text-xs text-on-surface-variant">ID internal: <span className="font-mono">{editingDeviceId}</span></p>}
               <div>
-                <label className="block text-sm font-bold text-charcoal mb-1">
-                  Nama Perangkat (ID)*
+                <label htmlFor="device-name" className="block text-sm font-bold text-charcoal mb-1">
+                  Nama Perangkat*
                 </label>
                 <input
                   required
+                  id="device-name"
+                  maxLength={200}
                   type="text"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest"
-                  placeholder="Contoh: device02"
+                  placeholder="Contoh: Monitor ruang pemeriksaan"
                 />
+              </div>
+              <div>
+                <label htmlFor="device-hardware-id" className="block text-sm font-bold text-charcoal mb-1">ID perangkat fisik*</label>
+                <input required id="device-hardware-id" type="text" maxLength={128} value={formData.hardware_id} onChange={(e) => setFormData({ ...formData, hardware_id: e.target.value })} className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest" placeholder="Contoh: device02" />
+                <p className="mt-1 text-xs text-on-surface-variant">Harus sama dengan device_id yang dikirim perangkat. ID internal dibuat oleh sistem.</p>
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-bold text-charcoal mb-1">
+                  <label htmlFor="device-broker" className="block text-sm font-bold text-charcoal mb-1">
                     MQTT Broker*
                   </label>
                   <input
                     required
+                    id="device-broker"
                     type="text"
                     value={formData.mqtt_broker}
                     onChange={(e) =>
@@ -342,17 +417,21 @@ export const AdminDevicesPage: React.FC = () => {
                   />
                 </div>
                 <div className="w-24">
-                  <label className="block text-sm font-bold text-charcoal mb-1">
+                  <label htmlFor="device-port" className="block text-sm font-bold text-charcoal mb-1">
                     Port*
                   </label>
                   <input
                     required
+                    id="device-port"
                     type="number"
+                    min={1}
+                    max={65535}
+                    step={1}
                     value={formData.mqtt_port}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        mqtt_port: parseInt(e.target.value),
+                        mqtt_port: e.target.value,
                       })
                     }
                     className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest"
@@ -361,27 +440,29 @@ export const AdminDevicesPage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-charcoal mb-1">
+                <label htmlFor="device-topic" className="block text-sm font-bold text-charcoal mb-1">
                   MQTT Topic*
                 </label>
                 <input
                   required
+                  id="device-topic"
                   type="text"
                   value={formData.mqtt_topic}
                   onChange={(e) =>
                     setFormData({ ...formData, mqtt_topic: e.target.value })
                   }
                   className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest"
-                  placeholder="Contoh: ecgrhythmia/#"
+                  placeholder="Contoh: ecgrhythmia/device02"
                 />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-bold text-charcoal mb-1">
+                  <label htmlFor="device-username" className="block text-sm font-bold text-charcoal mb-1">
                     Username*
                   </label>
                   <input
                     required
+                    id="device-username"
                     type="text"
                     value={formData.mqtt_username}
                     onChange={(e) =>
@@ -394,11 +475,12 @@ export const AdminDevicesPage: React.FC = () => {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-bold text-charcoal mb-1">
-                    Password*
+                  <label htmlFor="device-password" className="block text-sm font-bold text-charcoal mb-1">
+                    {editingDeviceId ? "Password" : "Password*"}
                   </label>
                   <input
-                    required
+                    required={!editingDeviceId}
+                    id="device-password"
                     type="password"
                     value={formData.mqtt_password}
                     onChange={(e) =>
@@ -409,21 +491,24 @@ export const AdminDevicesPage: React.FC = () => {
                     }
                     className="w-full border border-outline-variant rounded-lg p-3 outline-none focus:border-medical-teal bg-surface-container-lowest"
                   />
+                  {editingDeviceId && <p className="mt-1 text-xs text-on-surface-variant">Kosongkan untuk mempertahankan password yang tersimpan.</p>}
                 </div>
               </div>
               <div className="flex gap-3 mt-4">
                 <button
                   type="button"
-                  onClick={() => setIsRegisterModalOpen(false)}
+                  onClick={closeForm}
+                  disabled={isSaving}
                   className="flex-1 py-3 font-bold text-on-surface-variant hover:bg-surface-container rounded-xl transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
+                  disabled={isSaving}
                   className="flex-1 py-3 bg-medical-teal text-white font-bold rounded-xl shadow-sm hover:brightness-110 active:scale-95 transition-all"
                 >
-                  Simpan & Pairing
+                  {isSaving ? "Menyimpan..." : "Simpan Konfigurasi"}
                 </button>
               </div>
             </form>
