@@ -360,3 +360,9 @@ Cargo.lock
 # End of https://www.toptal.com/developers/gitignore/api/react,python,node,rust
 
 dataset
+
+playwright-report/
+test-results/
+
+# Retain scrubbed acceptance evidence
+!docs/evidence/*.log
