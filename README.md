@@ -1,5 +1,7 @@
 # ECGRhythmia frontend
 
+Production builds fail unless `VITE_API_URL`, `VITE_WS_URL`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY` are explicit non-placeholder HTTPS/WSS values. Manual release builds use protected repository variables; pull-request checks use `--mode test` and never produce a deployable artifact. The host release script also requires `FRONTEND_PUBLIC_URL` as an exact HTTPS origin for post-switch readiness and rollback.
+
 React/TypeScript dashboard with Supabase Auth and a private Rust API. Patient, doctor and admin routes use the normalized identity returned by GET /api/auth/me. Private data is never queried directly through Supabase tables.
 
 ## Development and verification
