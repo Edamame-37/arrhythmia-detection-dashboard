@@ -1,0 +1,72 @@
+name: Frontend checks and release
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: ''
+      VITE_WS_URL: ${{ vars.VITE_WS_URL || 'wss://ecg.example.org/ws' }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://test-project.supabase.co' }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'synthetic-public-key' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm audit --audit-level=moderate
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run build
+      - name: Package tested commit
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          printf '{"release":"%s"}\n' "$SHA" > dist/version.json
+          (cd dist; find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          tar -czf frontend.tar.gz -C dist .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: frontend.tar.gz
+          retention-days: 14
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+      - name: Configure pinned SSH host key
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Deploy immutable artifact
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          SHA: ${{ github.sha }}
+        run: |
+          [[ "$HOST" =~ ^[a-zA-Z0-9.-]+$ && "$USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          scp -o StrictHostKeyChecking=yes frontend.tar.gz "$USER@$HOST:/opt/ecgrhythmia-frontend/incoming/$SHA.tar.gz"
+          ssh -o StrictHostKeyChecking=yes "$USER@$HOST" "/opt/ecgrhythmia-frontend/release.sh /opt/ecgrhythmia-frontend/incoming/$SHA.tar.gz $SHA"
