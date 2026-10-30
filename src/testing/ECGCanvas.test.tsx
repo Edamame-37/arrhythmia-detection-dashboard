@@ -1,46 +1,56 @@
-import React from "react";
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
-import { ECGCanvas } from "../presentation/components/canvas/ECGCanvas";
-import { renderFrameFromRaw, FILTERS_ALL_OFF } from "../core/algorithms/ecgFrameProcessor";
-
-const emptyPaths = { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] };
-
-describe("ECGCanvas unit", () => {
-  it("merender path EKG pada SVG", () => {
-    const { paths, rPeaks } = renderFrameFromRaw(
-      {
-        ch1: [0, 1, 0],
-        ch2: [0, 1.2, 0],
-        ch3: [0, 0.5, 0],
-      },
-      FILTERS_ALL_OFF,
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { ECGCanvas } from '../presentation/components/canvas/ECGCanvas';
+import {
+  renderFrameFromRaw,
+  FILTERS_ALL_OFF,
+  parsePathPoint,
+} from '../core/algorithms/ecgFrameProcessor';
+const { paths } = renderFrameFromRaw(
+  { ch1: [0, 1, 0], ch2: [0, 2, 0], ch3: [0, 1, 0] },
+  FILTERS_ALL_OFF,
+);
+describe('ECG physical calibration', () => {
+  it.each([5, 10, 20])('1 mV uses the selected %i mm/mV gain', (gain) => {
+    render(<ECGCanvas paths={paths} rPeaks={[]} gain={gain} pixelsPerMm={4} />);
+    expect(screen.getByTestId('ecg-svg')).toHaveAttribute(
+      'data-calibration-pulse-height-logical',
+      String(gain * 8),
     );
-
-    render(<ECGCanvas paths={paths} rPeaks={rPeaks} paperSpeed={25} scale={1} />);
-    const svg = document.querySelector('[data-testid="ecg-svg"]');
-    expect(svg).toBeTruthy();
-    const leadI = document.querySelector('[data-testid="ecg-path-I"]');
-    expect(leadI?.getAttribute("d")).toContain("M");
-    expect(document.getElementById("ecg-scroll-container")).toBeInTheDocument();
+    expect(screen.getByTestId('ecg-transform-I')).toHaveAttribute(
+      'transform',
+      expect.stringContaining('scale(1,' + gain / 10 + ')'),
+    );
+    expect(screen.queryByTestId('ecg-path-V1')).toBeNull();
   });
-
-  it("menyesuaikan lebar kertas dengan paper speed", () => {
-    const { rerender } = render(<ECGCanvas paths={emptyPaths} rPeaks={[]} paperSpeed={25} />);
-    expect(document.querySelector('[data-testid="ecg-svg"]')?.getAttribute("width")).toBe("2000");
-
-    rerender(<ECGCanvas paths={emptyPaths} rPeaks={[]} paperSpeed={50} />);
-    expect(document.querySelector('[data-testid="ecg-svg"]')?.getAttribute("width")).toBe("8200");
-    expect(document.querySelector('[data-testid="ecg-path-I"]')?.parentElement?.getAttribute("transform")).toContain("scale(4.1, 1)");
-
-    rerender(<ECGCanvas paths={emptyPaths} rPeaks={[]} paperSpeed={12.5} />);
-    expect(document.querySelector('[data-testid="ecg-svg"]')?.getAttribute("width")).toBe("2000");
-    expect(document.querySelector('[data-testid="ecg-path-I"]')?.parentElement?.getAttribute("transform")).toContain("scale(0.25, 1)");
-  });
-
-  it("menerapkan gain melalui scale/zoom", () => {
-    render(<ECGCanvas paths={emptyPaths} rPeaks={[]} scale={2} />);
-    const zoomed = document.querySelector("#ecg-scroll-container > div") as HTMLElement;
-    expect(zoomed.style.zoom).toBe("2");
+  it.each([12.5, 25, 50])(
+    'applies %i mm/s once to waveform and marker',
+    (paperSpeed) => {
+      render(
+        <ECGCanvas
+          paths={paths}
+          rPeaks={[{ x: 100, y: 160, yII: 160 }]}
+          paperSpeed={paperSpeed}
+        />,
+      );
+      expect(screen.getByTestId('ecg-transform-II')).toHaveAttribute(
+        'transform',
+        expect.stringContaining('scale(' + paperSpeed / 25 + ',1)'),
+      );
+      expect(screen.getByTestId('ecg-marker-II').parentElement).toBe(
+        screen.getByTestId('ecg-path-II').parentElement,
+      );
+      expect(screen.getByTestId('ecg-svg')).toHaveAttribute(
+        'data-calibration-pulse-width-logical',
+        String(paperSpeed * 0.4 * 8),
+      );
+    },
+  );
+  it('preserves negative aVR polarity without a second inversion', () => {
+    render(<ECGCanvas paths={paths} rPeaks={[]} />);
+    expect(parsePathPoint(paths.aVR[1]).y).toBe(360);
+    expect(
+      screen.getByTestId('ecg-transform-aVR').getAttribute('transform'),
+    ).toContain('scale(1,1)');
   });
 });
