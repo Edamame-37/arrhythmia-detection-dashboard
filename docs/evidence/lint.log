@@ -1,0 +1,4 @@
+
+> arrhythmia-detection-dashboard@0.2.0 lint
+> oxlint --deny-warnings
+
