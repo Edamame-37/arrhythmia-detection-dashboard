@@ -76,6 +76,8 @@ export async function signInFixture(
   const device = {
     id: "dev_A",
     name: "Synthetic device",
+    hardware_id: "device_pat_A",
+    mapping_status: "mapped",
     status: "Unknown",
     assigned_to: "pat_A",
     last_seen_at: null,
@@ -225,7 +227,17 @@ export async function signInFixture(
               ],
         );
       }
-    } else if (path === "/api/devices" || path === "/api/admin/devices")
+    } else if (
+      path.startsWith("/api/admin/devices") &&
+      (method === "POST" || method === "PUT")
+    )
+      body = {
+        success: true,
+        saved: true,
+        id: "dev_saved",
+        connection_status: "connecting",
+      };
+    else if (path === "/api/devices" || path === "/api/admin/devices")
       body = [device];
     else if (
       path === "/api/sessions" ||
