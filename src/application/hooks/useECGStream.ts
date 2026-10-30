@@ -1,56 +1,50 @@
-/**
- * @fileoverview Modul Application Layer: useECGStream Hook
- * Mengorkestrasi aliran data EKG, BPM per frame penuh, dan sinkronisasi filter.
- */
-
-import { useState, useRef, useCallback, useEffect } from "react";
-import { ECGWebSocketClient } from "../../data/network/websocketClient";
-import { evaluateIrregularity, generateClinicalExplanation } from "../../core/clinical/ruleBasedEngine";
+import { useEcgProcessing } from './useEcgProcessing';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { ECGWebSocketClient } from '../../data/network/websocketClient';
+import { apiJson } from '../../config/api';
+import { useRecordingStatus } from './useRecordingStatus';
+import { useAuth } from '../context/AuthContext';
 import {
-  applyConfiguredFiltersToFrame,
-  buildCanvasPathsFromLeads,
-  buildRPeakMarkersFromLeads,
-  calculateFrameHeartRate,
-  emptyFrameRawSamples,
-  TOTAL_FRAME_SAMPLES,
+  extractRawFromPayload,
+  emptyPaths,
+  FILTERS_CLINICAL_DEFAULT,
   type FrameRawSamples,
   type StreamFilterConfig,
-} from "../../core/algorithms/ecgFrameProcessor";
-
-import type { ClinicalExplanation } from "../../core/clinical/ruleBasedEngine";
-import type { ECGPaths, RPeakMarker, TimelineEvent, ServerMessage, ECGDataPayload, DeviceSystem, DeviceNetwork, DevicePrediction, DeviceStressTest } from "../../core/types/ecgTypes";
-import { fetchWithAuth } from "../../config/api";
-
+} from '../../core/algorithms/ecgFrameProcessor';
+import {
+  evaluateIrregularity,
+  generateClinicalExplanation,
+  isNormalClassification,
+  type ClinicalExplanation,
+} from '../../core/clinical/ruleBasedEngine';
+import { formatRecordingTime } from '../../core/algorithms/ecgCoordinates';
+import type {
+  ECGPaths,
+  RPeakMarker,
+  TimelineEvent,
+  ServerMessage,
+  DevicePrediction,
+  DeviceSystem,
+  DeviceNetwork,
+  DeviceStressTest,
+} from '../../core/types/ecgTypes';
 export type { StreamFilterConfig };
-
-const TOTAL_POINTS = TOTAL_FRAME_SAMPLES;
-
-const formatTime = (seconds: number) => {
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-};
-
-const cloneRaw = (raw: FrameRawSamples): FrameRawSamples => ({
-  ch1: [...raw.ch1],
-  ch2: [...raw.ch2],
-  ch3: [...raw.ch3],
-});
-
-type LiveSnapshot = {
-  xIndex: number;
-  timelineSeconds: number;
-  frameRawSamples: FrameRawSamples;
+interface Snapshot {
+  raw: FrameRawSamples;
+  metadata: any;
   paths: ECGPaths;
   rPeaks: RPeakMarker[];
   heartRate: number | string;
   clinicalStatus: ClinicalExplanation | null;
-  rawClassification: string | null;
-  prediction: DevicePrediction | null;
-};
-
+}
+const initialSnapshot = (): Snapshot => ({
+  raw: { ch1: [], ch2: [], ch3: [] },
+  metadata: {},
+  paths: emptyPaths(),
+  rPeaks: [],
+  heartRate: '--',
+  clinicalStatus: null,
+});
 export interface UseECGStreamReturn {
   isRecording: boolean;
   paths: ECGPaths;
@@ -73,344 +67,357 @@ export interface UseECGStreamReturn {
   rawClassification: string | null;
   isViewingHistory: boolean;
   resumeRealTimeStream: () => void;
+  segment: any;
+  session: ReturnType<typeof useRecordingStatus>['session'];
+  error: string | null;
 }
-
-import { useRecordingStatus } from "./useRecordingStatus";
-
-export const useECGStream = (endpoint: string, patientIdOrFilter: string | StreamFilterConfig, filterConfigArg: StreamFilterConfig = { baselineBlocker: true, hfDenoise: false, bandpass: false, zScoreNorm: false }): UseECGStreamReturn => {
-  const patientId = typeof patientIdOrFilter === "string" ? patientIdOrFilter : localStorage.getItem("user_id") || "1";
-  const filterConfig = typeof patientIdOrFilter === "string" ? filterConfigArg : patientIdOrFilter;
-  const { isRecording, setIsRecording } = useRecordingStatus(patientId);
-  const [paths, setPaths] = useState<ECGPaths>({ I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] });
-  const [rPeaks, setRPeaks] = useState<RPeakMarker[]>([]);
-  const [heartRate, setHeartRate] = useState<number | string>("--");
-  const [clinicalStatus, setClinicalStatus] = useState<ClinicalExplanation | null>(null);
+export const useECGStream = (
+  endpoint: string,
+  patientIdOrFilter: string | StreamFilterConfig,
+  filterConfigArg: StreamFilterConfig = FILTERS_CLINICAL_DEFAULT,
+): UseECGStreamReturn => {
+  const { identity } = useAuth();
+  const patientId =
+    typeof patientIdOrFilter === 'string'
+      ? patientIdOrFilter
+      : identity?.profile_id || '';
+  const filterConfig =
+    typeof patientIdOrFilter === 'string' ? filterConfigArg : patientIdOrFilter;
+  const status = useRecordingStatus(patientId);
+  const [snapshot, setSnapshot] = useState<Snapshot>(initialSnapshot);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-
-  const [system, setSystem] = useState<DeviceSystem | null>(null);
-  const [network, setNetwork] = useState<DeviceNetwork | null>(null);
-  const [prediction, setPrediction] = useState<DevicePrediction | null>(null);
-  const [stressTest, setStressTest] = useState<DeviceStressTest | null>(null);
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
-  const [receivedAt, setReceivedAt] = useState<string | null>(null);
-  const [deviceId, setDeviceId] = useState<string>("MENUNGGU PERANGKAT...");
-  const [sessionId, setSessionId] = useState<string>("MENUNGGU SESI...");
-  const [rawClassification, setRawClassification] = useState<string | null>(null);
-
-  const clientRef = useRef<ECGWebSocketClient | null>(null);
-  const filterConfigRef = useRef(filterConfig);
-  const [isViewingHistory, setIsViewingHistory] = useState<boolean>(false);
-  const isViewingHistoryRef = useRef<boolean>(false);
-  const historicalRawRef = useRef<FrameRawSamples | null>(null);
-  const liveSnapshotRef = useRef<LiveSnapshot | null>(null);
-  const lastSessionIdRef = useRef<string | null>(null);
-  const bpmWorkerRef = useRef<Worker | null>(null);
-  const bpmRequestIdRef = useRef(0);
-
-  const liveRef = useRef({
-    xIndex: 0,
-    currentPaths: { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] } as ECGPaths,
-    timelineSeconds: 0,
-    frameRawSamples: emptyFrameRawSamples() as FrameRawSamples,
-  });
-
-  const setViewingHistory = (val: boolean) => {
-    isViewingHistoryRef.current = val;
-    setIsViewingHistory(val);
-  };
-
-  const renderRawFrame = (raw: FrameRawSamples, config: StreamFilterConfig) => {
-    const leads = applyConfiguredFiltersToFrame(raw, config);
-    const nextPaths = buildCanvasPathsFromLeads(leads);
-    const rPeakMarkers = buildRPeakMarkersFromLeads(leads);
-    setPaths({ ...nextPaths });
-    setRPeaks(rPeakMarkers);
-    return { paths: nextPaths, rPeaks: rPeakMarkers };
-  };
-
-  const resumeRealTimeStream = useCallback(() => {
-    historicalRawRef.current = null;
-    setViewingHistory(false);
-    const snap = liveSnapshotRef.current;
-    if (snap) {
-      liveRef.current = {
-        xIndex: snap.xIndex,
-        currentPaths: snap.paths,
-        timelineSeconds: snap.timelineSeconds,
-        frameRawSamples: cloneRaw(snap.frameRawSamples),
+  const [isViewingHistory, setViewingHistory] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const live = useRef<Snapshot>(initialSnapshot());
+  const reviewing = useRef(false);
+  const socket = useRef<ECGWebSocketClient | null>(null);
+  const activeSessionId = status.session?.session_id || '';
+  const [lastSession, setLastSession] = useState('');
+  const refreshStatus = status.refresh;
+  const activeDevice = status.session?.device_id;
+  const makeSnapshot = useCallback(
+    (raw: FrameRawSamples, metadata: any, complete: boolean): Snapshot => {
+      return {
+        raw,
+        metadata: { ...metadata, complete },
+        paths: emptyPaths(),
+        rPeaks: [],
+        heartRate: '--',
+        clinicalStatus: null,
       };
-      setPaths({ ...snap.paths });
-      setRPeaks(snap.rPeaks);
-      setHeartRate(snap.heartRate);
-      setClinicalStatus(snap.clinicalStatus);
-      setRawClassification(snap.rawClassification);
-      setPrediction(snap.prediction);
-    }
-  }, []);
-
-  const applyPayloadMeta = (payload: ECGDataPayload, timestamp?: string) => {
-    const { classification_result, prediction_details, system: sysData, network: netData, stress_test } = payload;
-    const classification = classification_result || prediction_details?.label || null;
-    if (classification) setRawClassification(classification);
-    if (prediction_details) setPrediction(prediction_details);
-    if (sysData) setSystem(sysData);
-    if (netData) setNetwork(netData);
-    if (stress_test) setStressTest(stress_test);
-    if (timestamp) {
-      setCreatedAt(timestamp);
-      setReceivedAt(new Date().toISOString());
-    }
-  };
-
-  const calculateBpmInBackground = (raw: FrameRawSamples, config: StreamFilterConfig, onResult: (bpm: number, rrIntervals: number[]) => void) => {
-    const worker = bpmWorkerRef.current;
-    if (!worker) {
-      const result = calculateFrameHeartRate(raw, config);
-      onResult(result.bpm, result.rrIntervals);
+    },
+    [],
+  );
+  const viewHistorical = useCallback(
+    (payload: any) => {
+      const raw = extractRawFromPayload(payload);
+      reviewing.current = true;
+      setViewingHistory(true);
+      setSnapshot(makeSnapshot(raw, payload, true));
+    },
+    [makeSnapshot],
+  );
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Patient changes discard the previous patient's waveform.
+    setSnapshot(initialSnapshot());
+    setTimeline([]);
+    setLastSession('');
+    setViewingHistory(false);
+    setError(null);
+    live.current = initialSnapshot();
+    reviewing.current = false;
+  }, [patientId]);
+  useEffect(() => {
+    if (!activeSessionId) {
+      socket.current?.disconnect();
       return;
     }
-
-    const id = ++bpmRequestIdRef.current;
-    worker.onmessage = (event: MessageEvent<{ id: number; bpm: number; rrIntervals: number[] }>) => {
-      if (event.data.id === id) onResult(event.data.bpm, event.data.rrIntervals);
-    };
-    worker.postMessage({ id, raw: cloneRaw(raw), config });
-  };
-
-  const showHistoricalSegment = (payload: ECGDataPayload, timestamp?: string) => {
-    setViewingHistory(true);
-    applyPayloadMeta(payload, timestamp);
-    const raw: FrameRawSamples = {
-      ch1: [...(payload.raw?.ch1 || [])],
-      ch2: [...(payload.raw?.ch2 || [])],
-      ch3: [...(payload.raw?.ch3 || [])],
-    };
-    historicalRawRef.current = raw;
-    const rendered = renderRawFrame(raw, filterConfigRef.current);
-    liveRef.current.currentPaths = rendered.paths;
-    calculateBpmInBackground(raw, filterConfigRef.current, (bpm, rrIntervals) => {
-      setHeartRate(bpm > 0 ? bpm : "--");
-      let classification = payload.classification_result || payload.prediction_details?.label || "UNKNOWN";
-      const isNormal = classification.toUpperCase() === "NORMAL" || classification.toUpperCase() === "NORM" || classification.toUpperCase() === "NON ARRHYTHMIA";
-      if (isNormal) {
-          classification = "Non Arrhythmia";
-      }
-      setClinicalStatus(generateClinicalExplanation(classification, !isNormal, evaluateIrregularity(rrIntervals)));
-    });
-  };
-
-  useEffect(() => {
-    filterConfigRef.current = filterConfig;
-    const raw = isViewingHistoryRef.current && historicalRawRef.current ? historicalRawRef.current : liveRef.current.frameRawSamples;
-    if (raw.ch1.length === 0) return;
-    const rendered = renderRawFrame(raw, filterConfig);
-    if (!isViewingHistoryRef.current) {
-      liveRef.current.currentPaths = rendered.paths;
-    }
-    if (raw.ch1.length >= TOTAL_POINTS) {
-      const stableResult = calculateFrameHeartRate(raw, filterConfig);
-      setHeartRate(stableResult.bpm > 0 ? stableResult.bpm : "--");
-    }
-  }, [filterConfig]);
-
-  const processLiveChunk = useCallback((payload: ECGDataPayload, timestamp?: string) => {
-    applyPayloadMeta(payload, timestamp);
-    let { xIndex, timelineSeconds, frameRawSamples } = liveRef.current;
-    const ch1 = payload.raw.ch1;
-    const ch2 = payload.raw.ch2;
-    const ch3 = payload.raw.ch3;
-    const config = filterConfigRef.current;
-    let classification_result = payload.classification_result;
-    const isNormal = classification_result?.toUpperCase() === "NORMAL" || classification_result?.toUpperCase() === "NORM" || classification_result?.toUpperCase() === "NON ARRHYTHMIA";
-    if (isNormal) {
-        classification_result = "Non Arrhythmia";
-    }
-
-    for (let i = 0; i < ch1.length; i++) {
-      if (xIndex >= TOTAL_POINTS) {
-        xIndex = 0;
-        timelineSeconds += 10;
-        frameRawSamples = emptyFrameRawSamples();
-      }
-
-      frameRawSamples.ch1.push(ch1[i]);
-      frameRawSamples.ch2.push(ch2[i]);
-      frameRawSamples.ch3.push(ch3.length > i ? ch3[i] : ch2[i] - ch1[i]);
-      xIndex++;
-
-      if (xIndex === TOTAL_POINTS) {
-        const completedRaw = cloneRaw(frameRawSamples);
-        calculateBpmInBackground(completedRaw, config, (bpm, rrIntervals) => {
-          setHeartRate(bpm > 0 ? bpm : "--");
-          const evalResult = evaluateIrregularity(rrIntervals);
-          const explanation = generateClinicalExplanation(classification_result || "UNKNOWN", !isNormal, evalResult);
-          setClinicalStatus(explanation);
-          liveSnapshotRef.current = {
-            ...(liveSnapshotRef.current as LiveSnapshot),
-            clinicalStatus: explanation,
-            heartRate: bpm > 0 ? bpm : "--",
-          };
-        });
-        setTimeline((prev) => [
-          ...prev,
-          {
-            index: timelineSeconds / 10,
-            timeStr: formatTime(timelineSeconds),
-            isAnomaly: !isNormal,
-            classResult: classification_result || "UNKNOWN",
-          },
+    // oxlint-disable-next-line react/set-state-in-effect -- Server session changes reset the external socket subscription.
+    setLastSession(activeSessionId);
+    const client = new ECGWebSocketClient(endpoint, activeSessionId);
+    socket.current = client;
+    live.current = initialSnapshot();
+    setSnapshot(initialSnapshot());
+    setTimeline([]);
+    reviewing.current = false;
+    setViewingHistory(false);
+    setError(null);
+    let disposed = false;
+    const recover = async () => {
+      try {
+        const [records, metadata] = await Promise.all([
+          apiJson<any[]>('/api/records/' + activeSessionId + '?latest=true'),
+          apiJson<{ data: any[] }>(
+            '/api/sessions/' +
+              activeSessionId +
+              '/frames?latest=true&limit=100',
+          ),
         ]);
-      }
-    }
-
-    const rendered = renderRawFrame(frameRawSamples, config);
-    liveRef.current = { xIndex, currentPaths: rendered.paths, timelineSeconds, frameRawSamples };
-    const completedBpm = liveSnapshotRef.current?.heartRate ?? "--";
-    liveSnapshotRef.current = {
-      xIndex,
-      timelineSeconds,
-      frameRawSamples: cloneRaw(frameRawSamples),
-      paths: rendered.paths,
-      rPeaks: rendered.rPeaks,
-      heartRate: completedBpm,
-      clinicalStatus: liveSnapshotRef.current?.clinicalStatus ?? null,
-      rawClassification: classification_result || liveSnapshotRef.current?.rawClassification || null,
-      prediction: payload.prediction_details || liveSnapshotRef.current?.prediction || null,
-    };
-  }, []);
-
-  const processLiveChunkRef = useRef(processLiveChunk);
-  processLiveChunkRef.current = processLiveChunk;
-  const showHistoricalSegmentRef = useRef(showHistoricalSegment);
-  showHistoricalSegmentRef.current = showHistoricalSegment;
-
-  const initWebSocket = useCallback(() => {
-    if (!clientRef.current) {
-      clientRef.current = new ECGWebSocketClient(endpoint);
-      clientRef.current.onMessage = (msg: ServerMessage) => {
-        if (msg.type === "summary" && msg.data) {
-          const summaries = msg.data.map((seg) => {
-            let classRes = (seg as any).class_result;
-            const isNormal = classRes?.toUpperCase() === "NORMAL" || classRes?.toUpperCase() === "NORM" || classRes?.toUpperCase() === "NON ARRHYTHMIA";
-            if (isNormal) {
-                classRes = "Non Arrhythmia";
-            }
-            return { index: (seg as any).index, timeStr: formatTime((seg as any).index * 10), isAnomaly: !isNormal, classResult: classRes };
-          });
-          setTimeline(summaries);
-        } else if (msg.type === "live_data" || msg.type === "segment_data") {
-          if (msg.device_id) setDeviceId(msg.device_id);
-          if (msg.session_id) {
-            setSessionId(msg.session_id);
-            lastSessionIdRef.current = msg.session_id;
-          }
-          if (msg.data_payload) {
-            if (msg.type === "segment_data") {
-              showHistoricalSegmentRef.current(msg.data_payload, msg.timestamp);
-            } else if (msg.type === "live_data" && !isViewingHistoryRef.current) {
-              processLiveChunkRef.current(msg.data_payload, msg.timestamp);
-            }
-          }
-        } else if (msg.type === "status") {
-          const status = String((msg as any).status || (msg as any).recording_status || "").toUpperCase();
-          if (status === "START" || status === "RECORDING") setIsRecording(true);
-          if (status === "STOP" || status === "STOPPED") setIsRecording(false);
+        if (disposed) return;
+        const events = (metadata.data || records).map((record) => ({
+          index: Number(record.frame_number) - 1,
+          timeStr: formatRecordingTime(record.start_time),
+          isAnomaly:
+            record.label !== 'UNKNOWN' && !isNormalClassification(record.label),
+          classResult: record.label || 'UNKNOWN',
+        }));
+        setTimeline((previous) =>
+          [
+            ...new Map(
+              [...previous, ...events].map((event) => [event.index, event]),
+            ).values(),
+          ]
+            .sort((left, right) => left.index - right.index)
+            .slice(-300),
+        );
+        const latest = records.at(-1);
+        if (
+          latest &&
+          (!live.current.raw.ch1.length ||
+            Number(latest.frame_number) >=
+              Number(live.current.metadata.frame_number || 0))
+        ) {
+          live.current = makeSnapshot(
+            extractRawFromPayload(latest),
+            latest,
+            true,
+          );
+          if (!reviewing.current) setSnapshot(live.current);
+          setError(null);
         }
-      };
-      clientRef.current.onClose = () => undefined;
-    }
-  }, [endpoint, processLiveChunk]);
-
-  useEffect(() => {
-    if (isRecording) {
-      if (!clientRef.current?.isConnected()) {
-        setTimeline([]);
-        setClinicalStatus(null);
-        setHeartRate("--");
-        setRawClassification(null);
-        liveRef.current = { xIndex: 0, currentPaths: { I: [], II: [], III: [], aVR: [], aVL: [], aVF: [], V1: [] }, timelineSeconds: 0, frameRawSamples: emptyFrameRawSamples() };
-        liveSnapshotRef.current = null;
-        historicalRawRef.current = null;
-        setViewingHistory(false);
-        initWebSocket();
-        clientRef.current?.connect();
+      } catch (problem) {
+        if (!disposed)
+          setError(
+            problem instanceof Error
+              ? problem.message
+              : 'Pemulihan rekaman gagal',
+          );
       }
-    } else {
-      clientRef.current?.disconnect();
-      setViewingHistory(false);
-      historicalRawRef.current = null;
-    }
-  }, [isRecording, initWebSocket]);
-
-  const startStream = () => {
-    if (isRecording) return;
-    setIsRecording(true);
-  };
-
-  const stopStream = () => {
-    setIsRecording(false);
-  };
-
-  const fetchSummary = () => {
-    initWebSocket();
-    clientRef.current?.connect();
-  };
-
-  const fetchSegment = (index: number) => {
-    if (clientRef.current && clientRef.current.isConnected()) {
-      clientRef.current.sendCommand({ command: "get_segment", index });
-    } else {
-      const sid = sessionId || lastSessionIdRef.current;
-      if (sid) {
-        fetchWithAuth(`/api/records/${sid}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data && data.length > 0) {
-              const targetSessionId = data[data.length - 1].session_id;
-              const filteredData = targetSessionId ? data.filter((p: any) => p.session_id === targetSessionId) : data;
-              const target = filteredData[index];
-              if (target) {
-                showHistoricalSegment(target, target.created_at || new Date().toISOString());
-              }
-            }
-          })
-          .catch(console.error);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (typeof Worker !== "undefined") {
-      bpmWorkerRef.current = new Worker(new URL("../../workers/bpm.worker.ts", import.meta.url), { type: "module" });
-    }
-    return () => {
-      clientRef.current?.disconnect();
-      bpmWorkerRef.current?.terminate();
-      bpmWorkerRef.current = null;
     };
+    client.onOpen = () => {
+      setError(null);
+      void recover();
+    };
+    client.onError = (problem) =>
+      setError(
+        typeof problem === 'string' ? problem : 'Koneksi streaming terganggu',
+      );
+    client.onMessage = (message: ServerMessage) => {
+      const packet = message as ServerMessage & {
+        sample_offset?: number;
+        sample_count?: number;
+        sampling_rate_hz?: number;
+        start_time?: number;
+        duration_s?: number;
+        frame_number?: number;
+      };
+      if (packet.session_id !== activeSessionId) return;
+      if (
+        activeDevice &&
+        packet.device_id &&
+        packet.device_id !== activeDevice
+      ) {
+        setError('Perangkat stream tidak sesuai');
+        return;
+      }
+      if (packet.type === 'status') {
+        void refreshStatus();
+        return;
+      }
+      if (packet.type === 'segment_data' && packet.data_payload) {
+        viewHistorical({
+          ...packet.data_payload,
+          sampling_rate_hz: packet.sampling_rate_hz,
+          start_time: packet.start_time,
+        });
+        return;
+      }
+      if (packet.type !== 'live_data' || !packet.data_payload) return;
+      if (
+        Number(packet.frame_number) <
+        Number(live.current.metadata.frame_number || 0)
+      )
+        return;
+      try {
+        const rate = packet.sampling_rate_hz;
+        const total = packet.sample_count;
+        const offset = packet.sample_offset;
+        if (
+          !rate ||
+          rate < 100 ||
+          rate > 1000 ||
+          !Number.isInteger(total) ||
+          !total ||
+          total > 30000 ||
+          !Number.isInteger(offset) ||
+          offset! < 0 ||
+          offset! >= total ||
+          !Number.isInteger(packet.frame_number) ||
+          !packet.measurement_id
+        )
+          throw new Error('Metadata frame tidak valid');
+        const incoming = extractRawFromPayload({
+          ...packet.data_payload,
+          sampling_rate_hz: rate,
+          start_time: packet.start_time,
+        });
+        if (!incoming.ch1.length || incoming.ch1.length > total - offset!)
+          throw new Error('Ukuran chunk tidak sesuai frame');
+        const sameFrame =
+          live.current.metadata.measurement_id === packet.measurement_id ||
+          live.current.metadata.id === packet.measurement_id;
+        const existing = sameFrame
+          ? live.current.raw
+          : {
+              ch1: [],
+              ch2: [],
+              ch3: [],
+              samplingRate: rate,
+              startTime: packet.start_time,
+            };
+        if (existing.samplingRate !== rate)
+          throw new Error('Sampling rate berubah di dalam frame');
+        if (offset! < existing.ch1.length) return;
+        if (offset !== existing.ch1.length) {
+          void recover();
+          throw new Error('Ada sampel terlewat; memulihkan rekaman');
+        }
+        const raw = {
+          ch1: [...existing.ch1, ...incoming.ch1],
+          ch2: [...existing.ch2, ...incoming.ch2],
+          ch3: [...existing.ch3, ...incoming.ch3],
+          samplingRate: rate,
+          startTime: packet.start_time,
+        };
+        const complete = raw.ch1.length === total;
+        const metadata = {
+          ...packet,
+          ...packet.data_payload,
+          received_at: new Date().toISOString(),
+          raw: undefined,
+          sample_count: total,
+          sampling_rate_hz: rate,
+          start_time: packet.start_time,
+        };
+        const next = makeSnapshot(raw, metadata, complete);
+        live.current = next;
+        if (!reviewing.current) setSnapshot(next);
+        if (complete) {
+          const index = (packet.frame_number || 1) - 1;
+          const label =
+            metadata.prediction_details?.label ||
+            metadata.classification_result ||
+            'UNKNOWN';
+          setTimeline((previous) =>
+            [
+              ...previous.filter((event) => event.index !== index),
+              {
+                index,
+                timeStr: formatRecordingTime(packet.start_time || 0),
+                isAnomaly:
+                  label !== 'UNKNOWN' && !isNormalClassification(label),
+                classResult: label,
+              },
+            ].slice(-300),
+          );
+        }
+      } catch (problem) {
+        setError(problem instanceof Error ? problem.message : 'Frame ditolak');
+      }
+    };
+    client.connect();
+    return () => {
+      disposed = true;
+      client.disconnect();
+      socket.current = null;
+    };
+  }, [
+    activeSessionId,
+    endpoint,
+    activeDevice,
+    refreshStatus,
+    makeSnapshot,
+    viewHistorical,
+  ]);
+  const resumeRealTimeStream = useCallback(() => {
+    reviewing.current = false;
+    setViewingHistory(false);
+    setSnapshot(live.current);
   }, []);
-
+  const fetchSegment = (index: number) => {
+    if (socket.current?.isConnected())
+      socket.current.sendCommand({ command: 'get_segment', index });
+    else if (lastSession)
+      void apiJson<any[]>(
+        '/api/records/' + lastSession + '?frame_number=' + (index + 1),
+      )
+        .then((records) => {
+          const frame = records.find(
+            (record) => Number(record.frame_number) === index + 1,
+          );
+          if (frame) viewHistorical(frame);
+          else throw new Error('Frame tidak tersedia');
+        })
+        .catch((problem) => setError(problem.message));
+  };
+  const metadata = snapshot.metadata;
+  const { processed, error: processingError } = useEcgProcessing(
+    snapshot.raw,
+    filterConfig,
+  );
+  const clinicalStatus = metadata.complete
+    ? generateClinicalExplanation(
+        metadata.prediction_details?.label ||
+          metadata.prediction?.label ||
+          metadata.classification_result ||
+          metadata.label ||
+          'UNKNOWN',
+        !isNormalClassification(
+          metadata.prediction_details?.label ||
+            metadata.prediction?.label ||
+            metadata.classification_result ||
+            metadata.label,
+        ),
+        evaluateIrregularity(processed.rrIntervals),
+      )
+    : null;
   return {
-    isRecording,
-    paths,
-    rPeaks,
-    heartRate,
+    isRecording: status.isRecording,
+    paths: processed.paths,
+    rPeaks: processed.rPeaks,
+    heartRate: metadata.complete ? processed.bpm || '--' : '--',
     clinicalStatus,
     timeline,
-    startStream,
-    stopStream,
-    fetchSummary,
+    startStream: () => {
+      void status.refresh();
+    },
+    stopStream: () => {
+      void status.refresh();
+    },
+    fetchSummary: () => {
+      void status.refresh();
+    },
     fetchSegment,
-    system,
-    network,
-    prediction,
-    stressTest,
-    createdAt,
-    receivedAt,
-    deviceId,
-    sessionId,
-    rawClassification,
+    system: metadata.system || null,
+    network: metadata.network || null,
+    prediction: metadata.prediction_details || metadata.prediction || null,
+    stressTest: metadata.stress_test || null,
+    createdAt: metadata.timestamp || metadata.created_at || null,
+    receivedAt: metadata.received_at || null,
+    deviceId: status.session?.device_id || '',
+    sessionId: activeSessionId || lastSession,
+    rawClassification:
+      metadata.classification_result ||
+      metadata.prediction?.label ||
+      metadata.label ||
+      null,
     isViewingHistory,
     resumeRealTimeStream,
+    segment: {
+      payload: { ...metadata, raw: snapshot.raw },
+      rPeaks: processed.rPeaks,
+    },
+    session: status.session,
+    error: error || processingError || status.error?.message || null,
   };
 };
