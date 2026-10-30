@@ -1,0 +1,25 @@
+{
+  "scope": "local_only",
+  "verified_at_utc": "2026-10-30T11:24:50.583926+00:00",
+  "commands": [
+    "npm run typecheck",
+    "npm run lint",
+    "npm test",
+    "npm run build (explicit production URLs; synthetic local public key)",
+    "npm run test:e2e",
+    "isolated retry of mobile patient-history",
+    "npm audit --audit-level=moderate"
+  ],
+  "results": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit_tests": "69 passed",
+    "production_build": "passed",
+    "browser_final": "71 passed with one worker",
+    "browser_initial_parallel": "70 passed; 1 timeout",
+    "browser_retry": "1 passed",
+    "audit": "4 low severity transitive findings; no moderate/high/critical failure"
+  },
+  "source_and_test_files_sha256": "1cae44c126c226c5f95905c72fca4ecd4b2cca8d9cd232ac0f034f1934da321a",
+  "production_changed": false
+}
