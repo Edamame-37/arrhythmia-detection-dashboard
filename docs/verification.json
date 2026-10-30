@@ -1,59 +1,22 @@
 {
-  "verified_at_utc": "2026-10-28T08:54:20.892111+00:00",
-  "baseline_commit": "bcec619591c6566f0e542c17efeea1cc295400a8",
-  "verification_target": "uncommitted local working tree",
-  "source_and_test_files_sha256": "3e0a7606af11378aba7303c391cb4adf06a18bf05a0a62838f540abeba44474a",
-  "source_and_test_file_count": 114,
-  "host": "Windows x86_64",
-  "tools": {
-    "rustc": "1.96.0",
-    "cargo": "1.96.0",
-    "node": "24.16.0",
-    "npm": "11.13.0",
-    "python": "3.14.6"
-  },
+  "verified_at_utc": "2026-10-30T11:24:50.583926+00:00",
+  "baseline_commit": "8dfb62482bc675d66447cd70d13076bcc025c174",
+  "verification_target": "local 2.0.0-rc.1 refinement before per-file commits",
+  "source_and_test_files_sha256": "1cae44c126c226c5f95905c72fca4ecd4b2cca8d9cd232ac0f034f1934da321a",
+  "source_and_test_file_count": 115,
+  "fingerprint_algorithm": "SHA256 sorted relative path plus NUL plus raw bytes plus NUL",
   "results": {
-    "unit_tests_passed": 57,
+    "unit_tests_passed": 69,
+    "unit_test_files": 17,
     "browser_scenarios_passed": 71,
+    "browser_single_worker_run": "passed",
+    "prior_parallel_run": "70 passed; 1 timeout; timed-out scenario passed on immediate retry",
     "typecheck": "passed",
     "lint_deny_warnings": "passed",
-    "build": "passed",
-    "npm_audit_vulnerabilities": 0,
-    "npm_audit_note": "0 vulnerabilities in the prior 2026-10-27 evidence; dependencies unchanged during UI restoration; audit not repeated"
+    "production_build": "passed with explicit reviewed domains and a synthetic local public key",
+    "npm_audit": "4 low severity transitive development/PWA findings; command exits successfully at moderate threshold"
   },
   "production_changed": false,
-  "external_acceptance": "UI restoration verified locally; live Auth, camera hardware, device/broker and deployment acceptance remain in backend docs/rollout.md",
-  "fingerprint_algorithm": "SHA256: sorted relative UTF-8 path, NUL, raw file bytes, NUL; src/**/*.{ts,tsx,css}, e2e/**/*.ts",
-  "ui_restoration": {
-    "baseline_commit": "bcec619591c6566f0e542c17efeea1cc295400a8",
-    "route_layouts": 27,
-    "viewports": [
-      1440,
-      390
-    ],
-    "final_route_screenshots": 54,
-    "baseline_reference_screenshots": 18,
-    "reference_method": "Original commit source rendered with current installed toolchain and synthetic Auth/API data",
-    "scope": "frontend UI, tests and documentation",
-    "backend_database_and_env_changed": false,
-    "local_backup": "%TEMP%/ecgrhythmia-ui-restoration-20261028_131133/audit-working-tree.zip",
-    "visual_artifacts": "%TEMP%/ecgrhythmia-ui-restoration-20261028_131133/after"
-  },
-  "test_account_lookup": {
-    "verified_on": "2026-10-28",
-    "names_by_role": {
-      "pasien": "Patient Test",
-      "dokter": "Doctor Test"
-    },
-    "lookup": "Authenticated admin API, independent pagination with limit=100",
-    "name_matching": "Case-insensitive, normalized whitespace, exact full name and role",
-    "ambiguous_matches": "Reported as an error; no arbitrary identity selection",
-    "loading_empty_error_retry": "verified",
-    "unit_regressions": 7,
-    "browser_regressions": 3,
-    "existing_accounts_verified_read_only": true,
-    "existing_profiles_per_test_account": 1,
-    "account_auth_database_or_env_modified": false,
-    "screenshots": "%TEMP%/ecgrhythmia-test-account-verification/"
-  }
+  "remote_application_deployed": false,
+  "external_acceptance": "Live Auth, broker/device, camera hardware, physical calibration, protected release variables and deployed HTTPS/PWA acceptance remain pending"
 }
