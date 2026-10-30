@@ -13,8 +13,8 @@ export interface RuleBasedResult {
   isIrregular: boolean;
 }
 export const isNormalClassification = (label: string | null | undefined) =>
-  ['NORMAL', 'NORM', 'NSR', 'NON ARRHYTHMIA'].includes(
-    (label || '').toUpperCase(),
+  ['NORMAL', 'NORM', 'NSR', 'NON ARRHYTHMIA', 'NON ARITMIA'].includes(
+    (label || '').trim().replace(/\s+/g, ' ').toUpperCase(),
   );
 export function evaluateIrregularity(intervals: number[]): RuleBasedResult {
   const validIntervals = intervals.filter(
