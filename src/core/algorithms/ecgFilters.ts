@@ -1,74 +1,89 @@
-/**
- * @fileoverview Modul Core: ECG Filter Pipeline
- * Mengimplementasikan pembersihan sinyal (Sanitasi), Denoising frekuensi tinggi (Moving Average),
- * Koreksi baseline wander (High-Pass), dan Normalisasi Z-score (skala amplitudo standar).
- */
-
 export class MovingAverageFilter {
-    private buffer: number[] = [];
-    private size: number;
-
-    constructor(size: number = 5) {
-        this.size = size;
-    }
-
-    public process(val: number): number {
-        this.buffer.push(val);
-        if (this.buffer.length > this.size) {
-            this.buffer.shift();
-        }
-        const sum = this.buffer.reduce((a, b) => a + b, 0);
-        return sum / this.buffer.length;
-    }
-
-    public reset(): void {
-        this.buffer = [];
-    }
+  private buffer: number[] = [];
+  private size: number;
+  constructor(size = 5) {
+    this.size = size;
+  }
+  process(value: number): number {
+    this.buffer.push(value);
+    if (this.buffer.length > this.size) this.buffer.shift();
+    return (
+      this.buffer.reduce((total, sample) => total + sample, 0) /
+      this.buffer.length
+    );
+  }
+  reset() {
+    this.buffer = [];
+  }
 }
-
+class Biquad {
+  private x1 = 0;
+  private x2 = 0;
+  private y1 = 0;
+  private y2 = 0;
+  private coefficients: [number, number, number, number, number];
+  constructor(
+    kind: 'highpass' | 'lowpass',
+    cutoff: number,
+    samplingRate: number,
+  ) {
+    const omega = (2 * Math.PI * cutoff) / samplingRate;
+    const cosine = Math.cos(omega);
+    const alpha = Math.sin(omega) / Math.SQRT2;
+    const denominator = 1 + alpha;
+    const numerator = kind === 'lowpass' ? (1 - cosine) / 2 : (1 + cosine) / 2;
+    this.coefficients = [
+      numerator / denominator,
+      ((kind === 'lowpass' ? 2 : -2) * numerator) / denominator,
+      numerator / denominator,
+      (-2 * cosine) / denominator,
+      (1 - alpha) / denominator,
+    ];
+  }
+  process(value: number): number {
+    const [b0, b1, b2, a1, a2] = this.coefficients;
+    const output =
+      b0 * value + b1 * this.x1 + b2 * this.x2 - a1 * this.y1 - a2 * this.y2;
+    this.x2 = this.x1;
+    this.x1 = value;
+    this.y2 = this.y1;
+    this.y1 = output;
+    return output;
+  }
+  reset() {
+    this.x1 = this.x2 = this.y1 = this.y2 = 0;
+  }
+}
+/** Causal second-order Butterworth high-pass and low-pass sections.
+ * Each cutoff is approximately -3 dB. This filter is not zero-phase. */
 export class IIRFilter {
-    private x1 = 0;
-    private x2 = 0;
-    private y1 = 0;
-    private y2 = 0;
-    
-    // Butterworth Bandpass 0.5Hz - 40Hz coefficients at 250Hz sampling rate
-    // b = [0.3622, 0, -0.3622], a = [1, -1.0270, 0.2756]
-    private b = [0.3622, 0, -0.3622];
-    private a = [-1.0270, 0.2756];
-
-    public process(x: number): number {
-        const y = this.b[0] * x + this.b[1] * this.x1 + this.b[2] * this.x2 
-                  - this.a[0] * this.y1 - this.a[1] * this.y2;
-                  
-        this.x2 = this.x1;
-        this.x1 = x;
-        this.y2 = this.y1;
-        this.y1 = y;
-        
-        return y;
-    }
-
-    public reset(): void {
-        this.x1 = 0;
-        this.x2 = 0;
-        this.y1 = 0;
-        this.y2 = 0;
-    }
+  private highpass: Biquad;
+  private lowpass: Biquad;
+  constructor(samplingRate = 250) {
+    if (!Number.isFinite(samplingRate) || samplingRate < 100)
+      throw new Error('Bandpass requires sampling rate >= 100 Hz');
+    this.highpass = new Biquad('highpass', 0.5, samplingRate);
+    this.lowpass = new Biquad('lowpass', 40, samplingRate);
+  }
+  process(value: number) {
+    return this.lowpass.process(this.highpass.process(value));
+  }
+  reset() {
+    this.highpass.reset();
+    this.lowpass.reset();
+  }
 }
-
 export interface FilterStates {
-    sanitize: boolean;
-    baseline: boolean;
-    denoise: boolean;
-    bandpass: boolean;
-    normalization: boolean;
+  sanitize: boolean;
+  baseline: boolean;
+  denoise: boolean;
+  bandpass: boolean;
+  normalization: boolean;
 }
-
 export const DEFAULT_FILTERS: FilterStates = {
-    sanitize: true,
-    baseline: true,
-    denoise: true,
-    bandpass: false,
-    normalization: false
+  sanitize: true,
+  baseline: true,
+  denoise: true,
+  bandpass: false,
+  normalization: false,
 };
