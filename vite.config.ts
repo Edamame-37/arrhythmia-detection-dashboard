@@ -3,6 +3,26 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  if (mode === 'production') {
+    const required = [
+      'VITE_API_URL',
+      'VITE_WS_URL',
+      'VITE_SUPABASE_URL',
+      'VITE_SUPABASE_ANON_KEY',
+    ];
+    for (const name of required) {
+      const value = env[name]?.trim();
+      if (!value || /placeholder|example|replace|your-project/i.test(value)) {
+        throw new Error(`${name} must contain an explicit production value`);
+      }
+    }
+    if (!env.VITE_API_URL.startsWith('https://'))
+      throw new Error('VITE_API_URL must use HTTPS in production');
+    if (!env.VITE_WS_URL.startsWith('wss://'))
+      throw new Error('VITE_WS_URL must use WSS in production');
+    if (!env.VITE_SUPABASE_URL.startsWith('https://'))
+      throw new Error('VITE_SUPABASE_URL must use HTTPS in production');
+  }
   const target = env.DEV_API_TARGET || 'http://127.0.0.1:8081';
   const proxyAuth = env.VITE_SUPABASE_URL === '/supabase';
   if (proxyAuth && !env.VITE_ACTUAL_SUPABASE_URL?.startsWith('https://')) {
