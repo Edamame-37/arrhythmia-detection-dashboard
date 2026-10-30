@@ -1,0 +1,13 @@
+
+> arrhythmia-detection-dashboard@0.2.0 test
+> vitest run
+
+
+ RUN  v4.1.12 <workspace>/arrhythmia-detection-dashboard
+
+
+ Test Files  16 passed (16)
+      Tests  57 passed (57)
+   Start at  15:42:26
+   Duration  9.79s (transform 1.31s, setup 7.08s, import 3.12s, tests 2.75s, environment 33.33s)
+
