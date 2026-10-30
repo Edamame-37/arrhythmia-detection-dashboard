@@ -1,124 +1,116 @@
-/**
- * @fileoverview Modul Core: Mesin Aturan Klinis & Holter (Rule-Based Engine)
- * Mengadopsi algoritma ekstraksi metrik klinis dari Research-Grade v5.0 (logic_layer.py)
- * untuk menghitung HR, RMSSD, QTc, dan mengidentifikasi anomali dasar.
- */
-
 export interface ClinicalExplanation {
-    isAnomaly: boolean;
-    severity: 'NORMAL' | 'WARNING' | 'CRITICAL';
-    fullExplanation: string;
+  isAnomaly: boolean;
+  severity: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'INSUFFICIENT';
+  fullExplanation: string;
 }
-
 export interface RuleBasedResult {
-    hr: number;
-    rrAvgMs: number;
-    rmssdMs: number;
-    qtcMs: number;
-    events: string[];
-    isIrregular: boolean;
+  valid: boolean;
+  hr: number;
+  rrAvgMs: number;
+  rmssdMs: number;
+  qtcMs: null;
+  events: string[];
+  isIrregular: boolean;
 }
-
-/**
- * Menghitung metrik Holter berdasarkan kumpulan interval RR (dalam detik).
- * Algoritma ini diadopsi dari `extract_holter_metrics` versi Python.
- * 
- * @param rrIntervalsSec Array jarak antar R-Peak dalam satuan detik.
- * @param tolerance (Opsional) Toleransi iregularitas, disediakan untuk backward-compatibility.
- * @returns Objek metrik klinis (HR, RMSSD, QTc, Events).
- */
-
-export function evaluateIrregularity(rrIntervalsSec: number[]): RuleBasedResult {
-    // Jika data puncak belum cukup (minimal butuh 2 interval untuk perbandingan)
-    if (rrIntervalsSec.length < 2) {
-        return { 
-            hr: 0, rrAvgMs: 0, rmssdMs: 0, qtcMs: 0, 
-            events: ["Menganalisis..."], isIrregular: false 
-        };
-    }
-
-    // 1. Konversi ke Milidetik (ms) untuk presisi medis
-    const rrMs = rrIntervalsSec.map(sec => sec * 1000.0);
-    const rrAvg = rrMs.reduce((a, b) => a + b, 0) / rrMs.length;
-    
-    // 2. Kalkulasi Heart Rate (BPM)
-    const hr = rrAvg > 0 ? 60000.0 / rrAvg : 0;
-
-    // 3. Kalkulasi RMSSD (Root Mean Square of Successive Differences)
-    // Parameter standar emas untuk mengukur variabilitas detak jantung (HRV)
-    const rrDiffs: number[] = [];
-    for (let i = 1; i < rrMs.length; i++) {
-        rrDiffs.push(rrMs[i] - rrMs[i - 1]);
-    }
-    
-    let rmssd = 0;
-    if (rrDiffs.length > 0) {
-        const sqDiffSum = rrDiffs.reduce((sum, diff) => sum + (diff * diff), 0);
-        rmssd = Math.sqrt(sqDiffSum / rrDiffs.length);
-    }
-
-    // 4. Standar Deviasi dari interval RR untuk mendeteksi Iregularitas
-    const variance = rrMs.reduce((sum, rr) => sum + Math.pow(rr - rrAvg, 2), 0) / rrMs.length;
-    const stdRr = Math.sqrt(variance);
-
-    // 5. Kalkulasi QTc (Koreksi Interval QT) menggunakan Formula Bazett
-    // Asumsi durasi QT normal 360ms untuk keperluan simulasi
-    const qtMs = 360.0;
-    const qtc = rrAvg > 0 ? qtMs / Math.sqrt(rrAvg / 1000.0) : 0;
-
-    // 6. Aturan Status Klinis Dasar (Rules)
-    const events: string[] = [];
-    if (hr > 100) events.push("Tachycardia");
-    else if (hr < 60) events.push("Bradycardia");
-
-    // Aturan klinis: jika Standar Deviasi > 100ms, irama tidak teratur
-    if (stdRr > 100) events.push("Irregular Rhythm");
-
-    if (events.length === 0) events.push("Non Arrhythmia");
-
+export const isNormalClassification = (label: string | null | undefined) =>
+  ['NORMAL', 'NORM', 'NSR', 'NON ARRHYTHMIA'].includes(
+    (label || '').toUpperCase(),
+  );
+export function evaluateIrregularity(intervals: number[]): RuleBasedResult {
+  const validIntervals = intervals.filter(
+    (interval) => Number.isFinite(interval) && interval > 0,
+  );
+  if (validIntervals.length < 2 || validIntervals.length !== intervals.length) {
     return {
-        hr: Math.round(hr),
-        rrAvgMs: Math.round(rrAvg),
-        rmssdMs: Math.round(rmssd),
-        qtcMs: Math.round(qtc),
-        events,
-        isIrregular: stdRr > 100
+      valid: false,
+      hr: 0,
+      rrAvgMs: 0,
+      rmssdMs: 0,
+      qtcMs: null,
+      events: ['Menganalisis...'],
+      isIrregular: false,
     };
+  }
+  const milliseconds = validIntervals.map((interval) => interval * 1000);
+  const average =
+    milliseconds.reduce((sum, value) => sum + value, 0) / milliseconds.length;
+  const differences = milliseconds
+    .slice(1)
+    .map((value, index) => value - milliseconds[index]);
+  const rmssd = Math.sqrt(
+    differences.reduce((sum, value) => sum + value * value, 0) /
+      differences.length,
+  );
+  const deviation = Math.sqrt(
+    milliseconds.reduce((sum, value) => sum + (value - average) ** 2, 0) /
+      milliseconds.length,
+  );
+  const hr = 60000 / average;
+  const events: string[] = [];
+  if (hr > 100) events.push('Tachycardia');
+  else if (hr < 60) events.push('Bradycardia');
+  if (deviation > 100) events.push('Irregular Rhythm');
+  if (events.length === 0) events.push('Non Arrhythmia');
+  return {
+    valid: true,
+    hr: Math.round(hr),
+    rrAvgMs: Math.round(average),
+    rmssdMs: Math.round(rmssd),
+    qtcMs: null,
+    events,
+    isIrregular: deviation > 100,
+  };
 }
-
-/**
- * Mensintesis penjelasan klinis gabungan dari prediksi Jaringan Saraf Tiruan (AI)
- * dan mesin aturan (Rule-based) metrik Holter.
- * 
- * @param aiClass Hasil klasifikasi dari model (misal: "AF", "Normal")
- * @param aiAnomaly Apakah indeks AI mendeteksi anomali (TFLite/Keras)
- * @param ruleResult Hasil kalkulasi statistik RR dari evaluateIrregularity()
- */
 export function generateClinicalExplanation(
-    aiClass: string,
-    aiAnomaly: boolean,
-    ruleResult: RuleBasedResult
+  aiClass: string,
+  aiAnomaly: boolean,
+  result: RuleBasedResult,
 ): ClinicalExplanation {
-    
-    // Gabungan: Sistem akan membunyikan alarm jika AI mendeteksi anomali, 
-    // ATAU jika mesin aturan matematis menemukan Tachy/Brady/Iregular.
-    const isAnomaly = aiAnomaly || ruleResult.isIrregular || ruleResult.hr > 100 || ruleResult.hr < 60;
-    
-    const severity = isAnomaly ? 'CRITICAL' : 'NORMAL';
-    let explanation = "";
-    
-    if (!isAnomaly) {
-        explanation = `Non Arrhythmia. Jaringan AI menyimpulkan ${aiClass} dengan variasi interval (RMSSD: ${ruleResult.rmssdMs} ms). Detak jantung dan QTc (${ruleResult.qtcMs} ms) stabil.`;
-    } else {
-        const ruleEvents = ruleResult.events.filter(e => e !== "Non Arrhythmia" && e !== "Menganalisis...").join(" & ");
-        const eventStr = ruleEvents.length > 0 ? `Diagnosis Aturan Matematis: [${ruleEvents}].` : "";
-        
-        explanation = `PERINGATAN KLINIS: Analisis AI mendeteksi [${aiClass}]. ${eventStr} Variabilitas jantung (RMSSD) mencapai ${ruleResult.rmssdMs} ms dengan QTc ${ruleResult.qtcMs} ms. Tinjauan klinis disarankan.`;
-    }
-
+  const unknown =
+    !aiClass ||
+    ['UNKNOWN', 'UNAVAILABLE', 'UNCLASSIFIED'].includes(aiClass.toUpperCase());
+  const ruleAnomaly =
+    result.valid && (result.isIrregular || result.hr > 100 || result.hr < 60);
+  const isAnomaly = (!unknown && aiAnomaly) || ruleAnomaly;
+  if (isAnomaly) {
     return {
-        isAnomaly,
-        severity,
-        fullExplanation: explanation
+      isAnomaly: true,
+      severity: 'CRITICAL',
+      fullExplanation:
+        'PERINGATAN KLINIS: ' +
+        (!unknown ? 'AI [' + aiClass + ']. ' : 'Prediksi AI belum tersedia. ') +
+        (result.valid
+          ? 'Aturan: ' +
+            result.events.join(', ') +
+            '. RMSSD: ' +
+            result.rmssdMs +
+            ' ms.'
+          : 'Data RR belum cukup.'),
     };
+  }
+  if (!result.valid)
+    return {
+      isAnomaly: false,
+      severity: 'INSUFFICIENT',
+      fullExplanation: 'Data RR belum cukup untuk evaluasi irama.',
+    };
+  if (unknown)
+    return {
+      isAnomaly: false,
+      severity: 'WARNING',
+      fullExplanation:
+        'Prediksi AI belum tersedia. Hasil aturan: ' +
+        result.events.join(', ') +
+        '.',
+    };
+  return {
+    isAnomaly: false,
+    severity: 'NORMAL',
+    fullExplanation:
+      'Non Arrhythmia. AI [' +
+      aiClass +
+      '], RMSSD: ' +
+      result.rmssdMs +
+      ' ms. QTc tidak diukur.',
+  };
 }
