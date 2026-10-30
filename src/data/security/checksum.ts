@@ -1,20 +1,20 @@
-/**
- * @fileoverview Modul Data: Keamanan & Kriptografi
- * Mengisolasi logika validasi integritas data (SHA-256 Checksum).
- */
-
-export const verifyChecksum = async (_payload: any, expectedHash: string | undefined): Promise<boolean> => {
-    if (!expectedHash) return false;
-    try {
-        if (!window.crypto || !crypto.subtle) {
-            console.warn("[Keamanan] Crypto API tidak tersedia. Bypass verifikasi hash (Mode Development).");
-            return true; 
-        }
-        
-        // Catatan: Algoritma hash bisa diaktifkan di sini saat naik ke Production.
-        return true; 
-    } catch (error) {
-        console.error("[Keamanan] Error saat memverifikasi Checksum SHA-256:", error);
-        return false;
-    }
-};
+export async function verifyChecksum(
+  content: unknown,
+  expectedHash: string | undefined,
+): Promise<boolean> {
+  if (
+    typeof content !== 'string' ||
+    !expectedHash ||
+    !/^[a-f0-9]{64}$/.test(expectedHash) ||
+    !globalThis.crypto?.subtle
+  )
+    return false;
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(content),
+  );
+  const actual = Array.from(new Uint8Array(digest), (value) =>
+    value.toString(16).padStart(2, '0'),
+  ).join('');
+  return actual === expectedHash;
+}
