@@ -9,6 +9,7 @@ import { useSessionReview } from "../../../application/hooks/useSessionReview";
 import { useAuth } from "../../../application/context/AuthContext";
 import { apiJson, privatePhotoUrl } from "../../../config/api";
 import { formatRecordingTime } from "../../../core/algorithms/ecgCoordinates";
+import { isNormalClassification } from "../../../core/clinical/ruleBasedEngine";
 import { EcgViewer } from "./EcgViewer";
 import { VitalCard } from "./VitalCard";
 import { AiCard } from "./AiCard";
@@ -78,9 +79,8 @@ export const SessionReview: React.FC<{ sessionId: string }> = ({
     classResult: frame.label || "UNKNOWN",
     isAnomaly:
       !!frame.label &&
-      !["UNKNOWN", "NORM", "Normal", "NSR", "Non Arrhythmia"].includes(
-        frame.label,
-      ),
+      frame.label.trim().toUpperCase() !== "UNKNOWN" &&
+      !isNormalClassification(frame.label),
   }));
   const closePreview = () => {
     URL.revokeObjectURL(preview);
