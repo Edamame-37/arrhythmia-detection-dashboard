@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+const frameLabel = vi.hoisted(() => ({ value: undefined as string | undefined }));
 const frames = [
   { id: "fra_second", frame_number: 2, start_time: 10, end_time: 20 },
 ];
@@ -13,6 +14,7 @@ vi.mock("../application/hooks/useCachedFetch", () => ({
           ? [
               {
                 ...frames[0],
+                label: frameLabel.value,
                 sampling_rate_hz: 125,
                 ecg: { samples: Array.from({ length: 1250 }, () => [0, 0, 0]) },
               },
@@ -23,6 +25,9 @@ vi.mock("../application/hooks/useCachedFetch", () => ({
 }));
 import { useSessionReview } from "../application/hooks/useSessionReview";
 describe("history metadata contract", () => {
+  beforeEach(() => {
+    frameLabel.value = undefined;
+  });
   it("selects the database frame ID and retains original time after earlier frames are hidden", async () => {
     const { result } = renderHook(() => useSessionReview("ses_A"));
     await waitFor(() => expect(result.current.selectedId).toBe("fra_second"));
@@ -30,5 +35,12 @@ describe("history metadata contract", () => {
     expect(result.current.current?.raw.samplingRate).toBe(125);
     expect(result.current.current?.classification).toBe("UNKNOWN");
     expect(result.current.current?.heartRate).toBe("--");
+  });
+  it("retains a historical normal label without marking the recording anomalous", async () => {
+    frameLabel.value = "  Non Aritmia ";
+    const { result } = renderHook(() => useSessionReview("ses_A"));
+    await waitFor(() => expect(result.current.current).not.toBeNull());
+    expect(result.current.current?.classification).toBe("  Non Aritmia ");
+    expect(result.current.current?.isAnomaly).toBe(false);
   });
 });
