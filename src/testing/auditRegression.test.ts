@@ -9,9 +9,33 @@ import {
 import {
   evaluateIrregularity,
   generateClinicalExplanation,
+  isNormalClassification,
 } from '../core/clinical/ruleBasedEngine';
 import { readStored } from '../core/utils/storage';
 describe('audit ECG regressions', () => {
+  it.each(['Non Aritmia', ' non   aritmia ', 'Non Arrhythmia', 'NORMAL', 'norm', 'NSR'])(
+    'recognizes historical normal label %s without rewriting the source label',
+    (label) => {
+      expect(isNormalClassification(label)).toBe(true);
+      expect(
+        generateClinicalExplanation(
+          label,
+          !isNormalClassification(label),
+          evaluateIrregularity([0.8, 0.8, 0.8]),
+        ).isAnomaly,
+      ).toBe(false);
+      expect(
+        generateClinicalExplanation(
+          label,
+          !isNormalClassification(label),
+          evaluateIrregularity([0.4, 0.4, 0.4]),
+        ).isAnomaly,
+      ).toBe(true);
+    },
+  );
+  it.each(['AF', 'UNKNOWN', '', undefined])('does not invent a normal label for %s', (label) => {
+    expect(isNormalClassification(label)).toBe(false);
+  });
   it.each([125, 250, 500])(
     'preserves sampling rate %i and physical units',
     (samplingRate) => {
